@@ -1,0 +1,3157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>加班助手PRO</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%234c7bff'/><text y='70' x='50' text-anchor='middle' font-size='58' fill='white' font-family='sans-serif'>加</text></svg>">
+<style>/* ---------- 自定义时间选择器：仅显示临近 5 档，滚轮查看更多 ---------- */
+.tsel{position:relative;display:block;width:100%}
+.tsel-in{cursor:pointer;width:100%;text-align:center;padding-right:16px}
+.tsel-in.empty{color:#cdd3e0}
+.tsel-clr{
+  position:absolute;right:3px;top:50%;transform:translateY(-50%);
+  width:15px;height:15px;line-height:13px;text-align:center;font-size:13px;
+  color:#c2c8d6;cursor:pointer;border-radius:50%;opacity:0;transition:opacity .12s,color .12s,background .12s;
+}
+.tsel:hover .tsel-clr{opacity:.85}
+.tsel-clr:hover{color:#e2484d;background:#fdecec}
+.hcell{position:relative;display:block;width:100%}
+.hcell .cellin{width:100%;padding-right:16px}
+.hcell-clr{
+  position:absolute;right:3px;top:50%;transform:translateY(-50%);
+  width:15px;height:15px;line-height:13px;text-align:center;font-size:13px;
+  color:#c2c8d6;cursor:pointer;border-radius:50%;opacity:0;transition:opacity .12s,color .12s,background .12s;
+}
+.hcell:hover .hcell-clr{opacity:.85}
+.hcell-clr:hover{color:#e2484d;background:#fdecec}
+/* 事由单元格：复制 + 清除按钮，悬停淡显 */
+.rcell{position:relative;display:inline-block;vertical-align:middle}
+.rcell .cellin{padding-right:34px}
+.rcell .ca{
+  position:absolute;top:50%;transform:translateY(-50%);
+  width:15px;height:15px;line-height:14px;text-align:center;font-size:12px;
+  color:#c2c8d6;cursor:pointer;border-radius:50%;opacity:0;transition:opacity .12s,color .12s,background .12s;
+}
+.rcell .ca-copy{right:18px}
+.rcell .ca-clr{right:3px}
+.rcell:hover .ca{opacity:.85}
+.rcell .ca:hover{color:#e2484d;background:#fdecec}
+.tsel-pop{
+  position:absolute;z-index:60;top:calc(100% + 5px);left:0;
+  width:92px;height:200px;overflow-y:auto;overflow-x:hidden;padding:6px;
+  background:#fff;border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 14px 36px rgba(20,30,60,.20);animation:popin .14s ease;
+}
+.tsel-pop .pop-hd,.lsel-pop .pop-hd{
+  font-size:11px;font-weight:600;color:var(--tx-3);padding:2px 4px 6px;text-align:center;letter-spacing:.3px;
+}
+.tsel-pop .pop-hd{position:sticky;top:0;background:#fff;z-index:2}
+.tsel-pop .topt{
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  padding:7px 8px;margin:1px 0;font-size:13px;text-align:center;color:var(--tx);
+  cursor:pointer;border-radius:8px;font-variant-numeric:tabular-nums;line-height:1.3;transition:.12s;
+}
+.tsel-pop .topt:hover{background:var(--brand-soft)}
+.tsel-pop .topt.on{background:var(--brand);color:#fff;font-weight:600}
+.tsel-pop .topt.cur{background:var(--brand);color:#fff;font-weight:600}
+/* 换休：点击弹框选择 2/4/6/8 */
+.lsel{position:relative;display:block;width:100%}
+.lsel-in{cursor:pointer;width:100%;text-align:center;box-sizing:border-box;border:none;background:transparent;outline:none;padding:0;font:inherit;color:#7c3aed;appearance:none;-webkit-appearance:none;-moz-appearance:none}
+.lsel-in.empty{color:#cdd3e0}
+.lsel-in:focus{box-shadow:inset 0 0 0 2px var(--brand);border-radius:6px}
+.lsel-pop{
+  position:fixed;z-index:60;
+  width:168px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 14px 36px rgba(20,30,60,.20);animation:popin .14s ease;overflow:hidden;
+  display:flex;gap:4px;
+}
+.lsel-pop[hidden],.tsel-pop[hidden],.asel-pop[hidden],.msel-pop[hidden]{display:none}
+.lsel-pop .lopt-col{display:flex;flex-direction:column;gap:2px;flex:1}
+.lsel-pop .lopt{
+  display:flex;align-items:center;justify-content:center;gap:5px;flex:0 0 auto;
+  height:34px;font-size:13px;text-align:center;color:var(--tx);
+  cursor:pointer;border-radius:8px;font-variant-numeric:tabular-nums;line-height:1;transition:.12s;
+}
+.lsel-pop .lopt:hover{background:var(--brand-soft)}
+.lsel-pop .lopt.on{background:var(--brand);color:#fff;font-weight:600}
+.lsel-pop .lopt-annual{color:#1a9d50;font-weight:600}
+.lsel-pop .lopt-annual:hover{background:#e8f7f0}
+.lsel-pop .lopt-annual.on{background:#1a9d50;color:#fff}
+.lsel-in.annual-val{color:#15803d;font-weight:650}
+.cellin.lr-lv{color:#7c3aed}
+.cellin.lr-an{color:#15803d}
+.lsel-disabled{display:inline-block;width:52px;text-align:center;color:#c2c8d6;font-size:13.5px;cursor:not-allowed;user-select:none}
+/* 换休弹窗：纯选项列表，无标题栏 */
+
+/* 年假：点击弹框选择 0/1 */
+.asel{position:relative;display:block;width:100%;border-radius:8px;transition:.14s}
+.asel:hover{background:var(--brand-soft)}
+.asel-in{cursor:pointer;width:100%;text-align:center;box-sizing:border-box;transition:.14s;border-radius:8px;border:none;background:transparent;outline:none;padding:0;font:inherit;color:inherit}
+.asel-in.empty{color:#cdd3e0}
+.asel.on .asel-in{background:#eef1f6;color:var(--tx);font-weight:700}
+.asel-pop{
+  position:absolute;z-index:60;top:calc(100% + 3px);left:50%;transform:translateX(-50%);
+  width:56px;padding:4px;background:#fff;border:1px solid var(--line);border-radius:10px;
+  box-shadow:0 10px 28px rgba(20,30,60,.18);
+}
+.asel-pop .aopt{
+  padding:7px 8px;margin:1px 0;font-size:13px;text-align:center;color:var(--tx);
+  cursor:pointer;border-radius:7px;font-variant-numeric:tabular-nums;line-height:1.3;
+}
+.asel-pop .aopt:hover{background:var(--brand-soft)}
+.asel-pop .aopt.on{background:var(--brand);color:#fff;font-weight:600}
+
+:root{
+  --bg:#f4f6fa;
+  --card:#ffffff;
+  --line:#e6e9f0;
+  --line-2:#f0f2f7;
+  --tx:#1c2030;
+  --tx-2:#4b5163;
+  --tx-3:#7a8398;
+  --brand:#3b6bff;
+  --brand-soft:#eef2ff;
+  --work:#3b6bff;
+  --rest:#f5a524;
+  --holi:#e5484d;
+  --ok:#12b76a;
+  --shadow:0 1px 2px rgba(20,28,60,.04), 0 8px 24px rgba(20,28,60,.06);
+  --shadow-lg:0 12px 40px rgba(20,28,60,.14);
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);
+  color:var(--tx);
+  font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#d6dae4;border-radius:8px;border:3px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:#c2c8d6}
+
+/* ---------- layout ---------- */
+.wrap{max-width:1280px;margin:0 auto;padding:18px 24px 0;
+  flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.topbar{
+  flex:0 0 auto;
+  height:58px;
+  position:sticky;top:0;z-index:40;
+  background:rgba(244,246,250,.86);
+  backdrop-filter:saturate(180%) blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-in{max-width:1280px;margin:0 auto;padding:0 24px;height:100%;display:flex;align-items:center;gap:16px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:650;letter-spacing:-.2px;font-size:16px;white-space:nowrap}
+.logo .mk{
+  width:28px;height:28px;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(140deg,#4c7bff,#7a5cff);color:#fff;font-size:13px;font-weight:700;
+  box-shadow:0 4px 12px rgba(76,123,255,.32);
+}
+.spacer{flex:1}
+
+/* month switcher */
+.msw{display:flex;align-items:center;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:3px;box-shadow:var(--shadow)}
+.msw button{width:28px;height:28px;border-radius:8px;color:var(--tx-2);display:inline-flex;align-items:center;justify-content:center;font-size:16px;line-height:1;padding:0}
+.msw button:hover{background:var(--line-2);color:var(--tx)}
+.msw button:disabled{opacity:.28;cursor:default;background:none}
+.msw .cur{position:relative}
+.msel-btn{
+  appearance:none;border:none;background:none;font-weight:650;font-size:14.5px;
+  padding:4px 10px;border-radius:8px;cursor:pointer;text-align:center;color:var(--tx);
+  font-family:inherit;white-space:nowrap;min-width:90px;
+}
+.msel-btn:hover{background:var(--line-2)}
+.msel-wrap{display:inline-block}
+.msel-pop{
+  position:absolute;z-index:70;top:calc(100% + 5px);left:50%;transform:translateX(-50%);
+  width:180px;max-height:150px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 14px 36px rgba(20,30,60,.20);animation:popin .14s ease;overflow-y:auto;overscroll-behavior:contain;
+}
+.msel-pop .mopt{
+  position:relative;
+  display:flex;align-items:center;justify-content:space-between;gap:6px;
+  min-height:38px;padding:7px 8px;margin:1px 0;font-size:13px;color:var(--tx);
+  cursor:pointer;border-radius:8px;transition:.12s;
+}
+.msel-pop .mopt:hover{background:var(--brand-soft)}
+.msel-pop .mopt.on{background:var(--brand);color:#fff;font-weight:600}
+.msel-pop .mopt.cur{box-shadow:inset 3px 0 0 var(--brand)}
+.msel-pop .mopt .mopt-lbl{display:flex;align-items:center;justify-content:flex-start;gap:6px;flex:1;padding-right:28px}
+.msel-pop .mopt .ck{font-size:11px;font-weight:700}
+.msel-pop .mopt-del{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  width:22px;height:22px;border-radius:6px;display:grid;place-items:center;
+  color:var(--tx-3);font-size:15px;line-height:1;cursor:pointer;transition:.12s;
+}
+.msel-pop .mopt:hover .mopt-del{color:#e5484d;background:#fdecec}
+.msel-pop .mopt-del:hover{color:#fff;background:#e5484d}
+.msel-pop .mopt.on .mopt-del{color:rgba(255,255,255,.85);background:rgba(255,255,255,.18)}
+.msel-pop .mopt.on .mopt-del:hover{color:#fff;background:#e5484d}
+.msel-pop .mopt-del[hidden]{display:none}
+.msel-pop .mnew{
+  width:100%;box-sizing:border-box;appearance:none;border:none;
+  display:flex;align-items:center;justify-content:flex-start;
+  min-height:38px;margin-top:4px;padding:7px 8px;font-size:13px;font-weight:600;
+  color:var(--brand);background:var(--brand-soft);border-radius:8px;cursor:pointer;transition:.12s;
+  white-space:nowrap;font-family:inherit;
+}
+.msel-pop .mnew:hover{background:#dfe7ff}
+.msel-pop .mnew:disabled{opacity:.5;cursor:default}
+
+.btn{
+  height:34px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);
+  color:var(--tx-2);font-size:13.5px;font-weight:500;display:inline-flex;align-items:center;gap:6px;
+  box-shadow:var(--shadow);transition:.16s;white-space:nowrap;
+}
+.btn:hover{color:var(--tx);border-color:#d3d9e6;transform:translateY(-1px)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;box-shadow:0 4px 14px rgba(59,107,255,.28)}
+.btn.primary:hover{background:#2f5cf0}
+.btn.ghost{background:none;box-shadow:none;border-color:transparent}
+.btn.ghost:hover{background:var(--line-2)}
+.btn.sm{height:28px;padding:0 10px;font-size:12px;border-radius:8px}
+.btn.danger{color:var(--holi)}
+.btn.danger:hover{background:#fef2f2;border-color:#fbd5d5}
+
+/* tabs */
+.tabs{display:flex;gap:2px;background:#eaedf4;padding:3px;border-radius:11px}
+.tabs button{padding:6px 14px;border-radius:8px;font-size:13.5px;font-weight:500;color:var(--tx-2);transition:.16s}
+.tabs button:hover{color:var(--tx)}
+.tabs button.on{background:var(--brand);color:#fff;font-weight:600;box-shadow:0 3px 10px rgba(59,107,255,.30)}
+
+/* ---------- cards ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.card-h{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:16px 18px 0}
+.card-h h3{font-size:14px;font-weight:650;letter-spacing:-.1px}
+.card-h .sub{font-size:12px;color:var(--tx-3);font-weight:400}
+
+.grid-kpi{
+  display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;
+  padding:12px 0;margin:0;flex:0 0 auto;
+  transition:max-height .15s ease,opacity .12s ease,padding .15s ease,margin .15s ease;
+  max-height:none;opacity:1;overflow:visible;
+}
+/* 防御性保险：即便旧版 JS 残留给 KPI 加 .kpi-hidden，也绝不隐藏（用户要求 KPI 常驻） */
+#kpi.kpi-hidden{display:grid!important;max-height:none!important;opacity:1!important;padding-top:12px!important;padding-bottom:12px!important;margin:0!important}
+/* KPI 卡片：白底 + 彩色顶边；文字加深、对比度更高；去掉点击聚焦白框 */
+.kpi{background:#fff;border:1px solid var(--line);border-top:3px solid var(--ac, var(--line));border-radius:var(--r);padding:clamp(7px,1.1vw,10px) clamp(8px,1.4vw,12px);box-shadow:var(--shadow);position:relative;overflow:hidden;min-width:0;cursor:pointer;user-select:none;transition:background .12s ease,box-shadow .12s ease}
+.kpi:hover{background:color-mix(in srgb,var(--ac,#3b6bff) 5%,#fff)}
+.kpi:focus,.kpi:focus-visible{outline:none}
+/* active 态：彩色淡底（与筛选 chip 同色系）+ 同色内嵌描边（保留彩色描边、去掉白框） */
+.kpi.active{background:color-mix(in srgb,var(--ac,#3b6bff) 14%,#fff);box-shadow:inset 0 0 0 2px var(--ac,#3b6bff)}
+.kpi-top{display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.kpi-ic{width:clamp(18px,1.6vw,22px);height:clamp(18px,1.6vw,22px);border-radius:7px;display:grid;place-items:center;font-size:clamp(10px,1vw,12px);flex:0 0 auto;background:color-mix(in srgb,var(--ac,#3b6bff) 16%,#fff);color:var(--ac,#3b6bff)}
+.kpi .lb{font-size:clamp(11px,1.1vw,12.5px);color:var(--ac,var(--tx));display:flex;align-items:center;gap:5px;font-weight:600;min-width:0;overflow:hidden}
+.kpi .vl{font-size:clamp(15px,1.9vw,20px);font-weight:700;letter-spacing:-.6px;margin-top:4px;font-variant-numeric:tabular-nums;line-height:1.15;color:var(--ac,var(--tx))}
+.kpi .vl small{font-size:clamp(10px,1.05vw,12px);font-weight:500;color:var(--tx-2);margin-left:3px;letter-spacing:0}
+.kpi .df{font-size:clamp(10.5px,1.05vw,12px);color:var(--tx-1);margin-top:5px;font-variant-numeric:tabular-nums;white-space:normal;overflow-wrap:anywhere;line-height:1.35}
+.kpi .df b{font-weight:600;color:var(--tx)}
+.kpi .df .muted{color:var(--tx-2)}
+.kpi .df .lt{color:var(--tx-2)}
+.kpi.hl-blue .df .muted{color:var(--tx-2)}
+.kpi.hl-orange .df .muted{color:var(--tx-2)}
+.kpi-bar{height:4px;background:var(--line-2);border-radius:2px;margin-top:6px;overflow:hidden}
+.kpi-bar-in{height:100%;background:var(--ac,#3b6bff);border-radius:2px;transition:width .2s ease}
+.kpi-bar-in.over{background:var(--holi)}
+/* 高亮卡（餐补/加班费）：与普通 KPI 同样样式——白底 + 彩色顶边；文字/图标用自身 --ac 彩色 */
+.kpi.hl-blue .kpi-ic{background:color-mix(in srgb,#3b6bff 16%,#fff);color:#3b6bff}
+.kpi.hl-blue .lb{color:#3b6bff;font-weight:600}
+.kpi.hl-blue .vl{color:#2a4fd6}
+.kpi.hl-blue .vl small{color:var(--tx-2)}
+.kpi.hl-blue .df{color:var(--tx-1)}
+.kpi.hl-blue .df .lt{color:var(--tx-2)}
+.kpi.hl-blue .df b{color:var(--tx)}
+.kpi.hl-orange .kpi-ic{background:color-mix(in srgb,#ff7a18 16%,#fff);color:#ff7a18}
+.kpi.hl-orange .lb{color:#ff7a18;font-weight:600}
+.kpi.hl-orange .vl{color:#ea580c}
+.kpi.hl-orange .vl small{color:var(--tx-2)}
+.kpi.hl-orange .df{color:var(--tx-1)}
+.kpi.hl-orange .df .lt{color:var(--tx-2)}
+.kpi.hl-orange .df b{color:var(--tx)}
+/* 加班费：点击打开结算面板（非筛选），不加 hover 底色、不加 active 描边/底色 */
+.kpi.hl-orange:hover{background:#fff}
+.kpi.hl-orange.active{background:#fff;box-shadow:var(--shadow)}
+@keyframes popin{from{opacity:0}to{opacity:1}}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+
+.cols{display:grid;grid-template-columns:1fr 380px;gap:16px;align-items:start}
+
+/* ---------- calendar ---------- */
+.cal{padding:6px 14px 14px}
+.cal-hd{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:8px 0 6px}
+.cal-hd div{text-align:center;font-size:11.5px;color:var(--tx-3);font-weight:600;letter-spacing:.4px}
+.cal-hd div.we{color:var(--rest)}
+.cal-bd{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cel{
+  position:relative;min-height:88px;border-radius:11px;border:1px solid var(--line-2);
+  background:#fcfdff;padding:7px 8px 6px;text-align:left;transition:.14s;overflow:hidden;cursor:default;
+}
+.cel:hover{border-color:#c9d3f0;background:#fff;z-index:2}
+.cel.pad{background:transparent;border-color:transparent;pointer-events:none}
+.cel.rest{background:linear-gradient(180deg,#fff8ec,#fffdf7);box-shadow:inset 3px 0 0 #f5a524}
+.cel.holi{background:linear-gradient(180deg,#ffecec,#fff5f5);box-shadow:inset 3px 0 0 #e5484d}
+.cel.today{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset}
+.cel .dn{font-size:13px;font-weight:600;color:var(--tx-2);font-variant-numeric:tabular-nums;display:flex;align-items:center;justify-content:space-between}
+.cel.rest .dn{color:#b57810}
+.cel.holi .dn{color:#c0393d}
+.cel .tag{font-size:10px;padding:1px 5px;border-radius:5px;font-weight:600;letter-spacing:.2px}
+.cel .tag.r{background:#fdefd7;color:#a86c0a}
+.cel .tag.h{background:#fde3e3;color:#c0393d}
+.cel .tag.w{background:#e6ecff;color:#3355cc}
+.cel .bar{margin-top:6px;display:flex;flex-direction:column;gap:3px}
+.pill{
+  display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
+  padding:2px 6px;border-radius:6px;line-height:1.4;width:fit-content;max-width:100%;
+  font-variant-numeric:tabular-nums;
+}
+.pill.ot{background:#e6ecff;color:#2a4fd6}
+.pill.ot.r{background:#fdefd7;color:#a86c0a}
+.pill.ot.h{background:#fde3e3;color:#c0393d}
+.pill.lv{background:#e8f7ef;color:#0f8a52}
+.pill.an{background:#f2ebff;color:#6b3fd4}
+.cel .rsn{font-size:10.5px;color:var(--tx-3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cel .mk{position:absolute;right:7px;bottom:6px;display:flex;gap:3px;align-items:center}
+.cel .mk i{font-style:normal;font-size:10px;line-height:1}
+
+/* ---------- summary panel ---------- */
+.flow{padding:14px 18px 18px}
+.flow-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px dashed var(--line-2);font-variant-numeric:tabular-nums}
+.flow-row:last-child{border-bottom:none}
+.flow-row .k{font-size:13.5px;color:var(--tx-2);display:flex;align-items:center;gap:7px}
+.flow-row .v{font-size:14.5px;font-weight:620}
+.flow-row.tot{margin-top:6px;padding-top:12px;border-top:1.5px solid var(--line);border-bottom:none}
+.flow-row.tot .k{font-weight:600;color:var(--tx)}
+.flow-row.tot .v{font-size:20px;color:var(--brand);letter-spacing:-.4px}
+.op{color:var(--tx-3);font-weight:400;font-size:12px}
+
+table.tb{width:100%;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+table.tb th{
+  font-size:11.5px;font-weight:600;color:var(--tx-3);text-align:right;padding:8px 10px;
+  border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0;background:var(--card);z-index:1
+}
+table.tb th:first-child,table.tb td:first-child{text-align:left}
+table.tb td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line-2);font-size:13px}
+table.tb tr:last-child td{border-bottom:none}
+table.tb tbody tr:hover td{background:#fafbfe}
+table.tb tfoot td{font-weight:650;border-top:1.5px solid var(--line);border-bottom:none;background:#fafbfe}
+.muted{color:var(--tx-3)}
+.zero{color:#c8cddb}
+/* 顶部预警横幅 */
+#alerts{display:flex;flex-direction:column;gap:8px;margin:8px 0 4px;padding-bottom:4px}
+.alert{display:flex;align-items:flex-start;gap:9px;padding:11px 14px;border-radius:12px;font-size:13.5px;line-height:1.5;animation:popin .16s ease;position:relative}
+.alert .ai{flex:0 0 auto;font-size:16px;line-height:1.3}
+.alert.warn{background:#fff7e6;border:1px solid #ffe1a8;color:#92590a}
+.alert.danger{background:#fdecec;border:1px solid #f6c4c4;color:#c0392b}
+.alert.info{background:#eef3ff;border:1px solid #d6e2ff;color:#2b4ea8}
+.alert b{font-weight:700}
+.alert.clickable{cursor:pointer;transition:background .12s,box-shadow .12s}
+.alert.warn.clickable:hover{background:#fff0d4;box-shadow:inset 0 0 0 1px #ffd591}
+.alert.danger.clickable:hover{background:#fde2e2;box-shadow:inset 0 0 0 1px #f3b6b6}
+.alert.info.clickable:hover{background:#e6edff;box-shadow:inset 0 0 0 1px #cad9ff}
+.alert .caret{flex:0 0 auto;margin-left:4px;align-self:center;font-size:11px;color:currentColor;opacity:.65;transition:transform .2s;user-select:none}
+.alert.expanded .caret{transform:rotate(180deg)}
+.alert .hint{flex:0 0 auto;align-self:center;font-size:11px;color:currentColor;opacity:.55;letter-spacing:.5px;font-weight:500;user-select:none}
+.alert .alert-x{flex:0 0 auto;margin-left:auto;align-self:center;border:0;background:rgba(0,0,0,.06);color:inherit;font-size:13px;line-height:1;height:26px;min-width:26px;padding:0 8px;border-radius:8px;cursor:pointer;transition:background .12s;position:relative;z-index:1}
+.alert .alert-x:hover{background:rgba(0,0,0,.12)}
+.alert.danger .alert-x{background:rgba(192,57,43,.12)}
+.alert.danger .alert-x:hover{background:rgba(192,57,43,.22)}
+
+/* 调休预警 · 展开明细 */
+.lv-detail{margin-top:6px;padding:14px 16px;background:#fffbf2;border:1px solid #ffe1a8;border-radius:12px;color:#5b4612;font-size:12.5px;line-height:1.65;animation:popin .18s ease}
+.lv-detail-hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px dashed #f0d499;gap:8px}
+.lv-detail-hd b{font-weight:700;color:#92590a;font-size:13.5px}
+.lv-detail-hd .meta{font-size:11.5px;color:#a07c4a;font-variant-numeric:tabular-nums}
+.lv-month{margin:10px 0 4px}
+.lv-month-hd{display:flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;color:#92590a}
+.lv-month-hd .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#92590a}
+.lv-month-hd .sub{margin-left:auto;font-weight:500;font-size:11.5px;color:#a07c4a;font-variant-numeric:tabular-nums}
+.lv-list{margin:4px 0 0 14px;display:flex;flex-direction:column;gap:4px}
+.lv-row{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:6px;font-size:12px;font-variant-numeric:tabular-nums}
+.lv-row .d{flex:0 0 56px;color:#92590a;font-weight:600}
+.lv-row .w{flex:0 0 32px;color:#a07c4a;font-size:11px}
+.lv-row .h{flex:0 0 78px;text-align:right;font-weight:650}
+.lv-row.ot{background:rgba(255,255,255,.6)}
+.lv-row.ot .h{color:#3b6bff}
+.lv-row.lv{background:#fde9c5;color:#7a4810}
+.lv-row.lv .h{color:#b56010}
+/* 已结转（被换休核销）的加班日：横线划掉 + 变灰（保留可见以便核对来源） */
+.lv-row.ot.done{background:#fafafa;color:#a9a39a;text-decoration:line-through}
+.lv-row.ot.done .d,.lv-row.ot.done .w{color:#bcb6ad}
+.lv-row.ot.done .h{color:#b9b3aa;text-decoration:line-through}
+.lv-row.ot.done .rsn{color:#b9b3aa;text-decoration:line-through}
+.lv-row.ot.done .donetag{margin-left:6px;flex:0 0 auto;font-size:10.5px;color:#9a6b00;background:#fbf0d6;padding:1px 6px;border-radius:6px;text-decoration:none;font-weight:600;white-space:nowrap}
+.lv-row .donetag{display:none}
+.lv-row.ot.done .donetag{display:inline-block}
+/* 部分核销：浅灰弱化、不加删除线，角标显示已用/当天总时长 */
+.lv-row.ot.partial{background:#fbfbfa;color:#9a958c}
+.lv-row.ot.partial .d,.lv-row.ot.partial .w{color:#b3aea5}
+.lv-row.ot.partial .h{color:#8f8a82}
+.lv-row.ot.partial .rsn{color:#b3aea5}
+.lv-row.ot.partial .donetag{display:inline-block;color:#9a6b00;background:#fbf0d6}
+.lv-row .rsn{flex:1 1 auto;color:#7a6a4a;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lv-row.empty{color:#a07c4a;font-style:italic;background:transparent;padding:4px 8px}
+.lv-ft{margin-top:10px;padding-top:10px;border-top:1px dashed #f0d499;font-size:11.5px;color:#a07c4a;line-height:1.6}
+.num-pos{color:var(--ok);font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;font-size:12px;border-radius:8px;background:var(--line-2);color:var(--tx-2);font-weight:500;cursor:pointer;user-select:none;transition:box-shadow .12s,transform .08s}
+.chip:hover{filter:brightness(.98)}
+.chip:active{transform:translateY(1px)}
+.chip.ot{background:#e6ecff;color:#2a4fd6}
+.chip.lv{background:#e8f7ef;color:#0f8a52}
+.chip.meal{background:#fff3df;color:#b57810}
+.chip.carry{background:#ffefe3;color:#c2410c}
+.chip.ot.active{box-shadow:inset 0 0 0 2px #3b6fe0}
+.chip.lv.active{box-shadow:inset 0 0 0 2px #16a34a}
+.chip.meal.active{box-shadow:inset 0 0 0 2px #e0a030}
+.chip.carry.active{box-shadow:inset 0 0 0 2px #ea580c}
+
+/* ---------- detail table ---------- */
+#body{flex:1 1 auto;min-height:0;overflow:auto;padding-bottom:10px;overscroll-behavior:contain}
+#body.body-list{display:flex;flex-direction:column;gap:16px;overflow:hidden;padding-bottom:0;overscroll-behavior:none}
+#body.body-list > .card:not(.ot-card){flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+#body.body-list .card-h{flex:0 0 auto}
+#body.body-list .dt-wrap{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scroll-snap-type:y proximity;scroll-padding-top:38px}
+.dt-wrap{overflow:visible;background:var(--card)}
+#body.body-list .dt-wrap{border-radius:0 0 var(--r) var(--r)}
+table.dt{width:100%;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+table.dt th{
+  font-size:12px;font-weight:600;color:var(--tx-2);text-align:left;padding:8px 10px;
+  border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0;background:var(--card);z-index:2
+}
+table.dt th.center{text-align:center}
+table.dt td{padding:0 10px;border-bottom:1px solid var(--line-2);font-size:13.5px;white-space:nowrap}
+table.dt tr.rest td{background:#fffdf7}
+table.dt tr.holi td{background:#fffafa}
+table.dt tr:hover td{background:#f3f6ff}
+table.dt tbody tr{scroll-snap-align:start}
+table.dt tr.today td{box-shadow:inset 0 1px 0 var(--brand),inset 0 -1px 0 var(--brand)}
+/* 上月结转来源高亮行：淡紫底 + 左侧紫条，与「上月结转」KPI 紫色呼应 */
+table.dt tr.carry-in-src td{background:#f2f0ff}
+table.dt tr.carry-in-src td:first-child{box-shadow:inset 3px 0 0 #6366f1}
+.carry-in-note{font-size:12.5px;color:var(--tx-2);margin-right:8px}
+.carry-in-note b{color:#6366f1;font-weight:600}
+table.dt .cellin{
+  width:100%;height:36px;border:none;background:none;padding:0 8px;font-size:13.5px;
+  font-variant-numeric:tabular-nums;border-radius:0;outline:none;
+}
+table.dt .cellin:focus{background:#fff;box-shadow:inset 0 0 0 2px var(--brand);border-radius:6px}
+table.dt .cellin::placeholder{color:#cdd3e0}
+table.dt td.dcell{padding:0 10px;font-weight:600;color:var(--tx-2);text-align:center}
+table.dt td.dcell .dn{display:inline-block;min-width:24px;text-align:center;font-variant-numeric:tabular-nums}
+table.dt .cellin.time-sel{height:32px;width:auto;border:1px solid var(--line-2);background:#fbfcfe;border-radius:6px;padding:0 4px;cursor:pointer}
+table.dt .cellin.time-sel:focus{box-shadow:inset 0 0 0 2px var(--brand);background:#fff}
+table.dt td.center{text-align:center}
+.wk{font-weight:400;color:var(--tx-3);font-size:11.5px;margin-left:4px}
+.tychip{font-size:10px;padding:1px 5px;border-radius:5px;font-weight:600;margin-left:6px}
+.tychip.w{background:#e9edfa;color:#4a5f9e}
+.tychip.r{background:#fdefd7;color:#a86c0a}
+.tychip.h{background:#fde3e3;color:#c0393d}
+.oa-btn{width:100%;height:36px;font-size:14px;color:#d5dae5;transition:.14s}
+.oa-btn.on{color:var(--ok)}
+.oa-btn:hover{background:var(--line-2)}
+
+/* ---------- charts ---------- */
+.chart{width:100%;display:block;overflow:visible}
+.lg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--tx-2);padding:0 18px 14px}
+.lg span{display:inline-flex;align-items:center;gap:6px}
+.lg i{width:9px;height:9px;border-radius:3px;display:inline-block}
+
+/* ---------- settings ---------- */
+.st-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;padding:16px 18px 18px}
+.fld label{display:block;font-size:13px;color:var(--tx-2);margin-bottom:6px;font-weight:500}
+.fld .hint{font-size:11.5px;color:var(--tx-3);margin-top:5px;line-height:1.45}
+.fld input,.fld select{
+  width:100%;height:36px;border:1px solid var(--line);border-radius:9px;padding:0 11px;background:#fcfdff;
+  transition:.14s;font-variant-numeric:tabular-nums;font-size:13.5px;
+  text-align:left;text-align-last:left;   /* 统一表单文字左对齐，修正 Firefox 下 select 选中值居中导致的错位 */
+}
+.fld input:focus,.fld select:focus{outline:none;border-color:var(--brand);background:#fff;box-shadow:0 0 0 3px rgba(59,107,255,.10)}
+.seg{display:flex;background:#eef0f6;border-radius:9px;padding:3px;gap:2px}
+.seg button{flex:1;height:30px;border-radius:7px;font-size:12.5px;color:var(--tx-2);font-weight:500;transition:.14s;display:flex;align-items:center;justify-content:center;text-align:center}
+.seg button.on{background:#fff;color:var(--tx);font-weight:600;box-shadow:0 1px 3px rgba(20,28,60,.10)}
+
+/* ---------- modal ---------- */
+.mask{position:fixed;inset:0;background:rgba(18,24,44,.36);backdrop-filter:blur(3px);z-index:100;display:grid;place-items:center;padding:24px;animation:fade .16s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.modal{background:var(--card);border-radius:18px;box-shadow:var(--shadow-lg);width:min(480px,100%);max-height:90vh;overflow:auto;animation:pop .18s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes pop{from{opacity:0;transform:scale(.96) translateY(6px)}to{opacity:1;transform:none}}
+/* 加班费结算卡内联的「结转方式」控制 */
+.carry-ctrl{margin:2px 2px 12px;padding:13px 14px;background:var(--bg);border:1px solid var(--line);border-radius:12px}
+.carry-ctrl .seg-3{width:100%;gap:3px;margin-bottom:11px}
+.carry-ctrl .seg-3 button{padding:8px 0;font-size:13px;white-space:nowrap}
+.carry-ctrl .carry-manual{margin-bottom:2px}
+.carry-ctrl .carry-manual .mrow{margin-bottom:12px}
+.carry-ctrl .carry-manual .mrow:last-child{margin-bottom:0}
+.carry-ctrl .carry-manual label{display:block;font-size:13px;color:var(--tx-2);margin-bottom:6px;font-weight:500}
+.carry-ctrl .carry-manual input{width:100%;height:36px;border:1px solid var(--line);border-radius:9px;padding:0 11px;background:#fcfdff;font-variant-numeric:tabular-nums;font-size:13.5px;text-align:left;text-align-last:left}
+.carry-ctrl .carry-manual input:focus{outline:none;border-color:var(--brand);background:#fff;box-shadow:0 0 0 3px rgba(59,107,255,.10)}
+.carry-ctrl .carry-manual .hint{font-size:11.5px;color:var(--tx-3);margin-top:5px;line-height:1.45}
+.carry-ctrl .carry-grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.carry-ctrl .carry-grid3 .mrow{margin-bottom:0}
+.carry-ctrl .carry-grid3 label{font-size:12.5px;margin-bottom:4px}
+.carry-ctrl .carry-grid3 input{height:34px;font-size:13px;padding:0 10px}
+.carry-ctrl .carry-grid3 .hint{font-size:11.5px;margin-top:3px;line-height:1.4}
+.carry-ctrl .carry-line{margin-top:10px;font-size:12.5px;color:var(--tx-2);line-height:1.6}
+.carry-ctrl .carry-line b{color:var(--tx);font-weight:700}
+.carry-ctrl .carry-line .cf{color:var(--brand)}
+.hidden{display:none!important}
+.btn.ot-pay{background:linear-gradient(150deg,#ff9a3c,#ff7a45);color:#fff;border-color:transparent;font-weight:600;box-shadow:0 4px 12px rgba(255,122,69,.28)}
+.btn.ot-pay:hover{filter:brightness(1.04)}
+.btn.ot-lv{background:linear-gradient(150deg,#27c08a,#12b76a);color:#fff;border-color:transparent;font-weight:600;box-shadow:0 4px 12px rgba(18,183,106,.26)}
+.btn.ot-lv:hover{filter:brightness(1.04)}
+.btn.ot-settle{background:linear-gradient(150deg,#fb923c,#ea580c);color:#fff;border-color:transparent;font-weight:600;box-shadow:0 4px 12px rgba(234,88,12,.28)}
+.btn.ot-settle:hover{filter:brightness(1.04)}
+.carry-modal{width:1080px;max-width:calc(100vw - 32px);scrollbar-width:none;-ms-overflow-style:none;max-height:90vh;margin:0 auto}
+.carry-modal::-webkit-scrollbar{display:none;width:0;height:0}
+/* 结算面板：结算（左）与核销（右）左右两栏布局 */
+.otc-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}
+.otc-col{min-width:0}
+.carry-modal .modal-h{padding-left:26px;padding-right:26px}
+.carry-modal .modal-b{padding-left:26px;padding-right:26px}
+.carry-modal .modal-f{padding-left:26px;padding-right:26px}
+.carry-modal .otc-col > .otc-sec + .otc-sec{margin-top:18px}
+.carry-modal .otc-col + .otc-col{max-height:calc(90vh - 96px);overflow-y:auto;padding-right:6px;scrollbar-width:thin}
+.carry-modal .otc-col + .otc-col::-webkit-scrollbar{width:6px}
+.carry-modal .otc-col + .otc-col::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:3px}
+@media (max-width:820px){.otc-cols{grid-template-columns:1fr;gap:0}.carry-modal .otc-col + .otc-col{max-height:none;overflow:visible}}
+.otc-tit{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.otc-tit::before{content:'';width:3px;height:13px;background:var(--brand);border-radius:2px;display:inline-block}
+.modal-h{padding:20px 22px 4px;display:flex;align-items:flex-start;gap:12px}
+.modal-h h3{font-size:17px;font-weight:660;letter-spacing:-.2px}
+.modal-h p{font-size:13px;color:var(--tx-3);margin-top:3px}
+.modal-b{padding:16px 22px}
+.modal-f{padding:14px 22px 20px;display:flex;gap:8px;justify-content:flex-end;align-items:center}
+/* 弹窗文字对齐统一：标题/说明左对齐；下拉选项居中（popover 选项原本即居中，此处作显式约束，保证所有弹窗一致） */
+.modal-h h3,.modal-h p{text-align:left}
+.pop-hd,.topt,.lopt,.aopt,.sopt{text-align:center}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.frow.one{grid-template-columns:1fr}
+
+/* toast */
+.toast{
+  position:fixed;left:50%;bottom:34px;transform:translateX(-50%);z-index:200;
+  background:#1c2030;color:#fff;padding:10px 18px;border-radius:11px;font-size:13px;
+  box-shadow:0 12px 32px rgba(15,20,40,.28);animation:up .2s ease;
+}
+@keyframes up{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+
+.empty{padding:56px 20px;text-align:center;color:var(--tx-3);font-size:14px}
+.empty .ic{font-size:34px;opacity:.35;margin-bottom:10px}
+
+@media (max-width:1080px){
+  .cols{grid-template-columns:1fr}
+}
+@media (max-width:680px){
+  .wrap,.topbar-in{padding-left:14px;padding-right:14px}
+  .grid-kpi{gap:5px}
+  .cel{min-height:64px}
+  .hide-sm{display:none}
+  /* 标签栏可横向滑动，避免拥挤 */
+  .tabs{overflow-x:auto;flex-wrap:nowrap;max-width:100%;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  /* 明细表横向滚动 + 冻结首列（日期），窄屏更好用 */
+  #body.body-list .dt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.dt{width:max-content;min-width:100%}
+  table.dt th:first-child,table.dt td:first-child{
+    position:sticky;left:0;z-index:3;background:var(--card);
+    box-shadow:1px 0 0 var(--line);
+  }
+  table.dt thead th:first-child{background:#f7f9fc;z-index:4}
+  table.dt tr:hover td:first-child{background:#fafbfe}
+  table.dt .cellin{height:40px;font-size:16px}
+}
+@media print{
+  .topbar,.no-print{display:none!important}
+  body{background:#fff}
+  .card{box-shadow:none;break-inside:avoid}
+}
+
+/* ---------- auto meal badge & read-only note ---------- */
+.auto-badge{
+  display:inline-flex;align-items:center;justify-content:center;min-width:34px;
+  padding:3px 8px;border-radius:7px;background:#fff7e6;color:#b57810;
+  font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;
+}
+.auto-badge.zero{background:transparent;color:#c2c8d6}
+.auto-badge.meal-toggle{cursor:pointer;user-select:none;transition:filter .12s,box-shadow .12s}
+.auto-badge.meal-toggle:hover{filter:brightness(.97);box-shadow:0 0 0 2px rgba(229,168,48,.35)}
+.auto-badge.meal-toggle:active{filter:brightness(.93)}
+.readonly-note{
+  font-size:12px;color:var(--tx-3);background:var(--bg);border:1px dashed var(--line);
+  border-radius:8px;padding:9px 10px;line-height:1.5;
+}
+
+/* ---------- KPI 高亮配色（已在上方 KPI 区块统一定义，含图标） ---------- */
+.lvtag{display:inline-block;margin:0 6px 2px 0;padding:2px 8px;border-radius:6px;background:#eef2fb;color:#3b557e;font-size:11.5px}
+.lvtag b{color:#274690}
+/* 换休核销台账弹窗 */
+.llg-sum{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--tx-2);margin:4px 0 6px}
+.llg-sum b{font-variant-numeric:tabular-nums;color:var(--tx)}
+.llg-lv{border:1px solid var(--line);border-radius:10px;padding:7px 12px;margin-bottom:7px;background:#fbfcfe}
+.llg-lv-hd{font-size:13px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.llg-pair{font-size:12px;color:var(--tx-2);margin-top:4px;padding:2px 0 2px 10px;border-left:2px solid #d7deea;line-height:1.6}
+.llg-tag{display:inline-block;padding:1px 7px;border-radius:5px;font-size:11px;background:#eef2fb;color:#3b557e}
+.llg-tag.man{background:#e8f7ee;color:#1a9d50}
+.llg-warn{color:#c0393d;background:#fef2f2;border-radius:6px;padding:2px 8px;font-size:11.5px;display:inline-block}
+.llg-cash{color:#c2410c;background:#ffefe3;border-radius:6px;padding:2px 8px;font-size:11.5px;display:inline-block}
+.llg-pool-hd{margin:12px 0 5px;font-size:12.5px;font-weight:600;color:var(--tx-2)}
+.llg-pl{display:grid;grid-template-columns:84px 56px 52px minmax(0,1fr) auto;align-items:center;gap:10px;font-size:12px;padding:5px 0;border-bottom:1px dashed var(--line-2)}
+.llg-pl .dt{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.llg-pl .tp{color:var(--tx-3);white-space:nowrap}
+.llg-pl .hh{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.llg-pl .ur{color:var(--tx-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.llg-pl .st{white-space:nowrap}
+/* 时长输入去掉原生上下三角按钮 */
+input[data-f="hours"]::-webkit-inner-spin-button,
+input[data-f="hours"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[data-f="hours"]{-moz-appearance:textfield}
+
+/* 换休列：与其它列保持统一内边距，间隔更均匀 */
+table.dt th.leave-col,
+table.dt td.leave-col{border-right:none}
+
+/* ---------- 进入密码：访问保护锁屏 ---------- */
+#lockScreen{
+  position:fixed;inset:0;z-index:9999;display:none;
+  align-items:center;justify-content:center;
+  background:radial-gradient(120% 120% at 50% 0%,#eef2ff 0%,#f4f6fa 60%);
+  padding:24px;
+}
+body.locked #lockScreen{display:flex}
+body.locked .topbar,
+body.locked .wrap{display:none}
+.lock-card{
+  width:340px;max-width:92vw;background:#fff;border:1px solid var(--line);
+  border-radius:20px;box-shadow:var(--shadow-lg);padding:36px 30px 30px;text-align:center;
+  animation:popin .18s ease;
+}
+.lock-logo{margin-bottom:14px}
+.lock-logo .mk{
+  width:56px;height:56px;border-radius:16px;display:inline-grid;place-items:center;
+  background:linear-gradient(140deg,#4c7bff,#7a5cff);color:#fff;font-size:24px;font-weight:700;
+  box-shadow:0 6px 18px rgba(76,123,255,.32);
+}
+#lockScreen h2{font-size:19px;font-weight:700;letter-spacing:-.2px;margin-top:6px}
+.lock-sub{font-size:13px;color:var(--tx-3);margin:6px 0 20px}
+#lockPass{
+  width:100%;box-sizing:border-box;text-align:center;font-size:15px;
+  padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:#fbfcfe;
+  outline:none;transition:.14s;
+}
+#lockPass:focus{box-shadow:inset 0 0 0 2px var(--brand);border-color:var(--brand);background:#fff}
+#lockBtn{width:100%;margin-top:12px;padding:12px;border-radius:11px;font-weight:650;font-size:15px;justify-content:center}
+.lock-err{min-height:18px;margin-top:10px;font-size:12.5px;color:#e5484d}
+.btn:disabled{opacity:.42;cursor:not-allowed;background:#f0f2f7;color:#a8afbf;box-shadow:none}
+/* 顶栏刷新按钮 */
+.tbtn{width:32px;height:32px;flex:0 0 auto;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:17px;color:var(--tx-2);background:var(--card);border:1px solid var(--line);transition:.14s}
+.tbtn:hover{background:var(--line-2);color:var(--tx)}
+.tbtn:active{transform:scale(.94)}
+@keyframes popin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="logo"><span class="mk">加</span><span class="hide-sm">加班助手PRO</span></div>
+    <div class="msw">
+      <button id="mprev" title="上一月">‹</button>
+      <span class="cur msel-wrap" id="mselWrap">
+        <button class="msel-btn" id="mselBtn" title="切换月份 / 管理月份"></button>
+        <div class="msel-pop" id="mselPop" hidden></div>
+      </span>
+      <button id="mnext" title="下一月">›</button>
+      <button id="btnToday" class="tbtn" title="回到本月并定位到今天">今</button>
+    </div>
+    <span class="spacer"></span>
+    <div class="tabs">
+      <button data-tab="list" class="on">明细</button>
+      <button data-tab="cal">日历</button>
+      <button data-tab="sum">汇总</button>
+      <button data-tab="set">设置</button>
+    </div>
+    <button id="btnRefresh" class="tbtn" title="刷新：从云端拉取最新数据并刷新视图（不会重新要求输入密码）">↻</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="grid-kpi" id="kpi"></div>
+  <div id="alerts"></div>
+  <div id="body"></div>
+  <p style="margin-top:26px;text-align:center;font-size:12px;color:#a8afbf;line-height:1.8" class="no-print">加班助手PRO · 本地单文件版 · 构建 20260821（KPI 常驻 · 无需服务器）</p>
+</div>
+
+<input type="file" id="imp" accept=".json" hidden>
+
+<div id="lockScreen">
+  <div class="lock-card">
+    <div class="lock-logo"><span class="mk">加</span></div>
+    <h2>加班助手PRO</h2>
+    <p class="lock-sub">请输入进入密码</p>
+    <input id="lockPass" type="password" placeholder="进入密码" autocomplete="off">
+    <div id="lockErr" class="lock-err"></div>
+    <button id="lockBtn" class="btn primary">进入</button>
+  </div>
+</div>
+<script>const SEED = {"2026-01":{"days":{"1":{"start":"12:35","end":"16:10","reason":"书香新年布置","oa":"✅","hours":3.5,"meal":1.0},"6":{"start":"17:00","end":"18:30","reason":"门店布置+设计","oa":"✅","hours":1.5,"meal":1.0},"7":{"start":"17:00","end":"18:00","reason":"门店布置会议","oa":"✅","hours":1.0},"12":{"leaveReason":"玮玮生日，调休半天"},"13":{"leaveReason":"送小悠上学，调休半天"},"14":{"start":"17:00","end":"18:00","reason":"古籍物料设计","oa":"✅","hours":1.0},"15":{"start":"17:00","end":"18:00","reason":"古籍物料设计","leaveReason":"送小悠上学，调休半天","oa":"✅","hours":1.0},"16":{"start":"17:00","end":"18:00","reason":"古籍物料设计","oa":"✅","hours":1.0},"20":{"reason":"换休0.5天","leaveReason":"肠胃炎年假0.5天","annual":0.5},"21":{"leaveReason":"肠胃炎年假1天","annual":1.0},"22":{"start":"17:00","end":"18:00","reason":"古籍物料设计","oa":"✅","hours":1.0},"23":{"start":"17:00","end":"20:00","reason":"古籍物料设计","oa":"✅","hours":3.0,"meal":1.0},"26":{"start":"17:00","end":"18:30","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"27":{"start":"17:00","end":"18:30","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"29":{"start":"17:00","end":"18:30","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"30":{"start":"17:00","end":"18:00","reason":"古籍物料设计","oa":"✅","hours":1.0},"31":{"start":"13:30","end":"17:15","hours":3.5,"meal":1.0}},"carryMode":"manual","carryOutManual":{"work":8.0,"rest":0.0,"holi":0.0}},"2026-02":{"days":{"3":{"start":"17:00","end":"18:16","reason":"古籍物料设计","oa":"✅","hours":1.0},"9":{"leaveReason":"悠悠拔牙","leaveH":8.0},"26":{"start":"17:00","end":"18:30","reason":"古籍物料设计","hours":1.5,"meal":1.0},"28":{"start":"17:00","end":"19:00","reason":"古籍物料设计","hours":2.0,"meal":1.0}},"carryIn":{"work":8.0,"rest":0.0,"holi":0.0},"carryMode":"manual","carryOutManual":{"work":3.5,"rest":0.0,"holi":0.0}},"2026-03":{"days":{"4":{"start":"17:00","end":"18:16","reason":"古籍物料设计","oa":"✅","hours":1.0},"5":{"start":"17:00","end":"18:16","reason":"古籍物料设计","oa":"✅","hours":1.0},"10":{"start":"17:00","end":"18:42","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"16":{"annualReason":"福建","oa":"✅","leaveH":4.0,"annual":0.5},"17":{"annualReason":"福建","oa":"✅","annual":1.0},"18":{"annualReason":"福建","oa":"✅","annual":1.0},"19":{"start":"17:00","end":"18:30","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"23":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"25":{"leaveReason":"乐游生日","leaveH":4.0},"26":{"start":"17:00","end":"18:10","reason":"淘书乐物料设计","oa":"✅","hours":1.0},"27":{"start":"17:00","end":"18:10","reason":"古籍物料设计","hours":1.0},"30":{"start":"17:00","end":"20:06","oa":"✅","hours":3.0,"meal":1.0},"31":{"start":"17:00","end":"20:06","oa":"✅","hours":3.0,"meal":1.0}},"carryMode":"manual","carryOutManual":{"work":9.5,"rest":0.0,"holi":0.0}},"2026-04":{"days":{"1":{"start":"17:00","end":"18:30","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"2":{"start":"17:00","end":"19:00","reason":"文创设计","oa":"✅","hours":2.0,"meal":1.0},"3":{"start":"17:00","end":"18:30","reason":"文创设计","oa":"✅","hours":1.5,"meal":1.0},"8":{"start":"17:00","end":"20:02","reason":"淘书乐设计","oa":"✅","hours":3.0,"meal":1.0},"9":{"start":"17:00","end":"20:43","reason":"淘书乐设计","oa":"✅","hours":3.5,"meal":1.0},"10":{"start":"17:00","end":"18:10","reason":"淘书乐设计","oa":"✅","hours":1.0},"13":{"start":"17:00","end":"18:30","reason":"淘书乐设计","oa":"✅","hours":1.5,"meal":1.0},"14":{"start":"17:00","end":"19:10","reason":"淘书乐设计","oa":"✅","hours":2.0,"meal":1.0},"15":{"start":"17:00","end":"18:32","reason":"淘书乐设计","oa":"✅","hours":1.5,"meal":1.0},"16":{"start":"17:00","end":"20:02","reason":"淘书乐设计","oa":"✅","hours":3.0,"meal":1.0},"17":{"start":"17:00","end":"21:10","reason":"淘书乐设计","oa":"✅","hours":4.0,"meal":1.0},"20":{"start":"17:00","end":"19:31","reason":"淘书乐设计","oa":"✅","hours":2.5,"meal":1.0},"21":{"start":"17:00","end":"18:40","reason":"古籍活动设计","oa":"✅","hours":1.5,"meal":1.5},"23":{"start":"9:30","end":"20:00","reason":"淘书乐现场","hours":2.0},"24":{"start":"8:30","end":"20:00","reason":"淘书乐现场","hours":3.0},"27":{"leaveReason":"刘亦悠复诊","leaveH":8.0},"28":{"start":"17:00","end":"18:31","oa":"✅","hours":1.5,"meal":1.0},"29":{"start":"17:00","end":"18:00","hours":1.0},"30":{"start":"17:00","end":"18:31","oa":"✅","hours":1.5,"meal":1.0}},"carryMode":"manual","carryOutManual":{"work":25.0,"rest":0.0,"holi":0.0}},"2026-05":{"days":{"7":{"start":"17:00","end":"19:00","reason":"梅陇镇党群服务中心物料设计","oa":"✅","hours":2.0,"meal":1.0},"9":{"start":"17:00","end":"19:00","reason":"古籍设计","oa":"✅","hours":2.0,"meal":1.0},"11":{"start":"17:00","end":"18:10","reason":"补晚上加班3小时","oa":"✅","hours":4.0,"meal":1.0},"12":{"leaveReason":"迪士尼","leaveH":8.0},"13":{"leaveReason":"打疫苗","leaveH":8.0},"14":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"15":{"reason":"外出集团开会","oa":"✅"},"19":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"25":{"leaveReason":"接女儿","leaveH":4.0},"27":{"start":"17:00","end":"18:10","reason":"古籍物料设计","hours":1.0},"28":{"start":"17:00","end":"18:32","reason":"古籍物料设计","hours":1.5,"meal":1.0}},"carryMode":"manual","carryOutManual":{"work":12.5,"rest":0.0,"holi":0.0}},"2026-06":{"days":{"1":{"leaveReason":"动物园","leaveH":8.0},"2":{"start":"17:00","end":"19:10","reason":"古籍物料设计","oa":"✅","hours":2.0,"meal":1.0},"4":{"start":"17:00","end":"18:10","reason":"艺术物料设计","oa":"✅","hours":1.0},"8":{"start":"17:00","end":"18:36","reason":"古籍游园会设计","oa":"✅","hours":1.5,"meal":1.0},"9":{"start":"17:00","end":"18:36","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"10":{"start":"17:00","end":"18:40","reason":"艺术物料设计","oa":"✅","hours":1.5,"meal":1.0},"11":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"15":{"start":"17:00","end":"19:10","reason":"古籍物料设计","oa":"✅","hours":2.0,"meal":1.0},"16":{"oa":"✅","meal":1.0},"17":{"start":"17:00","end":"18:40","oa":"✅","hours":1.5,"meal":1.0},"18":{"start":"17:00","end":"19:10","reason":"艺术物料设计","oa":"✅","hours":2.0,"meal":1.0},"22":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"25":{"start":"17:00","end":"19:10","reason":"书香游园会物料设计","oa":"✅","hours":2.0,"meal":1.0},"26":{"leaveReason":"小悠毕业典礼","leaveH":8.0},"29":{"start":"17:00","end":"19:31","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"30":{"start":"17:00","end":"22:10","reason":"古籍物料设计","oa":"✅","hours":4.0,"meal":1.0}},"carryMode":"manual","carryOutManual":{"work":15.0,"rest":0.0,"holi":0.0}},"2026-07":{"days":{"1":{"start":"17:00","end":"18:40","oa":"✅","hours":1.5,"meal":1.0},"2":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"3":{"leaveReason":"乌村","leaveH":8.0},"6":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"7":{"start":"17:00","end":"19:10","reason":"文创设计","oa":"✅","hours":2.0,"meal":1.0},"8":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"9":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"10":{"start":"外出","end":"外出","reason":"青浦监狱书展"},"13":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"15":{"leaveReason":"儿童医院检查","leaveH":8.0},"17":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"28":{"start":"17:00","end":"20:10","reason":"书展物料设计","oa":"✅","hours":3.0,"meal":1.0},"29":{"start":"17:00","end":"19:10","reason":"书展物料设计","oa":"✅","hours":2.0,"meal":1.0},"30":{"start":"17:00","end":"18:48","reason":"古籍物料设计","oa":"✅","hours":1.0,"meal":1.0},"31":{"start":"17:00","end":"19:10","reason":"古籍物料设计","oa":"✅","hours":2.0,"meal":1.0}},"carryMode":"manual","carryOutManual":{"work":8.0,"rest":0.0,"holi":0.0}},"2026-08":{"days":{},"carryMode":"manual","carryOutManual":{"work":0.0,"rest":0.0,"holi":0.0}}};</script>
+<script>/* ============================================================
+   加班助手PRO · 计算引擎 + 视图
+   数据全部保存在浏览器 localStorage，可导出 JSON / CSV 备份
+   ============================================================ */
+'use strict';
+
+/* ---------- 法定节假日表（国务院办公厅公布） ----------
+   legal : 法定节假日当天（3 倍）
+   rest  : 放假但非法定的调休日（按休息日 2 倍）
+   work  : 调休补班日（按工作日 1.5 倍）              */
+const HOLIDAY = {
+  2024: {
+    legal: ['01-01','02-10','02-11','02-12','04-04','05-01','06-10','09-17','10-01','10-02','10-03'],
+    rest:  ['02-13','02-14','02-15','02-16','02-17','04-05','04-06','05-02','05-03','05-04','05-05',
+            '06-08','06-09','09-15','09-16','10-04','10-05','10-06','10-07'],
+    work:  ['02-04','02-18','04-07','04-28','05-11','09-14','09-29','10-12']
+  },
+  2025: {
+    legal: ['01-01','01-28','01-29','01-30','01-31','04-04','05-01','05-02','05-31','10-01','10-02','10-03','10-06'],
+    rest:  ['02-01','02-02','02-03','02-04','04-05','04-06','05-03','05-04','05-05','06-01','06-02',
+            '10-04','10-05','10-07','10-08'],
+    work:  ['01-26','02-08','04-27','09-28','10-11']
+  },
+  2026: {
+    legal: ['01-01','02-16','02-17','02-18','02-19','04-05','05-01','05-02','06-19','09-25','10-01','10-02','10-03'],
+    rest:  ['01-02','01-03','02-15','02-20','02-21','02-22','02-23','04-04','04-06','05-03','05-04','05-05',
+            '06-20','06-21','09-26','09-27','10-04','10-05','10-06','10-07'],
+    work:  ['01-04','02-14','02-28','05-09','09-20','10-10']
+  }
+};
+
+const DEF_SETTINGS = {
+  rateWork: 25,        // 工作日：元 / 小时
+  rateRest: 266.67,    // 休息日：元 / 天
+  rateHoli: 400,       // 节假日：元 / 天
+  dailyHours: 8,       // 每日标准工时（把「元/天」折成「元/小时」）
+  mealRate: 25,        // 餐补：元 / 次
+  roundStep: 0.5,      // 时长取整粒度（小时）
+  roundMode: 'floor',  // floor | round | ceil
+  breakMin: 0,         // 每次加班扣除休息（分钟）
+  carryMode: 'all',     // 默认结转策略：all=全部结转下月 / none=全部折现 / manual=自定义
+  extraHoliday: '',    // 自定义节假日 MM-DD，逗号分隔
+  extraWorkday: '',    // 自定义补班日
+  annualTotal: 10,     // 年假额度（天）：剩余 = 额度 − 已用年假。当前数据已用 4 天，故剩余 6 天
+  leaveExpireMonths: 3, // 调休有效期（月）：从最早产生可调休的月份起算，N 个月内有效；0 = 不过期（仅用于顶部到期提醒）
+  leaveExpireDays: 30, // 调休有效期（天）：加班/调休产生超过 N 天仍未换休，自动折现计入加班费；0 = 不启用
+  passHash: ''         // 进入密码散列（ 空 = 不设置）。轻量访问保护，非加密级
+};
+
+/* 轻量口令散列（本地防护，非加密安全级）：用于「进入密码」比对 */
+function hashStr(s) { let h = 5381; for (let i = 0; i < s.length; i++) { h = ((h << 5) + h + s.charCodeAt(i)) | 0; } return (h >>> 0).toString(16); }
+function passHash(p) { return hashStr('oap|' + p); }
+
+const TYPES = [
+  { k: 'work', name: '工作日', color: '#3b6bff', cls: 'w' },
+  { k: 'rest', name: '双休日', color: '#f5a524', cls: 'r' },
+  { k: 'holi', name: '节假日', color: '#e5484d', cls: 'h' }
+];
+const WD = ['日', '一', '二', '三', '四', '五', '六'];
+const KEY = 'overtime.v1';
+
+/* 安全存储：当 localStorage 不可用（如直接双击用 file:// 打开、隐私/无痕模式、或浏览器禁用第三方存储）时，
+   自动降级为内存存储，避免启动阶段 save(false) 抛错导致整页白屏 / “文件打不开”。有 localStorage 时行为不变。 */
+const store = (() => {
+  let ok = true;
+  try {
+    const t = '__ot_probe__';
+    localStorage.setItem(t, '1');
+    localStorage.removeItem(t);
+  } catch (e) { ok = false; }
+  if (ok) return localStorage;
+  const mem = {};
+  return {
+    getItem: k => (Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null),
+    setItem: (k, v) => { mem[k] = String(v); },
+    removeItem: k => { delete mem[k]; },
+  };
+})();
+
+/* ============================ 状态 ============================ */
+let DB = null;
+let cur = '';            // 当前月份 YYYY-MM
+let tab = 'list';
+let listFilter = null;   // 明细筛选：null/'ot'/'leave'/'carry'/'meal'
+let carryInView = false; // 上月结转视图：跳到上一月并高亮结转来源加班行
+let carryInReturn = null; // 进入上月结转来源视图前的月份，供退出返回
+let editing = null;      // 正在编辑的日期
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2, '0');
+const mk = (y, m) => y + '-' + pad(m);
+
+// 统计起点：仅保留该月及其之后的数据（业务要求「统计从 2026 年 7 月开始，之前不用理会」，界面不展示该边界）
+// 统计起点：仅保留该月及其之后的数据（SEED 首月为 2026-01）
+const MIN_KEY = (() => { const ks = Object.keys(SEED).sort(); return ks.length ? ks[0] : '2026-01'; })();
+
+function load() {
+  // 以 SEED（2026 起）为基准，携带正确的结转配置(carryMode/carryOutManual)
+  const base = { version: 1, settings: Object.assign({}, DEF_SETTINGS), months: JSON.parse(JSON.stringify(SEED)) };
+  let raw = null;
+  try { raw = JSON.parse(store.getItem(KEY)); } catch (e) {}
+  if (raw && raw.months) {
+    base.settings = Object.assign({}, DEF_SETTINGS, raw.settings || {});
+    Object.keys(raw.months).forEach(k => {
+      if (k < MIN_KEY) return;                       // 丢弃 2026 年以前的旧缓存
+      const rm = raw.months[k];
+      if (!base.months[k]) { base.months[k] = rm; return; }
+      // 2026+ 月份：优先保留种子的结转配置，叠加用户可能编辑过的日期明细
+      base.months[k].days = Object.assign({}, rm.days || {}, base.months[k].days || {});
+      if (rm.carryMode) base.months[k].carryMode = rm.carryMode;
+      if (rm.carryOutManual) base.months[k].carryOutManual = rm.carryOutManual;
+    });
+  }
+  // 兜底：再次剔除任何早于起点的月份（含种子自身若被改动）
+  Object.keys(base.months).forEach(k => { if (k < MIN_KEY) delete base.months[k]; });
+  DB = base;
+  // 一次性迁移：清空 2026-08 加班天数，保留 7 月结转与配置；仅执行一次，不影响后续正常录入
+  if (DB.months['2026-08'] && !DB.settings._aug2026Cleared) {
+    DB.months['2026-08'].days = {};
+    DB.settings._aug2026Cleared = true;
+  }
+  const ks = monthKeys();
+  const now = new Date(), nowK = mk(now.getFullYear(), now.getMonth() + 1);
+  cur = ks.includes(nowK) ? nowK : (ks[ks.length - 1] || nowK);
+  if (!DB.months[cur]) DB.months[cur] = { days: {} };
+  save(false);   // 立即把裁剪后的干净数据写回 localStorage，清除陈旧的 2024/2025 缓存（不触发自动上传）
+}
+/* ======================= 云端同步（GitHub Gist，免费跨设备） ======================= */
+const SYNC_KEY = 'overtime.sync.v1';
+let SYNC = (() => { try { return JSON.parse(store.getItem(SYNC_KEY)) || {}; } catch (e) { return {}; } })();
+function saveSync() { store.setItem(SYNC_KEY, JSON.stringify(SYNC)); }
+const GIST_FILE = 'overtime-data.json';
+let _pushTimer = null;
+function setSyncStatus(msg, kind) {
+  const el = $('#syncStatus'); if (!el) return;
+  el.textContent = msg || '';
+  el.style.color = kind === 'err' ? '#e5484d' : (kind === 'ok' ? '#0f8a52' : 'var(--tx-3)');
+}
+async function gistReq(url, method, body, token) {
+  const headers = { 'Accept': 'application/vnd.github+json', 'Authorization': 'Bearer ' + token };
+  if (body) headers['Content-Type'] = 'application/json';
+  const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error(res.status + ' ' + t.slice(0, 160)); }
+  return res.json();
+}
+async function syncCreate() {
+  if (!SYNC.token) { setSyncStatus('请先填写 GitHub Token', 'err'); return; }
+  try {
+    setSyncStatus('正在新建云端档案…');
+    const data = await gistReq('https://api.github.com/gists', 'POST', {
+      description: '加班统计云端档案', public: false,
+      files: { [GIST_FILE]: { content: JSON.stringify(DB) } }
+    }, SYNC.token);
+    SYNC.gist = data.id; saveSync();
+    render();
+    setSyncStatus('已新建档案，ID：' + data.id.slice(0, 8) + '…', 'ok');
+  } catch (e) { setSyncStatus('新建失败：' + e.message, 'err'); }
+}
+async function syncUpload() {
+  if (SYNC.downloadOnly) { setSyncStatus('当前为「仅下载」模式，已禁止上传', 'err'); return; }
+  if (!SYNC.token || !SYNC.gist) return;
+  try {
+    setSyncStatus('上传中…');
+    await gistReq('https://api.github.com/gists/' + SYNC.gist, 'PATCH', {
+      files: { [GIST_FILE]: { content: JSON.stringify(DB) } }
+    }, SYNC.token);
+    setSyncStatus('已上传 ' + new Date().toLocaleTimeString(), 'ok');
+  } catch (e) { setSyncStatus('上传失败：' + e.message, 'err'); }
+}
+async function syncDownload(silent) {
+  if (!SYNC.token) { if (!silent) setSyncStatus('请先填写 GitHub Token', 'err'); return; }
+  if (!SYNC.gist) { if (!silent) setSyncStatus('请先填写档案 ID', 'err'); return; }
+  if (!silent && !confirm('从云端下载会用云端数据覆盖本机当前数据，确定继续？')) return;
+  try {
+    setSyncStatus('下载中…');
+    const data = await gistReq('https://api.github.com/gists/' + SYNC.gist, 'GET', null, SYNC.token);
+    const txt = data.files[GIST_FILE] && data.files[GIST_FILE].content;
+    if (!txt) throw new Error('档案内容为空');
+    const incoming = JSON.parse(txt);
+    if (!incoming.months) throw new Error('档案格式不正确');
+    DB = incoming; save(false); render();
+    setSyncStatus('已下载 ' + new Date().toLocaleTimeString(), 'ok');
+  } catch (e) { setSyncStatus('下载失败：' + e.message, 'err'); }
+}
+function schedulePush() { clearTimeout(_pushTimer); _pushTimer = setTimeout(syncUpload, 1200); }
+function readSyncInputs() {
+  const tok = $('#syncToken'), gist = $('#syncGist'), auto = $('#syncAuto'), down = $('#syncDownOnly');
+  if (tok) SYNC.token = tok.value.trim();
+  if (gist) SYNC.gist = gist.value.trim();
+  if (auto) SYNC.auto = auto.checked;
+  if (down) SYNC.downloadOnly = down.checked;
+  saveSync();
+}
+function applySyncMode() {
+  const down = $('#syncDownOnly'), bu = $('#btnSyncUp');
+  const only = down ? down.checked : !!SYNC.downloadOnly;
+  if (bu) { bu.disabled = only; bu.title = only ? '仅下载模式：已禁止上传，以保护线上数据' : ''; }
+}
+function bindSync() {
+  const tok = $('#syncToken'), gist = $('#syncGist'), auto = $('#syncAuto'), down = $('#syncDownOnly');
+  const upd = () => { readSyncInputs(); setSyncStatus(''); };
+  if (tok) { tok.oninput = upd; tok.onchange = upd; }
+  if (gist) { gist.oninput = upd; gist.onchange = upd; }
+  if (auto) auto.onchange = () => { readSyncInputs(); };
+  if (down) down.onchange = () => { readSyncInputs(); applySyncMode(); };
+  const bn = $('#btnSyncNew'); if (bn) bn.onclick = () => { readSyncInputs(); syncCreate(); };
+  const bu = $('#btnSyncUp'); if (bu) bu.onclick = () => { readSyncInputs(); syncUpload(); };
+  const bd = $('#btnSyncDown'); if (bd) bd.onclick = () => { readSyncInputs(); syncDownload(); };
+  applySyncMode();
+}
+function save(push) {
+  store.setItem(KEY, JSON.stringify(DB));
+  if (push !== false && SYNC.auto && SYNC.token && SYNC.gist && !SYNC.downloadOnly) schedulePush();
+}
+function monthKeys() { return Object.keys(DB.months).sort(); }
+function M(k) { return DB.months[k] || (DB.months[k] = { days: {} }); }
+function prevKey(k) { const [y, m] = k.split('-').map(Number); return m === 1 ? mk(y - 1, 12) : mk(y, m - 1); }
+function nextKey(k) { const [y, m] = k.split('-').map(Number); return m === 12 ? mk(y + 1, 1) : mk(y, m + 1); }
+function daysIn(k) { const [y, m] = k.split('-').map(Number); return new Date(y, m, 0).getDate(); }
+
+/* ======================= 日期类型判定 ======================= */
+function dayType(key, d) {
+  const [y, m] = key.split('-').map(Number);
+  const rec = M(key).days[d];
+  if (rec && rec.type) return rec.type;                 // 手动覆盖优先
+  const md = pad(m) + '-' + pad(d);
+  const s = DB.settings;
+  const ex = t => (s[t] || '').split(/[,，\s]+/).filter(Boolean);
+  if (ex('extraHoliday').includes(md)) return 'holi';
+  if (ex('extraWorkday').includes(md)) return 'work';
+  const H = HOLIDAY[y];
+  if (H) {
+    if (H.legal.includes(md)) return 'holi';
+    if (H.work.includes(md)) return 'work';
+    if (H.rest.includes(md)) return 'rest';
+  }
+  const w = new Date(y, m - 1, d).getDay();
+  return (w === 0 || w === 6) ? 'rest' : 'work';
+}
+
+/* ==================== 时长自动计算 ==================== */
+function parseHM(t) {
+  if (!t) return null;
+  const m = String(t).trim().match(/^(\d{1,2})\s*[:：.]\s*(\d{1,2})$/);
+  if (m) return (+m[1]) * 60 + (+m[2]);
+  const h = String(t).trim().match(/^(\d{1,2})$/);
+  return h ? (+h[1]) * 60 : null;
+}
+function autoHours(start, end) {
+  const a = parseHM(start), b = parseHM(end);
+  if (a === null || b === null) return null;
+  let mins = b - a;
+  if (mins <= 0) mins += 24 * 60;                       // 跨零点
+  mins -= (+DB.settings.breakMin || 0);
+  if (mins <= 0) return 0;
+  const step = (+DB.settings.roundStep || 0.5) * 60;
+  const md = DB.settings.roundMode;
+  const n = md === 'ceil' ? Math.ceil(mins / step) : md === 'round' ? Math.round(mins / step) : Math.floor(mins / step);
+  return +(n * step / 60).toFixed(2);
+}
+function hoursOf(key, d) {
+  const r = M(key).days[d]; if (!r) return 0;
+  if (r.hours !== undefined && r.hours !== null && r.hours !== '') return +r.hours || 0;
+  return autoHours(r.start, r.end) || 0;
+}
+
+/* ======================= 核心计算引擎 ======================= */
+const rateOf = () => {
+  const s = DB.settings, dh = +s.dailyHours || 8;
+  return { work: +s.rateWork || 0, rest: (+s.rateRest || 0) / dh, holi: (+s.rateHoli || 0) / dh };
+};
+
+/** 计算某月，depth 防止链式递归过深 */
+function compute(key, depth) {
+  depth = depth || 0;
+  const mo = M(key), n = daysIn(key);
+  const gain = { work: 0, rest: 0, holi: 0 };           // 本月新增加班时长
+  const otCnt = { work: 0, rest: 0, holi: 0 };           // 本月各类型加班记录天数
+  let leaveTotal = 0, mealCount = 0, otDays = 0, annualUse = 0;
+  for (let d = 1; d <= n; d++) {
+    const r = mo.days[d]; if (!r) continue;
+    const h = hoursOf(key, d), t = dayType(key, d);
+    if (h > 0) { gain[t] += h; otCnt[t]++; otDays++; }
+    leaveTotal += +r.leaveH || 0;                       // 工作日/双休日/节假日均可填换休
+    // 餐补规则：工作日加班≥1.5h 自动计 1 次；休息日/节假日按手动填写
+    const meal = t === 'work' ? (h >= 1.5 ? 1 : 0) : (+r.meal || 0);
+    mealCount += meal;
+    annualUse += +r.annual || 0;
+  }
+  // --- 上月结转（继承）---
+  let carryIn = { work: 0, rest: 0, holi: 0 };
+  if (mo.carryIn) carryIn = Object.assign({ work: 0, rest: 0, holi: 0 }, mo.carryIn);
+  else if (depth < 36) {
+    const pk = prevKey(key);
+    // 统计起点前的月份不参与结转（「从 7 月开始计算」，之前不用理会）
+    if (pk >= MIN_KEY && DB.months[pk]) carryIn = compute(pk, depth + 1).carryOut;
+  }
+  // --- 换休按 FIFO 消耗：先上月结转，再本月新增；同层按 工作日→双休日→节假日 ---
+  const order = ['work', 'rest', 'holi'];
+  const carryInTotal = +(carryIn.work + carryIn.rest + carryIn.holi).toFixed(2);
+  const usedPrev = { work: 0, rest: 0, holi: 0 }, usedCur = { work: 0, rest: 0, holi: 0 };
+  let need = leaveTotal;
+  for (const t of order) { const u = Math.min(need, carryIn[t]); usedPrev[t] = u; need -= u; }
+  for (const t of order) { const u = Math.min(need, gain[t]); usedCur[t] = u; need -= u; }
+  const leaveShort = +need.toFixed(2);                  // 换休超出可用时长的部分
+  // --- 可支配时长 ---
+  const avail = {}, used = {};
+  order.forEach(t => { used[t] = usedPrev[t] + usedCur[t]; avail[t] = +(carryIn[t] + gain[t] - used[t]).toFixed(2); });
+  const gainTotal = order.reduce((s, t) => s + gain[t], 0);
+  const availTotal = +(avail.work + avail.rest + avail.holi).toFixed(2);
+  // --- 结转下月 ---
+  const mode = mo.carryMode || DB.settings.carryMode;
+  const carryOut = { work: 0, rest: 0, holi: 0 };
+  // 跨月核销口径：超 30 天未换休已自动转加班费(autoCash)的时长不可再结转（B 方案）
+  // 把已算好的上半部分结果传给 leaveLedger，避免双向递归，同时保证口径一致
+  let autoCashByType = { work: 0, rest: 0, holi: 0 };
+  let expiredByType = { work: 0, rest: 0, holi: 0 };
+  try {
+    const preC = { carryIn, carryInTotal, gain, gainTotal, leaveTotal, leaveShort, used, usedPrev, usedCur, avail, availTotal };
+    const L = leaveLedger(key, preC);
+    if (L && L.autoCashByType) autoCashByType = L.autoCashByType;
+    if (L && L.expiredByType) expiredByType = L.expiredByType;
+  } catch (e) {}
+  // 这两类时长已自动折现计入加班费，不可再作为结转上限：
+  //  - autoCash：距换休日 >30 天未被核销（核销窗口外）
+  //  - expired ：产生日距基准日 > 调休有效期天数仍未换休（按天过期）
+  const carryCap = {};
+  order.forEach(t => { carryCap[t] = +Math.max(0, avail[t] - (autoCashByType[t] || 0) - (expiredByType[t] || 0)).toFixed(2); });
+  // 调休池过期（统计自 2026-07，按有效期 N 个月）：过期月之后不再结转，剩余全部折现计入加班费
+  const N = +DB.settings.leaveExpireMonths || 0;
+  let lvExpired = false, lvExpiredCash = 0;
+  if (N > 0) {
+    const exp = monthEnd(2026, 7, N), ey = exp.getFullYear(), em = exp.getMonth() + 1;
+    const [cy, cm] = key.split('-').map(Number);
+    if (cy > ey || (cy === ey && cm > em)) lvExpired = true;   // cur 在到期月之后即过期
+  }
+  order.forEach(t => {
+    let v = 0;
+    if (t === 'work' && !lvExpired) {   // 仅工作日时长作调休结转；过期后工作日也不再结转
+      if (mode === 'all') v = avail[t];
+      else if (mode === 'manual') v = Math.min(+((mo.carryOutManual || {})[t] || 0), avail[t]);
+    } else if ((t === 'rest' || t === 'holi') && mode === 'manual') {
+      // 双休/节假日默认折现，但允许在自定义中手动选择结转
+      v = Math.min(+((mo.carryOutManual || {})[t] || 0), avail[t]);
+    }
+    v = Math.min(v, carryCap[t]);        // autoCash 不可结转，强制封顶
+    carryOut[t] = +Math.max(0, v).toFixed(2);
+  });
+  if (lvExpired) lvExpiredCash = +(avail.work).toFixed(2);   // 工作日层全部折现（含上月遗留的过期调休）
+  // --- 折现 ---
+  const R = rateOf(), cash = {}, amount = {};
+  let otPay = 0;
+  const autoCashTotal = +order.reduce((s, t) => s + (autoCashByType[t] || 0), 0).toFixed(2);
+  const expiredTotal = +order.reduce((s, t) => s + (expiredByType[t] || 0), 0).toFixed(2);
+  order.forEach(t => {
+    cash[t] = +(avail[t] - carryOut[t]).toFixed(2);
+    amount[t] = +(cash[t] * R[t]).toFixed(2);
+    otPay += amount[t];
+  });
+  const mealPay = +(mealCount * (+DB.settings.mealRate || 0)).toFixed(2);
+  return {
+    key, gain, gainTotal: +gainTotal.toFixed(2), carryIn,
+    carryInTotal,
+    leaveTotal, leaveShort, used, usedPrev, usedCur, avail,
+    availTotal,
+    carryCap, carryOut, carryOutTotal: +(carryOut.work + carryOut.rest + carryOut.holi).toFixed(2),
+    cash, cashTotal: +(cash.work + cash.rest + cash.holi).toFixed(2),
+    autoCash: autoCashTotal, autoCashByType, expiredCash: expiredTotal, expiredByType,
+    amount, otPay: +otPay.toFixed(2), mealCount, mealPay, otCnt,
+    total: +(otPay + mealPay).toFixed(2), otDays, annualUse, rates: R, mode, lvExpired, lvExpiredCash
+  };
+}
+
+/* ============================ 工具 ============================ */
+const fx = (v, d) => { d = d === undefined ? 2 : d; return (Math.round(v * 100) / 100).toFixed(d); };
+const hf = v => (Math.abs(v - Math.round(v)) < 0.001 ? String(Math.round(v)) : fx(v, 1));
+const money = v => '¥' + fx(v).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function toast(msg) {
+  const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
+  document.body.appendChild(el); setTimeout(() => el.remove(), 2000);
+}
+function copyText(t) {
+  if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t).catch(() => fallbackCopy(t)); }
+  else fallbackCopy(t);
+}
+function fallbackCopy(t) {
+  const ta = document.createElement('textarea'); ta.value = t;
+  ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta);
+  ta.select(); try { document.execCommand('copy'); } catch (e) {} ta.remove();
+}
+/* 明细「加班费」橙色按钮 / KPI「加班费」「结转下月」→ 弹出：加班费明细 + 结转下月设置（实时更新） */
+function openMonthSettle(key) {
+  const el = document.createElement('div'); el.className = 'mask'; el.id = 'monthSettleMask';
+  function build() {
+    const c = compute(key), mo = M(key);
+    const mode = mo.carryMode || DB.settings.carryMode;
+    const cm = mo.carryOutManual || {};
+    const otRows = TYPES.map(t => `<tr>
+        <td><span class="dot" style="background:${t.color}"></span> ${t.name}</td>
+        <td class="${c.cash[t.k] ? '' : 'zero'}">${hf(c.cash[t.k])} h</td>
+        <td class="muted">${fx(c.rates[t.k])} 元/h</td>
+        <td class="${c.amount[t.k] ? 'num-pos' : 'zero'}">${fx(c.amount[t.k])} 元</td></tr>`).join('');
+    const [y, m] = key.split('-').map(Number);
+    const d = leaveLedger(key);
+    const wd = dd => WD[new Date(y, m - 1, dd).getDay()];
+    const srcLbl = e => e.earlier ? '更早月份结转' : `${e.m}月${e.d}日`;
+    const typeName = t => t === 'work' ? '工作日' : (t === 'rest' ? '双休日' : '节假日');
+    const sumHTML = `<div class="llg-sum">
+        <span>本月换休 <b>${hf(c.leaveTotal)}h</b></span>
+        <span>← 上月结转核销 <b>${hf(d.usedCarry)}h</b></span>
+        <span>＋ 本月加班核销 <b>${hf(d.usedCur)}h</b></span>
+        ${d.autoCash > 0.001 ? `<span class="llg-cash">超30天(距换休)转加班费 <b>${hf(d.autoCash)}h</b></span>` : ''}
+        ${d.expiredCash > 0.001 ? `<span class="llg-cash">超${Math.round(+DB.settings.leaveExpireDays || 0)}天(产生日)过期转加班费 <b>${hf(d.expiredCash)}h</b></span>` : ''}
+        ${d.totalShort > 0.001 ? `<span class="llg-warn">未核销 ${hf(d.totalShort)}h（无30天内可用加班）</span>` : '<span style="color:#1a9d50">✓ 全部核销</span>'}
+      </div>`;
+    const lvHTML = d.leaves.length ? d.leaves.map(l => `
+      <div class="llg-lv">
+        <div class="llg-lv-hd">${m}月${l.d}日 <span class="muted">周${wd(l.d)}</span> 换休 <b>${hf(l.h)}h</b>${l.reason ? `<span class="muted">（${esc(l.reason)}）</span>` : ''}
+          ${l.manual ? '<span class="llg-tag man">手动指定</span>' : (l.src === 'carry' ? '<span class="llg-tag man">上月结转</span>' : '<span class="llg-tag">自动 FIFO</span>')}
+        </div>
+        <div class="llg-pair">← ${l.pairs.length ? l.pairs.map(p => `${srcLbl(p.e)}${p.e.earlier ? '' : `（${typeName(p.e.t)}）`} 加班 ${hf(p.take)}h`).join(' ＋ ') : '（无可用来源）'}
+          ${l.short > 0.001 ? `<span class="llg-warn">缺 ${hf(l.short)}h 无30天内可用来源</span>` : ''}</div>
+      </div>`).join('') : `<div class="muted" style="padding:16px;text-align:center">本月暂无换休记录（年假不参与核销，独立额度）</div>`;
+    const poolRow = e => {
+      const used = e.used.length ? e.used.map(u => `${m}月${u.l.d}日换休 ${hf(u.take)}h`).join('、') : '';
+      const state = e.expired ? `<span class="llg-cash">超${Math.round(+DB.settings.leaveExpireDays || 0)}天(产生日) · 剩余 ${hf(e.left)}h 自动转加班费</span>`
+        : (e.cash ? `<span class="llg-cash">超30天(距换休) · 剩余 ${hf(e.left)}h 自动转加班费</span>`
+        : (e.left > 0.001 ? `<span class="muted">剩余 ${hf(e.left)}h（仍可换休）</span>` : '<span style="color:#1a9d50">已全部核销</span>'));
+      return `<div class="llg-pl">
+        <span class="dt">${e.earlier ? '更早结转' : `${e.m}月${e.d}日`}</span>
+        <span class="tp">${e.earlier ? '结转' : typeName(e.t)}</span>
+        <span class="hh">${hf(e.h)}h</span>
+        <span class="ur">${used ? '→ ' + used : (e.cash ? '超30天未核销' : '未核销')}</span>
+        <span class="st">${state}</span>
+      </div>`;
+    };
+    return `<div class="otc-cols">
+      <div class="otc-col">
+      <div class="otc-sec">
+        <div class="otc-tit">加班费明细</div>
+        <table class="tb" style="width:100%">
+          <thead><tr><th>类型</th><th>折现时长</th><th>单价</th><th>金额</th></tr></thead>
+          <tbody>${otRows}
+            <tr><td>🍚 餐补</td><td class="${c.mealCount ? '' : 'zero'}">${hf(c.mealCount)} 次</td><td class="muted">${fx(DB.settings.mealRate)}</td><td class="${c.mealPay ? 'num-pos' : 'zero'}">${fx(c.mealPay)}</td></tr>
+          </tbody>
+          <tfoot><tr><td>合计</td><td>—</td><td>—</td><td style="color:var(--brand);font-size:14px;line-height:1.5">加班费 ${fx(c.otPay)}<br>餐补 ${fx(c.mealPay)}<br><b style="font-size:15px">${fx(c.total)} 元</b></td></tr></tfoot>
+        </table>
+      </div>
+      <div class="otc-sec">
+        <div class="otc-tit">结转下月设置</div>
+        <div class="carry-ctrl" style="margin:0;background:transparent;border:none;padding:0">
+          <div class="seg seg-3" id="carrySeg2">
+            <button type="button" data-v="all" class="${mode === 'all' ? 'on' : ''}">全部结转</button>
+            <button type="button" data-v="none" class="${mode === 'none' ? 'on' : ''}">全部折现</button>
+            <button type="button" data-v="manual" class="${mode === 'manual' ? 'on' : ''}">自定义</button>
+          </div>
+          <div class="hint" style="margin-top:6px">全部结转＝仅结转未换休且在有效期内的工作日加班；周末／节假日默认折现，可在「自定义」中手动结转；超 30 天核销窗口或超 ${Math.round(+DB.settings.leaveExpireDays || 0)} 天产生日的加班自动折现计入加班费（不可结转）。</div>
+          <div class="carry-manual carry-grid3${mode === 'manual' ? '' : ' hidden'}" id="carryManualWrap2">
+            <div class="mrow">
+              <label>结转工作日时长</label>
+              <input id="carryManualInp2_work" type="number" min="0" max="${c.carryCap.work}" step="0.5" value="${hf(cm.work || 0)}">
+              <div class="hint">上限 ${hf(c.carryCap.work)} h（未换休、未逾期折现且在有效期内）</div>
+            </div>
+            <div class="mrow">
+              <label>结转双休日时长</label>
+              <input id="carryManualInp2_rest" type="number" min="0" max="${c.carryCap.rest}" step="0.5" value="${hf(cm.rest || 0)}">
+              <div class="hint">上限 ${hf(c.carryCap.rest)} h；默认折现，可手动结转</div>
+            </div>
+            <div class="mrow">
+              <label>结转节假日时长</label>
+              <input id="carryManualInp2_holi" type="number" min="0" max="${c.carryCap.holi}" step="0.5" value="${hf(cm.holi || 0)}">
+              <div class="hint">上限 ${hf(c.carryCap.holi)} h；默认折现，可手动结转</div>
+            </div>
+          </div>
+          <div class="carry-line">本月应发：加班费 <b>${money(c.otPay)}</b> + 餐补 <b>${money(c.mealPay)}</b> = <b>${money(c.total)}</b> · 结转下月 <b class="cf">${hf(c.carryOutTotal)} h</b>（不计入本月应发）</div>
+        </div>
+      </div>
+      </div>
+      <div class="otc-col">
+      <div class="otc-sec">
+        <div class="otc-tit">换休核销台账</div>
+        ${sumHTML}
+        <div class="hint">核销规则：仅 30 天内加班可核销（手动指定优先，其余按 先上月结转→本月加班、先产生先消耗 配对）；超 30 天未消耗的加班自动转加班费。</div>
+        ${d.warnings.length ? `<div class="llg-warn" style="display:block;margin-top:8px;line-height:1.7">⚠️ ${d.warnings.join('<br>⚠️ ')}</div>` : ''}
+      </div>
+      <div class="otc-sec">
+        <div class="otc-tit">换休核销明细（${d.leaves.length} 笔）</div>
+        ${lvHTML}
+      </div>
+      <div class="otc-sec">
+        <div class="otc-tit">加班池消耗（反向核对）</div>
+        <div class="llg-pool-hd">上月结转池（${hf(c.carryInTotal)}h）</div>
+        ${d.carryPool.length ? d.carryPool.map(poolRow).join('') : '<div class="muted">无</div>'}
+        <div class="llg-pool-hd">本月加班池（${hf(c.gainTotal)}h）</div>
+        ${d.curPool.length ? d.curPool.map(poolRow).join('') : '<div class="muted">无</div>'}
+      </div>
+      </div>
+    </div>`;
+  }
+  function paint() {
+    const body = $('#monthSettleBody'); if (!body) return;
+    body.innerHTML = build();
+    body.querySelectorAll('#carrySeg2 button').forEach(b => b.addEventListener('click', () => {
+      const v = b.dataset.v, mo = M(key);
+      mo.carryMode = v; if (v !== 'manual') delete mo.carryOutManual;
+      save(); partialCarryRefresh(); paint();
+    }));
+    ['work','rest','holi'].forEach(t => {
+      const inp = body.querySelector('#carryManualInp2_' + t);
+      if (inp) {
+        inp.addEventListener('input', () => {
+          let v = +inp.value || 0; const aw = compute(key).carryCap[t];
+          if (v > aw) { v = aw; inp.value = hf(aw); toast('已截断到上限 ' + hf(aw) + 'h'); }
+          const mo = M(key); (mo.carryOutManual = mo.carryOutManual || {})[t] = +v.toFixed(2); mo.carryMode = 'manual';
+          save(); partialCarryRefresh(); paint();
+        });
+        inp.addEventListener('change', () => { save(); render(); paint(); });
+      }
+    });
+  }
+  el.innerHTML = `<div class="modal carry-modal" onclick="event.stopPropagation()" style="width:1080px;max-width:calc(100vw - 32px)">
+    <div class="modal-h"><div><h3>${key.replace('-', ' 年 ')} 月 · 加班结算</h3><p>加班费 / 结转下月 / 换休核销 一览</p></div>
+      <span class="spacer"></span><button class="btn ghost sm" onclick="closeModal('monthSettleMask')">✕</button></div>
+    <div class="modal-b" id="monthSettleBody"></div>
+    <div class="modal-f"><span class="spacer"></span><button class="btn" onclick="exportLedgerText('${key}')" title="导出四段对账文本">📄 导出文本</button><button class="btn primary" onclick="closeModal('monthSettleMask')">关闭</button></div>
+  </div>`;
+  el.onclick = () => closeModal('monthSettleMask');
+  document.body.appendChild(el);
+  paint();
+  // ESC 关闭面板
+  const onEsc = e => { if (e.key === 'Escape') closeModal('monthSettleMask'); };
+  document.addEventListener('keydown', onEsc);
+  el._onEsc = onEsc;  // 便于 closeModal 解绑，避免重复叠加
+}
+
+function closeModal(id) {
+  const m = $('#' + id);
+  if (m) { if (m._onEsc) document.removeEventListener('keydown', m._onEsc); m.remove(); }
+}
+
+/* ============ 换休核销台账：换休 ↔ 加班 一一对应 ============ */
+/* 核销规则：30 天内的加班才能核销换休（距换休日超过 30 天的加班自动记为加班费，不再参与配对）；
+   历史记录中手动指定来源（leaveSrc）的优先；其余按 FIFO 自动配对
+   （先上月结转池，再本月加班池；同池内 工作日→双休日→节假日、同类型按日期先产生先消耗）。
+   年假（r.annual）不参与核销（独立额度）。 */
+function leaveLedger(key, preC) {
+  const [y, m] = key.split('-').map(Number);
+  const order = ['work', 'rest', 'holi'];
+  const c = preC || compute(key);
+  const fromPre = !!preC;
+  const n = daysIn(key), mo = M(key);
+  const tOrd = { work: 0, rest: 1, holi: 2 };
+  /* 30 天核销规则 */
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const mEnd = new Date(y, m - 1, n);                       // 本月最后一天
+  const ref = mEnd > today ? today : mEnd;                  // “再无可能被消耗”的判定基准（历史月=月末，当月/未来月=今天）
+  const eDate = e => new Date(e.y, e.m - 1, e.d || 1);      // 更早月份结转（日期未知）按上月 1 日计
+  const overDue = (e, ld) => (ld - eDate(e)) / 86400000 > 30;   // 距换休日超 30 天 → 不可核销
+  // 换休条目（所有 leaveH > 0 的行，与计算引擎口径一致）
+  const leaves = [];
+  for (let d = 1; d <= n; d++) {
+    const r = mo.days[d];
+    if (!r || !(+r.leaveH > 0)) continue;
+    leaves.push({
+      d, h: +r.leaveH, src: r.leaveSrc || '', reason: r.leaveReason || '',
+      pairs: [], short: 0, manual: !!(r.leaveSrc && String(r.leaveSrc).startsWith('D'))
+    });
+  }
+  leaves.sort((a, b) => a.d - b.d);
+  // 结转池：上月加班中实际未被上月换休核销的剩余部分
+  // 先模拟上月换休的 FIFO 消耗（先上月结转，后上月新增；同类型按日期），剩余即「可结转」归属
+  const pk = prevKey(key);
+  const [py, pm] = pk.split('-').map(Number);
+  const prevOT = [];
+  let prevLeaveTotal = 0;
+  if (DB.months[pk]) {
+    const pmo = M(pk), pn = daysIn(pk);
+    for (let d = 1; d <= pn; d++) {
+      const r = pmo.days[d]; if (!r) continue;
+      const h = hoursOf(pk, d); if (h > 0) prevOT.push({ d, h, t: dayType(pk, d), reason: r.reason || '' });
+      prevLeaveTotal += +r.leaveH || 0;
+    }
+  }
+  prevOT.sort((a, b) => tOrd[a.t] - tOrd[b.t] || a.d - b.d);
+  // 模拟上月换休消耗：先 carryIn（来自 c.carryIn），再 prevOT 按日期升序
+  let need = prevLeaveTotal;
+  const pCarryInLeft = { work: c.carryIn.work, rest: c.carryIn.rest, holi: c.carryIn.holi };
+  for (const t of order) { const u = Math.min(need, pCarryInLeft[t]); pCarryInLeft[t] = +(pCarryInLeft[t] - u).toFixed(2); need -= u; }
+  const pLeft = {}; prevOT.forEach(e => { pLeft[e.d] = e.h; });
+  for (const t of order) {
+    prevOT.filter(e => e.t === t).forEach(e => {
+      if (need <= 0.001) return;
+      const u = Math.min(need, pLeft[e.d]);
+      pLeft[e.d] = +(pLeft[e.d] - u).toFixed(2); need -= u;
+    });
+  }
+  // 结转归属：取上月剩余，按日期降序（FIFO 下剩余的是较晚加班）
+  let prevRemain = prevOT.filter(e => pLeft[e.d] > 0.001).map(e => ({ d: e.d, h: pLeft[e.d], t: e.t, reason: e.reason }));
+  prevRemain.sort((a, b) => tOrd[a.t] - tOrd[b.t] || b.d - a.d);
+  let cap = c.carryInTotal;
+  const carryPool = prevRemain.map(e => {
+    if (cap <= 0.001) return null;
+    const take = +Math.min(e.h, cap).toFixed(2);
+    cap = +(cap - take).toFixed(2);
+    return { y: py, m: pm, d: e.d, h: take, t: e.t, reason: e.reason, used: [], left: take, earlier: false };
+  }).filter(Boolean);
+  const prevRemainTotal = +prevRemain.reduce((s, e) => s + e.h, 0).toFixed(2);
+  if (c.carryInTotal > prevRemainTotal + 0.001)   // 结转额超过上月剩余总量 → 来自更早月份的遗留结转
+    carryPool.push({ y: py, m: pm, d: 0, h: +(c.carryInTotal - prevRemainTotal).toFixed(2), t: 'work', reason: '', used: [], left: +(c.carryInTotal - prevRemainTotal).toFixed(2), earlier: true });
+  // 本月池：本月加班日（同排序）
+  const curPool = [];
+  for (let d = 1; d <= n; d++) {
+    const r = mo.days[d]; if (!r) continue;
+    const h = hoursOf(key, d); if (h <= 0) continue;
+    curPool.push({ y, m, d, h, t: dayType(key, d), reason: r.reason || '', used: [], left: h, earlier: false });
+  }
+  curPool.sort((a, b) => tOrd[a.t] - tOrd[b.t] || a.d - b.d);
+  // FIFO 消耗（先结转池，再本月池；onlyCarry=true 时仅结转池；ld=换休日，仅消耗距其 30 天内的加班）
+  const fifo = (rem, onlyCarry, ld) => {
+    const parts = [];
+    const pick = pool => { for (let i = 0; i < pool.length; i++) { const e = pool[i]; if (e.left > 0.001 && !overDue(e, ld)) return e; } return null; };
+    while (rem > 0.001) {
+      let e = pick(carryPool);
+      if (!e && !onlyCarry) e = pick(curPool);
+      if (!e) break;
+      const take = +Math.min(rem, e.left).toFixed(2);
+      parts.push({ e, take });
+      e.left = +(e.left - take).toFixed(2);
+      rem = +(rem - take).toFixed(2);
+    }
+    return { parts, rem };
+  };
+  const warnings = [];
+  // 1) 手动指定「当月某日」的换休：优先核销指定加班日（须在换休日 30 天内）
+  leaves.filter(l => l.manual).forEach(l => {
+    const sd = +String(l.src).slice(1);
+    const e = curPool.find(x => x.d === sd);
+    const ld = new Date(y, m - 1, l.d);
+    let rem = l.h;
+    if (e && e.left > 0.001 && !overDue(e, ld)) {
+      const take = +Math.min(rem, e.left).toFixed(2);
+      l.pairs.push({ e, take, manual: true });
+      e.used.push({ l, take });
+      e.left = +(e.left - take).toFixed(2);
+      rem = +(rem - take).toFixed(2);
+    }
+    if (rem > 0.001) {
+      if (e && overDue(e, ld)) warnings.push(`${m}月${l.d}日 换休指定的「${sd}日加班」距换休超30天，已自动转加班费，改按30天内加班 FIFO 补足`);
+      else warnings.push(`${m}月${l.d}日 换休指定的「${sd}日加班」${e ? '剩余时长不足' : '不存在或无时长'}，缺 ${hf(rem)}h 已按 FIFO 补足`);
+      const r2 = fifo(rem, false, ld);
+      r2.parts.forEach(p => { l.pairs.push({ e: p.e, take: p.take, manual: false }); p.e.used.push({ l, take: p.take }); });
+      l.short = r2.rem;
+    }
+  });
+  // 2) 指定「上月结转」的换休：仅从结转池 FIFO（同样受 30 天窗口限制）
+  leaves.filter(l => l.src === 'carry').forEach(l => {
+    const r2 = fifo(l.h, true, new Date(y, m - 1, l.d));
+    r2.parts.forEach(p => { l.pairs.push({ e: p.e, take: p.take, manual: false }); p.e.used.push({ l, take: p.take }); });
+    if (r2.rem > 0.001) warnings.push(`${m}月${l.d}日 换休指定「上月结转」但结转池无30天内可用余额（或余额不足），缺 ${hf(r2.rem)}h`);
+    l.short = r2.rem;
+  });
+  // 3) 未指定的换休：结转池 → 本月池 FIFO（仅消耗距换休日 30 天内的加班）
+  leaves.filter(l => !l.manual && l.src !== 'carry').forEach(l => {
+    const r2 = fifo(l.h, false, new Date(y, m - 1, l.d));
+    r2.parts.forEach(p => { l.pairs.push({ e: p.e, take: p.take, manual: false }); p.e.used.push({ l, take: p.take }); });
+    l.short = r2.rem;
+  });
+  if (c.leaveShort > 0.001) warnings.push(`本月换休合计比可用加班时长多 ${hf(c.leaveShort)}h（引擎已标红提示）`);
+  // 调休有效期（按天）：加班/调休产生超过 N 天仍未换休核销的，强制折现计入加班费（不可结转）
+  // 以「加班产生日」为锚点，与用户何时换休无关；优先于下方「距换休日>30」窗口，避免重复统计
+  let expiredCash = 0; const expiredByType = { work: 0, rest: 0, holi: 0 };
+  const EXP = +DB.settings.leaveExpireDays || 0;
+  carryPool.concat(curPool).forEach(e => {
+    if (EXP > 0 && e.left > 0.001 && (ref - eDate(e)) / 86400000 > EXP) {
+      e.expired = true; expiredCash = +(expiredCash + e.left).toFixed(2);
+      expiredByType[e.t] = +(expiredByType[e.t] + e.left).toFixed(2);
+    }
+  });
+  // 超 30 天仍未被消耗（距换休日>30 且该条未触发按天过期）的加班 → 自动记为加班费
+  let autoCash = 0; const autoCashByType = { work: 0, rest: 0, holi: 0 };
+  carryPool.concat(curPool).forEach(e => {
+    if (!e.expired && e.left > 0.001 && (ref - eDate(e)) / 86400000 > 30) {
+      e.cash = true; autoCash = +(autoCash + e.left).toFixed(2);
+      autoCashByType[e.t] = +(autoCashByType[e.t] + e.left).toFixed(2);
+    }
+  });
+  const usedCarry = +carryPool.reduce((s, e) => s + (e.h - e.left), 0).toFixed(2);
+  const usedCur = +curPool.reduce((s, e) => s + (e.h - e.left), 0).toFixed(2);
+  const totalShort = +leaves.reduce((s, l) => s + l.short, 0).toFixed(2);
+  if (totalShort > c.leaveShort + 0.001) warnings.push(`按30天规则另有 ${hf(+(totalShort - c.leaveShort).toFixed(2))}h 换休找不到30天内的加班来源（对应加班已自动转加班费）`);
+  return { leaves, carryPool, curPool, usedCarry, usedCur, totalShort, autoCash, autoCashByType, expiredCash, expiredByType, warnings, c };
+}
+
+/* 换休核销台账弹窗：首页「调休对应」框 / 明细页「核销」按钮 → 弹出一一对应明细 */
+
+/* 通用二次确认弹窗：复用 .modal 样式，UI 与各处弹窗保持一致 */
+function confirmDialog(opts){
+  const o = opts || {};
+  const title = o.title || '提示', msg = o.msg || '', okText = o.okText || '确认', cancelText = o.cancelText || '取消', danger = !!o.danger, onOk = o.onOk;
+  const el = document.createElement('div'); el.className = 'mask'; el.id = 'cfMask';
+  el.innerHTML = `<div class="modal" onclick="event.stopPropagation()" style="width:min(380px,100%)">
+    <div class="modal-h"><div><h3>${esc(title)}</h3>${msg ? `<p>${esc(msg)}</p>` : ''}</div>
+      <span class="spacer"></span><button class="btn ghost sm" onclick="closeModal('cfMask')">✕</button></div>
+    <div class="modal-f"><span class="spacer"></span>
+      <button class="btn" id="cfCancel">${esc(cancelText)}</button>
+      <button class="btn ${danger ? 'danger' : 'primary'}" id="cfOk">${esc(okText)}</button>
+    </div></div>`;
+  el.onclick = () => closeModal('cfMask');
+  document.body.appendChild(el);
+  el.querySelector('#cfCancel').onclick = e => { e.stopPropagation(); closeModal('cfMask'); };
+  el.querySelector('#cfOk').onclick = e => { e.stopPropagation(); closeModal('cfMask'); if (typeof onOk === 'function') onOk(); };
+}
+function isToday(key, d) {
+  const t = new Date();
+  return mk(t.getFullYear(), t.getMonth() + 1) === key && t.getDate() === d;
+}
+// 时间下拉选项：00:00 ~ 23:30，每 30 分钟一档；若当前选中值不在网格内（如 18:10），自动补入并保持选中
+function addHour(t, h) {
+  if (!t || !/^\d{1,2}:\d{2}$/.test(t)) return '';
+  let [hh, mm] = t.split(':').map(Number);
+  hh += h; if (hh > 23) hh = 23;
+  return pad(hh) + ':' + pad(mm);
+}
+function timeOptions(sel) {
+  let opts = [];
+  for (let h = 0; h < 24; h++) for (const mm of [0, 30]) opts.push(pad(h) + ':' + pad(mm));
+  if (sel && typeof sel === 'string' && /^\d{1,2}:\d{1,2}$/.test(sel) && !opts.includes(sel)) opts.push(sel);
+  opts.sort();
+  const empty = (sel === '' || sel == null) ? ' selected' : '';
+  let o = `<option value=""${empty}>—</option>`;
+  for (const v of opts) o += `<option value="${v}"${sel === v ? ' selected' : ''}>${v}</option>`;
+  return o;
+}
+
+// 调休对应明细：按来源(上月结转 / 当月某日 / 未指定)汇总，用于「一一对应」记录
+function leaveBreakdown(key) {
+  const n = daysIn(key), map = {};
+  for (let d = 1; d <= n; d++) {
+    const r = M(key).days[d]; if (!r) continue;
+    if (dayType(key, d) !== 'work') continue;
+    const lv = +r.leaveH || 0; if (lv <= 0) continue;
+    const src = r.leaveSrc || '';
+    map[src] = (map[src] || 0) + lv;
+  }
+  const parts = [];
+  Object.keys(map).forEach(s => {
+    let lbl = s === 'carry' ? '上月结转' : (s.startsWith('D') ? (+s.slice(1)) + '日' : '未指定');
+    parts.push(`<span class="lvtag">${lbl} <b>${hf(map[s])}h</b></span>`);
+  });
+  return parts.join('');
+}
+
+/* 全量时间档（30 分钟一档） + 自定义时间选择器：只显示临近 5 档，滚轮滑动查看更多 */
+const ALL_TIMES = (() => { const a = []; for (let h = 0; h < 24; h++) for (const mm of [0, 30]) a.push(pad(h) + ':' + pad(mm)); return a; })();
+function timePicker(val, f, def, bound) {
+  const cur = val || '';
+  const bv = bound || '';
+  const minT = f === 'end' ? bv : '';   // 结束时间不小于开始时间
+  const maxT = f === 'start' ? bv : ''; // 开始时间不大于结束时间
+  return `<span class="tsel" data-f="${f}" data-def="${def || ''}" data-min="${minT}" data-max="${maxT}">
+    <input class="cellin tsel-in${cur ? '' : ' empty'}" type="text" readonly value="${cur ? esc(cur) : '—'}" placeholder="—" style="width:74px;cursor:pointer">
+    ${f === 'end' ? `<span class="tsel-clr" title="清除开始与结束时间">×</span>` : ''}
+    <input type="hidden" class="tsel-hid" data-f="${f}" value="${cur}">
+    <div class="tsel-pop" hidden></div>
+  </span>`;
+}
+function restPicker(leaveH, annual, enabled) {
+  if (!enabled) {
+    const v = (+annual > 0) ? (hf(+annual) + ' 天') : ((+leaveH > 0) ? (hf(+leaveH) + 'h') : '');
+    return `<span class="lsel-disabled" title="双休日 / 节假日无需填写换休 / 年假">${v || '—'}</span>`;
+  }
+  let val = '', isAnnual = false, field = '';
+  if (+annual > 0) { val = +annual; isAnnual = true; field = 'annual'; }
+  else if (+leaveH > 0) { val = +leaveH; field = 'leaveH'; }
+  return `<span class="lsel" data-cur-field="${field}">
+    <input class="cellin lsel-in${val ? '' : ' empty'}${isAnnual ? ' annual-val' : ''}" type="text" readonly value="${val ? esc(val) : '—'}" placeholder="0" style="width:52px;cursor:pointer;text-align:center">
+    <input type="hidden" class="lsel-hid" data-f="${field}" value="${val}">
+    <div class="lsel-pop" hidden></div>
+  </span>`;
+}
+/* 滚轮滑动选择：滚动时让处于容器正中（中心）的选项高亮 */
+function scrollHighlightMark(pop, itemSel) {
+  const items = [...pop.querySelectorAll(itemSel)];
+  if (!items.length) return;
+  const cr = pop.getBoundingClientRect();
+  const center = cr.top + cr.height / 2;
+  let best = null, bestD = Infinity;
+  for (const it of items) {
+    const r = it.getBoundingClientRect();
+    const c = r.top + r.height / 2;
+    const d = Math.abs(c - center);
+    if (d < bestD) { bestD = d; best = it; }
+  }
+  items.forEach(it => it.classList.toggle('on', it === best));
+}
+function attachScrollHighlight(pop, itemSel) {
+  pop.addEventListener('scroll', () => scrollHighlightMark(pop, itemSel), { passive: true });
+}
+// 顶部/底部仅留少量内边距，去掉大片空白，同时保留首尾滚动空间
+function ensureSpacers(pop, itemSel) {
+  const items = pop.querySelectorAll(itemSel);
+  if (items.length < 1) return;
+  const sp = 8;
+  let top = pop.querySelector('.sel-sp-top'), bot = pop.querySelector('.sel-sp-bot');
+  if (!top) { top = document.createElement('div'); top.className = 'sel-sp-top'; pop.insertBefore(top, items[0]); }
+  if (!bot) { bot = document.createElement('div'); bot.className = 'sel-sp-bot'; pop.appendChild(bot); }
+  top.style.height = sp + 'px'; bot.style.height = sp + 'px';
+}
+function centerOn(pop, el) { if (!el) return; pop.scrollTop = el.offsetTop - pop.clientHeight / 2 + el.clientHeight / 2; }
+
+function bindRestPickers() {
+  document.querySelectorAll('.lsel').forEach(span => {
+    const inp = span.querySelector('.lsel-in'), hid = span.querySelector('.lsel-hid'), pop = span.querySelector('.lsel-pop');
+    const opts = [
+      { v: 2, lbl: '2h', field: 'leaveH' },
+      { v: 4, lbl: '4h', field: 'leaveH' },
+      { v: 6, lbl: '6h', field: 'leaveH' },
+      { v: 8, lbl: '8h', field: 'leaveH' },
+      { v: 0.5, lbl: '年假0.5', field: 'annual' },
+      { v: 1, lbl: '年假1', field: 'annual' },
+    ];
+    const curVal = () => (hid.value === '' || +hid.value === 0) ? '' : +hid.value;
+    const curField = () => span.dataset.curField || '';
+    const render = () => {
+      const cf = curField(), cv = curVal();
+      const buildItem = o => {
+        const on = (cf === o.field && cv === o.v) ? ' on' : (!cf && o.v === 4) ? ' on' : '';
+        const cls = o.field === 'annual' ? ' lopt-annual' : '';
+        return `<div class="lopt${cls}${on}" data-v="${o.v}" data-field="${o.field}">${o.lbl}</div>`;
+      };
+      const left = opts.filter(o => o.field === 'leaveH').map(buildItem).join('');
+      const right = opts.filter(o => o.field === 'annual').map(buildItem).join('');
+      pop.innerHTML = `<div class="lopt-col">${left}</div><div class="lopt-col">${right}</div>`;
+    };
+    const outside = e => { if (!span.contains(e.target)) hide(); };
+    const onKey = e => { if (e.key === 'Escape') hide(); };
+    let onScrollResize;                          // 表格滚动/缩放时关闭弹窗（fixed 不会跟随）
+    function place() {
+      // 弹窗为 position:fixed，按 inp 视口坐标定位；窄屏下避免被 .dt-wrap 的 overflow:auto 剪裁
+      const r = inp.getBoundingClientRect();
+      const pw = pop.offsetWidth || 168, gap = 5;
+      let top = r.bottom + gap, left = r.left + r.width / 2 - pw / 2;
+      const minTop = 4, maxTop = window.innerHeight - 4;
+      if (top + 200 > maxTop) top = Math.max(minTop, r.top - 200 - gap);   // 下方空间不够则翻到上方
+      left = Math.max(4, Math.min(window.innerWidth - pw - 4, left));
+      pop.style.top = top + 'px';
+      pop.style.left = left + 'px';
+    }
+    function show() {
+      render();
+      pop.style.visibility = 'hidden'; pop.hidden = false;   // 先拿到真实尺寸
+      place();
+      pop.style.visibility = '';
+      setTimeout(() => document.addEventListener('click', outside, true), 0);
+      document.addEventListener('keydown', onKey);
+      // 滚动/缩放时关闭（fixed 不会随表格滚动）—— 监听 window + 最近的滚动容器
+      onScrollResize = () => { if (!pop.hidden) hide(); };
+      window.addEventListener('scroll', onScrollResize, true);
+      window.addEventListener('resize', onScrollResize);
+      let p = inp.parentElement;
+      while (p && p !== document.body) { p.addEventListener('scroll', onScrollResize, { passive: true, capture: true }); p = p.parentElement; }
+    }
+    function hide() {
+      pop.hidden = true;
+      pop.style.top = ''; pop.style.left = ''; pop.style.transform = ''; pop.style.visibility = '';
+      if (onScrollResize) {
+        window.removeEventListener('scroll', onScrollResize, true);
+        window.removeEventListener('resize', onScrollResize);
+        let p = inp.parentElement;
+        while (p && p !== document.body) { p.removeEventListener('scroll', onScrollResize, { capture: true }); p = p.parentElement; }
+        onScrollResize = null;
+      }
+      document.removeEventListener('click', outside, true);
+      document.removeEventListener('keydown', onKey);
+    }
+    function clearRest() {
+      const d = span.closest('tr').dataset.d;
+      const days = M(cur).days, r = days[d] || {};
+      delete r.leaveH; delete r.annual; delete r.leaveSrc;
+      if (!Object.keys(r).length) delete days[d];
+      save(); renderKPI(); renderBody();
+    }
+    inp.addEventListener('click', e => {
+      e.stopPropagation();
+      if (curVal() !== '') {                         // 已有值时点击 → 清除确认
+        confirmDialog({ title:'清除换休/年假', msg:'确定清除本日换休/年假吗？', okText:'清除', danger:true, onOk: clearRest });
+        return;
+      }
+      show();
+    });
+    pop.addEventListener('wheel', e => { e.preventDefault(); pop.scrollTop += e.deltaY > 0 ? 28 : -28; }, { passive: false });
+    attachScrollHighlight(pop, '.lopt');
+    pop.addEventListener('click', e => {
+      const it = e.target.closest('.lopt'); if (!it) return;
+      const v = +it.dataset.v, field = it.dataset.field;
+      const cv = curVal(), cf = curField();
+      if (cf === field && cv === v) {            // 再次点击当前已选值 → 清除
+        confirmDialog({ title:'清除换休/年假', msg:'确定清除本日换休/年假吗？', okText:'清除', danger:true, onOk: clearRest });
+        hide(); return;
+      }
+      const d = span.closest('tr').dataset.d;
+      const days = M(cur).days, r = days[d] || (days[d] = {});
+      if (field === 'annual') {
+        let used = 0;
+        Object.keys(DB.months).forEach(k => {
+          const ds = (DB.months[k] || {}).days || {};
+          Object.keys(ds).forEach(dd => { if (k === cur && dd === d) return; used += +((ds[dd] || {}).annual) || 0; });
+        });
+        const annTotal = +DB.settings.annualTotal || 0;
+        if (used + v > annTotal) { toast('年假剩余不足（已用 ' + hf(used) + ' / 额度 ' + hf(annTotal) + ' 天）'); hide(); return; }
+        r.annual = v; delete r.leaveH; delete r.leaveSrc;
+      } else {
+        const c = compute(cur);
+        const budget = c.carryIn.work + c.gain.work;
+        let others = 0;
+        Object.keys(days).forEach(dd => { if (dd !== d) others += +((days[dd] || {}).leaveH || 0); });
+        const maxLeave = Math.max(0, budget - others);
+        if (v > maxLeave) { toast('换休时长不可超过可用加班总时长 ' + hf(budget) + 'h（本行最多 ' + hf(maxLeave) + 'h）'); hide(); return; }
+        r.leaveH = v; delete r.annual;
+      }
+      save(); renderKPI(); renderBody();
+      hide();
+    });
+  });
+}
+function annualPicker(val, f) {
+  const on = (val === 1);
+  return `<span class="asel${on ? ' on' : ''}" data-f="${f}" title="点击记 1 天年假，再点清除">
+    <input class="cellin asel-in${on ? '' : ' empty'}" type="text" readonly value="${on ? '1' : '—'}" placeholder="—" style="width:52px;cursor:pointer;text-align:center">
+    <input type="hidden" class="asel-hid" data-f="${f}" value="${on ? '1' : ''}">
+  </span>`;
+}
+function bindAnnualPickers() {
+  // 年假：点击切换 1 / 清除（不再弹下拉），且不超过剩余天数
+  document.querySelectorAll('.asel').forEach(span => {
+    const inp = span.querySelector('.asel-in'), hid = span.querySelector('.asel-hid');
+    span.addEventListener('click', e => {
+      e.stopPropagation();
+      if (hid.value === '1') {            // 已选 → 清除
+        hid.value = ''; inp.value = '—'; inp.classList.add('empty'); span.classList.remove('on');
+      } else {                            // 未选 → 记 1 天，先查剩余
+        let used = 0;
+        Object.keys(DB.months).forEach(k => {
+          const ds = (DB.months[k] || {}).days || {};
+          Object.keys(ds).forEach(d => { used += +((ds[d] || {}).annual) || 0; });
+        });
+        const annTotal = +DB.settings.annualTotal || 0;
+        if (used >= annTotal) { toast('年假剩余不足（已用 ' + hf(used) + ' / 额度 ' + hf(annTotal) + ' 天）'); return; }
+        hid.value = '1'; inp.value = '1'; inp.classList.remove('empty'); span.classList.add('on');
+      }
+      hid.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  });
+}
+function bindTimePickers() {
+  document.querySelectorAll('.tsel').forEach(span => {
+    const inp = span.querySelector('.tsel-in'), hid = span.querySelector('.tsel-hid'), pop = span.querySelector('.tsel-pop');
+    let open = false, center = 0;
+    const minT = span.dataset.min || '', maxT = span.dataset.max || '';
+    const allowed = () => ALL_TIMES.filter(t => (!minT || t >= minT) && (!maxT || t <= maxT));
+    const render = () => {
+      const al = allowed(); const n = al.length;
+      if (!n) { pop.innerHTML = ''; return; }
+      const hd = span.dataset.f === 'start' ? '开始时间' : '结束时间';
+      let h = `<div class="pop-hd">${hd}</div>`;
+      for (let i = 0; i < n; i++) {
+        const v = al[i], saved = (v === (hid.value || ''));
+        h += `<div class="topt${saved ? ' cur' : ''}" data-v="${v}">${v}</div>`;
+      }
+      pop.innerHTML = h;
+    };
+    const outside = e => { if (!span.contains(e.target)) hide(); };
+    const onKey = e => { if (e.key === 'Escape') hide(); };
+    function show() {
+      const empty = (hid.value || '') === '';
+      if (span.dataset.f === 'end' && empty) {
+        // 结束默认 = 开始 + 1 小时：若开始为空则先按开始默认值补上，再一并写库重渲染
+        const row = span.closest('tr');
+        const startTsel = row && [...row.querySelectorAll('.tsel')].find(s => s.dataset.f === 'start');
+        const startHid = startTsel && startTsel.querySelector('.tsel-hid');
+        let sv = startHid ? (startHid.value || '') : '';
+        if (!sv) sv = (startTsel && startTsel.dataset.def) || '09:00';
+        const ev = addHour(sv, 1);
+        const rr = M(cur).days[row.dataset.d] || (M(cur).days[row.dataset.d] = {});
+        rr.start = sv; rr.end = ev;
+        save(); renderKPI(); renderBody();
+        return;
+      }
+      if (empty && span.dataset.def) {  // 开始空值点击 → 默认选中 def（工作日 17:00 / 双休日 10:00）
+        let dft = span.dataset.def;
+        if (minT && dft < minT) dft = minT;
+        if (maxT && dft > maxT) dft = maxT;
+        hid.value = dft; inp.value = dft;
+        hid.dispatchEvent(new Event('change', { bubbles: true }));
+        return;
+      }
+      const al = allowed();
+      render(); pop.hidden = false; open = true;
+      ensureSpacers(pop, '.topt');
+      centerOn(pop, pop.querySelector('.topt.cur'));
+      scrollHighlightMark(pop, '.topt');
+      setTimeout(() => document.addEventListener('click', outside, true), 0);
+      document.addEventListener('keydown', onKey);
+    }
+    function hide() { pop.hidden = true; open = false; document.removeEventListener('click', outside, true); document.removeEventListener('keydown', onKey); }
+    inp.addEventListener('click', e => { e.stopPropagation(); open ? hide() : show(); });
+    const clr = span.querySelector('.tsel-clr');
+    if (clr) clr.addEventListener('click', e => {
+      e.stopPropagation();
+      const row = span.closest('tr'), d = row && row.dataset.d, days = M(cur).days, r = d ? (days[d] || {}) : {};
+      hide();                                  // 先收起时间下拉
+      if (!r.start && !r.end) return;          // 无数据时无需二次确认
+      confirmDialog({
+        title: '清除开始与结束时间',
+        msg: '确定清除本日的开始与结束时间吗？时长将恢复为留空（按需重新选择）。',
+        okText: '清除',
+        danger: true,
+        onOk: () => {
+          delete r.start; delete r.end;        // 结束的 × 同时清除开始时间
+          if (!Object.keys(r).length) delete days[d];
+          save(); renderKPI(); renderBody();
+          setTimeout(scrollToToday, 0);        // 清除后回到今日行
+        }
+      });
+    });
+    pop.addEventListener('wheel', e => { e.preventDefault(); pop.scrollTop += (e.deltaY > 0 ? 44 : -44); }, { passive: false });
+    attachScrollHighlight(pop, '.topt');
+    pop.addEventListener('click', e => {
+      const it = e.target.closest('.topt'); if (!it) return;
+      hid.value = it.dataset.v; inp.value = it.dataset.v;
+      hid.dispatchEvent(new Event('change', { bubbles: true }));
+      hide();
+    });
+  });
+}
+
+
+/* ============================ 渲染 ============================ */
+function setListFilter(f) {
+  listFilter = (listFilter === f) ? null : f;
+  renderBody();
+}
+
+// 退出「上月结转来源」视图：返回进入前的月份
+function exitCarryInView() {
+  carryInView = false;
+  if (carryInReturn) cur = carryInReturn;
+  listFilter = null;
+  render();
+}
+
+// KPI 卡片点击 → 切换明细筛选；加班费 KPI 直接打开本月结算面板；非明细 tab 切到明细 tab
+function kpiFilter(el) {
+  // 加班费 KPI：点击直接打开本月结算面板（不再作筛选切换）
+  if (el.dataset.act === 'settle') {
+    if (typeof openMonthSettle === 'function') openMonthSettle(cur);
+    return;
+  }
+  const f = el.dataset.f;  // '' 表示清除筛选
+  // 「上月结转」：toggle 来源视图——已在视图中则退出，否则跳上一月高亮结转来源
+  if (f === 'carryIn') {
+    if (carryInView) { exitCarryInView(); return; }
+    const pk = prevKey(cur);
+    if (!DB.months[pk]) { toast('无上一月数据'); return; }
+    carryInReturn = cur;          // 记住进入前的月份，供退出返回
+    cur = pk; tab = 'list'; carryInView = true; listFilter = null;
+    render();
+    return;
+  }
+  // 在「上月结转来源」视图下点其他 KPI：自动退出来源视图，回到原本月份，再应用新筛选
+  if (carryInView) {
+    carryInView = false;
+    if (carryInReturn) { cur = carryInReturn; carryInReturn = null; }
+  }
+  if (tab !== 'list') { tab = 'list'; renderTop(); }
+  setListFilter(f || null);
+  renderKPI();  // 刷新 KPI 自身的 active 高亮
+}
+
+function render() { renderTop(); renderKPI(); renderAlerts(); renderBody(); }
+
+function renderTop() {
+  const ks = monthKeys(), i = ks.indexOf(cur);
+  const btn = $('#mselBtn'), pop = $('#mselPop');
+  if (btn) btn.textContent = cur.replace('-', ' 年 ') + ' 月';
+  if (pop) {
+    const lastK = ks[ks.length - 1];
+    const canNew = !DB.months[nextKey(cur)];
+    let h = '';
+    ks.forEach(k => {
+      const isCur = k === cur;
+      const isLast = k === lastK;
+      h += `<div class="mopt${isCur ? ' cur' : ''}" data-v="${k}">
+        <span class="mopt-lbl"><span>${k.replace('-', ' 年 ')} 月</span></span>
+        <span class="mopt-del" title="删除该月份" data-del="${k}" ${isLast ? '' : 'hidden'}>×</span>
+      </div>`;
+    });
+    h += `<button class="mnew" data-act="new" ${canNew ? '' : 'disabled'}>＋ 新建下月</button>`;
+    pop.innerHTML = h;
+  }
+  $('#mprev').disabled = i <= 0;
+  $('#mnext').disabled = i >= ks.length - 1;
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+}
+
+function renderKPI() {
+  // 上月结转来源视图下：KPI 仍以「被结转到的月份」为基准（明细表单独跳到上一月），避免 KPI 数值随视图错乱
+  const kpiKey = carryInView ? nextKey(cur) : cur;
+  const c = compute(kpiKey), p = DB.months[prevKey(kpiKey)] ? compute(prevKey(kpiKey)) : null;
+  // 年假：额度 − 全部月份已用
+  let annUsed = 0;
+  Object.keys(DB.months).forEach(k => { const ds = (DB.months[k] || {}).days || {}; Object.keys(ds).forEach(d => { annUsed += +((ds[d] || {}).annual) || 0; }); });
+  const annTotal = +DB.settings.annualTotal || 0, annRemain = Math.max(0, annTotal - annUsed);
+  const dl = (a, b) => { if (!p) return ''; const d = a - b; if (Math.abs(d) < .01) return '<span class="muted">与上月持平</span>'; return `<b style="color:${d > 0 ? '#e5484d' : '#12b76a'}">${d > 0 ? '↑' : '↓'}${hf(Math.abs(d))}</b> 较上月`; };
+  const box = [
+    { lb: '本月加班', ic: '⏱', ac: '#3b6bff', vl: hf(c.gainTotal), u: '小时', df: dl(c.gainTotal, p ? p.gainTotal : 0), f: 'ot' },
+    { lb: '上月结转', ic: '↩', ac: '#6366f1', vl: hf(c.carryInTotal), u: '小时', df: c.carryInTotal ? `<span class="muted">工 ${hf(c.carryIn.work)} 休 ${hf(c.carryIn.rest)} 节 ${hf(c.carryIn.holi)}</span>` : '<span class="muted">无结转</span>', f: 'carryIn' },
+    (() => {
+      const budget = c.carryIn.work + c.gain.work;
+      const used = c.leaveTotal;
+      const pct = budget > 0 ? Math.min(100, Math.max(0, used / budget * 100)) : 0;
+      const bar = budget > 0 ? `<div class="kpi-bar"><div class="kpi-bar-in${c.leaveShort > 0 ? ' over' : ''}" style="width:${pct}%"></div></div>` : '';
+      const df = c.leaveShort > 0
+        ? `<b style="color:#e5484d">超支 ${hf(c.leaveShort)}</b><span class="muted"> · 可用 ${hf(budget)}</span>`
+        : `<span class="muted">已用 ${hf(used)} / 可用 ${hf(budget)}</span>`;
+      return { lb: '本月换休', ic: '🏖', ac: '#12b76a', vl: hf(c.leaveTotal), u: '小时', df: df + bar, f: 'leave' };
+    })(),
+    { lb: '结转下月', ic: '➡', ac: '#12b76a', vl: hf(c.carryOutTotal), u: '小时', df: `<span class="muted">${{ all: '全部结转', none: '全部折现', manual: '自定义' }[c.mode]}</span>`, f: 'carry' },
+    { lb: '折现时长', ic: '💱', ac: '#0ea5a4', vl: hf((c.autoCash + c.expiredCash)), u: '小时', df: (+DB.settings.leaveExpireDays || 0) > 0 ? `<span class="muted">超${Math.round(+DB.settings.leaveExpireDays)}天自动折现</span>` : '<span class="muted">未启用折现规则</span>', f: 'cash' },
+    { lb: '年假剩余', ic: '🗓', ac: '#db2777', vl: hf(annRemain), u: '天', df: `<span class="muted">额度 ${hf(annTotal)} 天</span>`, f: 'annual' },
+    { lb: '餐补', ic: '🍚', ac: '#f5a524', vl: money(c.mealPay).replace('¥', ''), u: '元', df: `<span class="lt">共 ${hf(c.mealCount)} 次</span>`, hl: 'blue', f: 'meal' },
+    { lb: '加班费', ic: '💰', ac: '#ff7a18', vl: money(c.otPay).replace('¥', ''), u: '元', df: `<span class="lt">工 ${hf(c.gain.work)} 休 ${hf(c.gain.rest)} 节 ${hf(c.gain.holi)}</span>`, hl: 'orange', f: null, act: 'settle' }
+  ];
+  $('#kpi').innerHTML = box.map(b => {
+    const isSettle = b.act === 'settle';
+    const actAttr = isSettle ? ` data-act="settle"` : '';
+    const fAttr = isSettle ? '' : ` data-f="${b.f == null ? '' : b.f}"`;
+    const tip = isSettle ? '点击查看加班费结算面板（加班费/结转下月/换休核销）' : `点击筛选：${b.lb}${b.f ? '' : '（清除筛选）'}`;
+    return `
+    <div class="kpi${b.hl ? ' hl-' + b.hl : ''}${(listFilter === b.f || (carryInView && b.f === 'carryIn')) ? ' active' : ''}"${fAttr}${actAttr} onclick="kpiFilter(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();kpiFilter(this)}" role="button" tabindex="0" title="${tip}" style="${b.ac ? '--ac:' + b.ac : ''}">
+      <div class="kpi-top"><span class="kpi-ic">${b.ic || ''}</span><span class="lb">${b.lb}</span></div>
+      <div class="vl">${b.vl}<small>${b.u}</small></div>
+      <div class="df">${b.df}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- 调休 / 年假到期预警 ---------- */
+// 最早产生「仍可用可调休额度」的月份（沿结转链向前追溯）
+function leaveOriginMonth(key) {
+  let k = key;
+  while (true) {
+    const pk = prevKey(k);
+    if (!DB.months[pk]) break;
+    const c = compute(pk);
+    if (c.carryOutTotal <= 0.001 && c.gainTotal <= 0.001) break; // 上月未向下传递额度 → 当前月为起点
+    k = pk;
+  }
+  return k;
+}
+// 某月 +add 个月后的月底日期
+function monthEnd(y, m, add) {
+  let mm = m + add, yy = y;
+  while (mm > 12) { mm -= 12; yy++; }
+  return new Date(yy, mm - 1, daysIn(yy + '-' + pad(mm)));
+}
+function buildAlerts() {
+  const out = [];
+  const c = compute(cur);
+  const now = new Date();
+  const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // 年假
+  const annTotal = +DB.settings.annualTotal || 0;
+  let annUsed = 0;
+  Object.keys(DB.months).forEach(k => { const ds = (DB.months[k] || {}).days || {}; Object.keys(ds).forEach(d => { annUsed += +((ds[d] || {}).annual) || 0; }); });
+  const annRemain = Math.max(0, annTotal - annUsed);
+  if (annRemain > 0 && (now.getMonth() + 1) >= 11) {
+    out.push({ key: 'ann_warn_' + Math.round(annRemain), cls: 'warn', ic: '🗓', html: `<b>年假剩余 ${hf(annRemain)} 天</b>，将于 <b>12 月 31 日</b> 清零（按自然年），请尽快安排使用。` });
+  } else if (annTotal > 0 && annRemain <= 0) {
+    out.push({ key: 'ann_done', cls: 'info', ic: '🗓', html: `年假额度（${hf(annTotal)} 天）已用尽。` });
+  }
+  // 调休到期（估算：统计自 2026年7月，按有效期 N 个月推算）
+  const N = +DB.settings.leaveExpireMonths || 0;
+  const avail = c.availTotal;
+  if (N > 0 && avail > 0.001) {
+    const originKey = '2026-07';
+    const [oy, om] = originKey.split('-').map(Number);
+    const exp = monthEnd(oy, om, N);
+    const daysLeft = Math.round((exp - today0) / 86400000);
+    const originLbl = `${oy}年${om}月`;
+    const expLbl = `${exp.getFullYear()}-${pad(exp.getMonth() + 1)}-${pad(exp.getDate())}`;
+    if (daysLeft <= 30) {
+      out.push({ key: 'lv_warn_' + Math.round(avail), cls: 'warn', ic: '🌴', html: `可调休约 <b>${hf(avail)}h</b> 将于 <b>${expLbl}</b> 到期（按 ${N} 个月有效期估算，还剩 ${daysLeft} 天），建议尽快使用。` });
+    }
+  }
+  return out;
+}
+
+let lvExpanded = false; // 调休预警展开状态（不持久化，刷新即收起）
+
+function renderAlerts() {
+  const el = $('#alerts'); if (!el) return;
+  const read = DB.settings.alertRead || [];
+  const list = buildAlerts().filter(a => a.key.startsWith('lv_warn_') || !read.includes(a.key)); // 可调休提醒不做「已读」隐藏，始终显示
+  el.innerHTML = list.map(a => {
+    const isLv = a.key.startsWith('lv_warn_');
+    const roleAttr = isLv ? ` role="button" tabindex="0" aria-expanded="${lvExpanded ? 'true' : 'false'}"` : '';
+    const clickAttr = isLv ? ` onclick="toggleLvDetail()"` : '';
+    const clsExtra = isLv ? (lvExpanded ? ' clickable expanded' : ' clickable') : '';
+    const caret = isLv ? '<span class="caret">▾</span>' : '';
+    const hint = isLv ? `<span class="hint">点击展开明细</span>` : '';
+    const titleAttr = isLv ? ' title="点击查看调休来源明细"' : '';
+    return `<div class="alert ${a.cls}${clsExtra}"${clickAttr}${roleAttr}${titleAttr}>
+      <span class="ai">${a.ic}</span>
+      <div>${a.html}</div>
+      ${hint}
+      ${caret}
+      ${isLv ? '' : `<button class="alert-x" onclick="event.stopPropagation();dismissAlert('${a.key}')" title="已读，不再提示">✓</button>`}
+    </div>`;
+  }).join('');
+  if (lvExpanded) {
+    const wrap = document.createElement('div');
+    wrap.id = 'lvDetail';
+    wrap.innerHTML = buildLvDetail();
+    el.appendChild(wrap);
+  }
+}
+function dismissAlert(k) {
+  const read = DB.settings.alertRead = DB.settings.alertRead || [];
+  if (!read.includes(k)) read.push(k);
+  // 调休预警被关掉时，连带收起详情面板，避免详情孤儿漂浮
+  if (k.startsWith('lv_warn_')) lvExpanded = false;
+  save(false);
+  renderAlerts();
+}
+function toggleLvDetail() {
+  lvExpanded = !lvExpanded;
+  renderAlerts();
+}
+/* 调休预警展开明细：列出每个月的加班日 + 换休日，方便知道 21h 是从哪天累计来的 */
+function buildLvDetail() {
+  const c = compute(cur);
+  const N = +DB.settings.leaveExpireMonths || 0;
+  if (N <= 0) return '';
+  const originKey = '2026-07';
+  const [oy, om] = originKey.split('-').map(Number);
+  const [cy, cm] = cur.split('-').map(Number);
+  const exp = monthEnd(oy, om, N);
+  const expLbl = `${exp.getFullYear()}-${pad(exp.getMonth() + 1)}-${pad(exp.getDate())}`;
+  const now = new Date();
+  const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // 遍历从 origin → 当前月的所有月份
+  const months = [];
+  for (let y = oy, m = om; y < cy || (y === cy && m <= cm); ) {
+    months.push(y + '-' + pad(m));
+    m++; if (m > 12) { m = 1; y++; }
+  }
+  // 跨月收集「被换休核销的加班日」：doneMap[monthKey][day] = {used,total}
+  const doneMap = {};
+  const markDone = (mk, d, used, total) => {
+    if (!doneMap[mk]) doneMap[mk] = {};
+    const prev = doneMap[mk][d];
+    if (!prev) doneMap[mk][d] = { used: +used, total: +total };
+    else { prev.used = +(prev.used + used).toFixed(2); prev.total = +(prev.total + total).toFixed(2); }
+  };
+  months.forEach(k => {
+    let lg = null;
+    try { lg = leaveLedger(k); } catch (e) { lg = null; }
+    if (!lg) return;
+    // 当月加班池：left 归零 → 被当月换休消耗
+    (lg.curPool || []).forEach(e => { if (e.left <= 0.001) markDone(k, e.d, e.h, e.h); else if (e.left < e.h - 0.001) markDone(k, e.d, +(e.h - e.left).toFixed(2), e.h); });
+    // 结转池：left 归零 → 上月结转到本月的加班被本月换休消耗（来源日 = e.y/e.m/e.d）
+    (lg.carryPool || []).forEach(e => { if (e.left <= 0.001) markDone(e.y + '-' + pad(e.m), e.d, e.h, e.h); else if (e.left < e.h - 0.001) markDone(e.y + '-' + pad(e.m), e.d, +(e.h - e.left).toFixed(2), e.h); });
+  });
+  const blocks = months.map(k => {
+    const n = daysIn(k);
+    const days = (M(k) || {}).days || {};
+    const rows = []; let gainSum = 0, leaveSum = 0;
+    const [ky, km] = k.split('-').map(Number);
+    const dm = doneMap[k] || {};
+    for (let d = 1; d <= n; d++) {
+      const rowDate = new Date(ky, km - 1, d); rowDate.setHours(0, 0, 0, 0);
+      if ((today0 - rowDate) / 86400000 > 30) continue;   // 距今天 30 天外的行不显示
+      const r = days[d]; if (!r) continue;
+      const h = hoursOf(k, d);
+      const lv = +r.leaveH || 0;
+      if (h > 0) {
+        const info = dm[d];
+        const used = info ? info.used : 0;           // 已被换休核销的部分
+        const done = info && used >= h - 0.001;       // 全额核销
+        const partial = info && used > 0.001 && used < h - 0.001; // 部分核销
+        rows.push({ d, kind: 'ot', h, rsn: r.reason || '', done, partial, used });
+        gainSum += h;
+      }
+      else if (lv > 0) { rows.push({ d, kind: 'lv', h: lv, rsn: r.leaveReason || r.reason || '' }); leaveSum += lv; }
+    }
+    rows.sort((a, b) => a.d - b.d);
+    return { k, rows, gainSum, leaveSum };
+  });
+  const html = blocks.map(b => {
+    const [y, m] = b.k.split('-').map(Number);
+    let sub = `加班 ${hf(b.gainSum)}h`;
+    if (b.leaveSum > 0) sub += ` · 换休 ${hf(b.leaveSum)}h`;
+    const inner = !b.rows.length
+      ? `<div class="lv-row empty">（本月暂无加班 / 换休记录）</div>`
+      : b.rows.map(row => {
+        const wd = WD[new Date(y, m - 1, row.d).getDay()];
+        const tag = row.kind === 'ot' ? '加班' : '换休';
+        const doneCls = row.kind === 'ot' && row.done ? ' done' : (row.kind === 'ot' && row.partial ? ' partial' : '');
+        let doneTag = '';
+        if (row.kind === 'ot' && row.done) doneTag = '<span class="donetag">已结转</span>';
+        else if (row.kind === 'ot' && row.partial) doneTag = `<span class="donetag">已结转 ${hf(row.used)}/${hf(row.h)}h</span>`;
+        return `<div class="lv-row ${row.kind}${doneCls}">
+          <span class="d">${m}/${pad(row.d)}</span>
+          <span class="w">周${wd}</span>
+          <span class="h">${tag} ${hf(row.h)}h</span>
+          <span class="rsn">${esc(row.rsn || (row.kind === 'ot' ? '（未填事由）' : '调休'))}</span>${doneTag}
+        </div>`;
+      }).join('');
+    return `<div class="lv-month">
+      <div class="lv-month-hd"><span class="dot"></span>${y}年${m}月<span class="sub">${sub}</span></div>
+      <div class="lv-list">${inner}</div>
+    </div>`;
+  }).join('');
+  return `<div class="lv-detail">
+    <div class="lv-detail-hd">
+      <b>📋 可调休 ${hf(c.availTotal)}h 来源明细</b>
+      <span class="meta">将于 ${expLbl} 到期 · 按 FIFO 消耗</span>
+    </div>
+    ${html}
+    <div class="lv-ft">💡 剩余 ${hf(c.availTotal)}h 由 ${oy}年${om}月 起的加班累计扣除换休后跨月结转形成；系统按时间从远到近使用，先到期先消耗。</div>
+  </div>`;
+}
+
+function renderBody() {
+  renderAlerts();  // 实时刷新调休/年假预警条（任何数据变更后立即重算）
+  const f = { cal: viewCal, list: viewList, sum: viewSum, set: viewSet }[tab];
+  const b = $('#body');
+  b.classList.toggle('body-list', tab === 'list');
+  b.innerHTML = f();
+  // KPI 顶栏始终显示，不再随滚动收起（用户要求：明细页等各视图 KPI 保持常驻）
+  $('#kpi').classList.remove('kpi-hidden');
+  // 重置内部滚动容器的滚动位置（避免上一个视图的 scrollTop 残留）
+  b.scrollTop = 0;
+  const innerDtWrap = b.querySelector('.dt-wrap');
+  if (innerDtWrap) innerDtWrap.scrollTop = 0;
+  if (tab === 'list') bindList();
+  if (tab === 'set') bindSet();
+}
+
+/* 若当前月份包含今天，自动滚动让当天行/单元格进入视口 */
+function scrollToToday() {
+  const now = new Date(), nowK = mk(now.getFullYear(), now.getMonth() + 1);
+  if (nowK !== cur) return;
+  const d = now.getDate();
+  requestAnimationFrame(() => {
+    const row = document.querySelector(`#dtb tr.today`);
+    if (row && row.scrollIntoView) { row.scrollIntoView({ block: 'center' }); return; }
+    const cel = document.querySelector(`.cel.today`);
+    if (cel && cel.scrollIntoView) cel.scrollIntoView({ block: 'center' });
+  });
+}
+
+/* ------------------------- 日历视图 ------------------------- */
+function viewCal() {
+  const [y, m] = cur.split('-').map(Number), n = daysIn(cur);
+  const first = new Date(y, m - 1, 1).getDay();
+  let cells = '';
+  for (let i = 0; i < first; i++) cells += '<div class="cel pad"></div>';
+  for (let d = 1; d <= n; d++) {
+    const t = dayType(cur, d), r = M(cur).days[d] || {}, h = hoursOf(cur, d);
+    const T = TYPES.find(x => x.k === t);
+    const bits = [];
+    if (h > 0) bits.push(`<span class="pill ot ${T.cls}">加 ${hf(h)}h</span>`);
+    if (+r.leaveH) bits.push(`<span class="pill lv">休 ${hf(+r.leaveH)}h</span>`);
+    if (+r.annual) bits.push(`<span class="pill an">年假 ${hf(+r.annual)}</span>`);
+    cells += `<div class="cel ${t}${isToday(cur, d) ? ' today' : ''}" data-d="${d}">
+        <div class="dn"><span>${d}</span>${t !== 'work' ? `<span class="tag ${T.cls}">${T.name}</span>` : (r.type ? '<span class="tag w">工作日</span>' : '')}</div>
+        <div class="bar">${bits.join('')}</div>
+        ${(r.reason || r.leaveReason) ? `<div class="rsn">${esc(r.reason || r.leaveReason)}</div>` : ''}
+        <div class="mk">${+r.meal ? '<i title="餐补">🍚</i>' : ''}${r.oa ? '<i title="OA 已提交">✅</i>' : ''}</div>
+      </div>`;
+  }
+  const c = compute(cur);
+  return `<div class="cols">
+    <div class="card">
+      <div class="card-h"><h3>${cur.replace('-', ' 年 ')} 月</h3><span class="sub">仅展示统计 · 录入请切换到「明细」</span>
+        <span class="spacer"></span>
+        <span class="lg" style="padding:0"><span><i style="background:#3b6bff"></i>工作日</span><span><i style="background:#f5a524"></i>双休日</span><span><i style="background:#e5484d"></i>节假日</span></span>
+      </div>
+      <div class="cal">
+        <div class="cal-hd">${WD.map((w, i) => `<div class="${i === 0 || i === 6 ? 'we' : ''}">周${w}</div>`).join('')}</div>
+        <div class="cal-bd" id="calbd">${cells}</div>
+      </div>
+    </div>
+    ${panel(c)}
+  </div>`;
+}
+
+/* ---------------------- 右侧面板（日历视图：只读，不做结转操作） ---------------------- */
+function panel(c) {
+  const row = (k, v, cls) => `<div class="flow-row"><div class="k">${k}</div><div class="v ${cls || ''}">${v}</div></div>`;
+  return `<div style="display:flex;flex-direction:column;gap:16px">
+    <div class="card">
+      <div class="card-h"><h3>时长结转链</h3><span class="sub">自动继承</span></div>
+      <div class="flow">
+        ${row('上月结转', `<span class="${c.carryInTotal ? '' : 'zero'}">${hf(c.carryInTotal)} h</span>`)}
+        ${row('<span class="op">＋</span> 本月加班', `<span class="${c.gainTotal ? '' : 'zero'}">${hf(c.gainTotal)} h</span>`)}
+        ${row('<span class="op">−</span> 本月换休', `<span class="${c.leaveTotal ? '' : 'zero'}">${hf(c.leaveTotal)} h</span>`)}
+        ${row('<span class="op">＝</span> 可支配时长', `<b>${hf(c.availTotal)} h</b>`)}
+        ${row('<span class="op">−</span> 结转下月', `<span id="carryOutVal" class="${c.carryOutTotal ? '' : 'zero'}">${hf(c.carryOutTotal)} h</span>`)}
+        <div class="flow-row tot"><div class="k">本月折现时长</div><div class="v" id="cashChainVal">${hf((c.autoCash + c.expiredCash))} h</div></div>
+        ${c.leaveShort > 0 ? `<div style="margin-top:10px;font-size:12px;color:#c0393d;background:#fef2f2;padding:8px 10px;border-radius:8px">⚠️ 换休比可用加班时长多 ${hf(c.leaveShort)} 小时，请核对。</div>` : ''}
+        ${c.lvExpired && c.lvExpiredCash > 0 ? `<div style="margin-top:10px;font-size:12px;color:#c0393b;background:#fef2f2;padding:8px 10px;border-radius:8px">⌛ 调休已过期，未休完的 <b>${hf(c.lvExpiredCash)}h</b> 已自动折现计入本月加班费。</div>` : ''}
+        ${(() => { const bs = leaveBreakdown(cur); return bs ? `<div style="margin-top:10px;font-size:12px;color:#5b6478;background:#f6f8fc;border:1px dashed #d7deea;padding:8px 10px;border-radius:8px;cursor:pointer" onclick="openMonthSettle('${cur}')" role="button" tabindex="0" title="点击打开本月加班结算（加班费 / 结转下月 / 换休核销）"><b>调休对应：</b>${bs}<span style="color:var(--brand);margin-left:6px;white-space:nowrap">查看核销 ▸</span></div>` : ''; })()}
+      </div>
+    </div>
+    ${otCard(c)}
+  </div>`;
+}
+/* 加班费结算卡（只读，右侧面板用） */
+function otCard(c) {
+  return `<div class="card ot-card" id="otCard">
+    <div class="card-h"><h3>加班费结算</h3><span class="sub">按类型拆分结算</span></div>
+    <div style="padding:6px 8px 4px">
+      <table class="tb">
+        <thead><tr><th>类型</th><th>折现</th><th>单价</th><th>金额</th></tr></thead>
+        <tbody>${TYPES.map(t => `<tr>
+            <td><span class="dot" style="background:${t.color}"></span> ${t.name}</td>
+            <td class="${c.cash[t.k] ? '' : 'zero'}" id="cash-${t.k}">${hf(c.cash[t.k])} h</td>
+            <td class="muted">${fx(c.rates[t.k])}</td>
+            <td class="${c.amount[t.k] ? '' : 'zero'}" id="amt-${t.k}">${fx(c.amount[t.k])}</td></tr>`).join('')}
+          <tr><td>🍚 餐补</td><td class="${c.mealCount ? '' : 'zero'}">${hf(c.mealCount)} 次</td>
+            <td class="muted">${fx(DB.settings.mealRate)}</td><td class="${c.mealPay ? '' : 'zero'}">${fx(c.mealPay)}</td></tr>
+        </tbody>
+        <tfoot><tr><td>合计</td><td></td><td></td><td style="color:var(--brand);font-size:15px" id="otTotalTd">${money(c.total)}</td></tr></tfoot>
+      </table>
+    </div>
+  </div>`;
+}
+
+/* ------------------------- 明细视图 ------------------------- */
+function viewList() {
+  const n = daysIn(cur), mo = M(cur);
+  // 上月结转视图：cur 已跳到「上一月」，反推该月哪些加班日实际构成了「下月结转来源」
+  // 口径与 compute 内部 prevRemain 归属一致：按 工作日→双休日→节假日 类型顺序，同类型内按日期降序（FIFO 下剩余的是较晚加班）
+  let carryInShow = null;   // d → 该日加班时长中被结转给下月的部分
+  if (carryInView) {
+    const nk = nextKey(cur);
+    const nx = DB.months[nk] ? compute(nk) : null;
+    if (nx && nx.carryInTotal > 0.001) {
+      const order = ['work', 'rest', 'holi'];
+      const capByT = { work: nx.carryIn.work, rest: nx.carryIn.rest, holi: nx.carryIn.holi };
+      carryInShow = {};
+      order.forEach(t => {
+        let cap = capByT[t];
+        for (let d = n; d >= 1 && cap > 0.001; d--) {
+          if (dayType(cur, d) !== t) continue;
+          const h = hoursOf(cur, d); if (h <= 0) continue;
+          const take = Math.min(h, cap);
+          carryInShow[d] = +((carryInShow[d] || 0) + take).toFixed(2);
+          cap = +(cap - take).toFixed(2);
+        }
+      });
+    }
+  }
+  // 结转下月筛选：按 FIFO 把结转时长归属到具体加班日
+  // （换休先消耗上月结转，再按 工作日→双休日→节假日 消耗本月新增；同类型内先产生先被消耗 → 结转归属到较晚的加班日）
+  let carryShow = null;   // d → 该日加班时长中结转下月的部分
+  if (listFilter === 'carry') {
+    const cc = compute(cur);
+    const order = ['work', 'rest', 'holi'];
+    let need = cc.leaveTotal;
+    const carried = {};
+    order.forEach(t => {
+      const uPrev = Math.min(need, cc.carryIn[t]); need -= uPrev;   // 换休先消耗上月结转
+      const uCur = Math.min(need, cc.gain[t]); need -= uCur;        // 再消耗本月新增
+      carried[t] = +Math.min(cc.carryOut[t], Math.max(0, cc.gain[t] - uCur)).toFixed(2);
+    });
+    carryShow = {};
+    order.forEach(t => {
+      let rem = carried[t];
+      for (let d = n; d >= 1 && rem > 0.001; d--) {
+        if (dayType(cur, d) !== t) continue;
+        const h = hoursOf(cur, d); if (h <= 0) continue;
+        const take = Math.min(h, rem);
+        carryShow[d] = +((carryShow[d] || 0) + take).toFixed(2);
+        rem = +(rem - take).toFixed(2);
+      }
+    });
+  }
+  let rows = '';
+  for (let d = 1; d <= n; d++) {
+    const r = mo.days[d] || {}, t = dayType(cur, d), T = TYPES.find(x => x.k === t);
+    const [y, m] = cur.split('-').map(Number);
+    const w = WD[new Date(y, m - 1, d).getDay()];
+    const isWork = t === 'work';
+    const startDef = isWork ? '17:00' : '10:00';
+    const theStart = r.start || startDef;
+    const endDef = addHour(theStart, 1);                 // 结束默认 = 开始 + 1 小时
+    const auto = autoHours(r.start, r.end);
+    const manual = r.hours !== undefined && r.hours !== null && r.hours !== '';
+    const hasAuto = auto !== null && !!r.start && !!r.end && auto >= 1;   // 时长按开始/结束自动统计，1 小时起
+    const effH = manual ? (+r.hours || 0) : (auto !== null ? auto : 0);
+    const mealCnt = isWork ? (effH >= 1.5 ? 1 : 0) : (+r.meal || 0);
+    const mealCell = isWork
+      ? `<td class="center"><span class="auto-badge${mealCnt ? '' : ' zero'}" title="工作日加班≥1.5h 自动计 1 次餐补">${mealCnt ? '🍚 1' : '—'}</span></td>`
+      : `<td class="center"><span class="auto-badge meal-toggle${mealCnt ? '' : ' zero'}" data-f="meal" role="button" tabindex="0" title="点击记 1 次餐补，再次点击取消">${mealCnt ? '🍚 1' : '—'}</span></td>`;
+    let show = true;
+    if (carryInView) show = (carryInShow && (carryInShow[d] || 0) > 0);   // 上月结转来源：仅显示被结转给下月的加班行
+    else if (listFilter === 'ot') show = effH > 0;
+    else if (listFilter === 'leave') show = (+r.leaveH || 0) > 0 || (+r.annual || 0) > 0;
+    else if (listFilter === 'carry') show = (carryShow[d] || 0) > 0;   // 构成本月结转下月时长的加班行
+    else if (listFilter === 'meal') show = mealCnt > 0;
+    else if (listFilter === 'annual') show = (+r.annual || 0) > 0;
+    else if (listFilter === 'cash') show = effH > 0 && t !== 'work';       // 折现：双休/节假日加班行（折现主要来源）
+    if (show) rows += `<tr class="${t}${carryInView ? ' carry-in-src' : ''}${isToday(cur, d) ? ' today' : ''}" data-d="${d}"${(carryInView && carryInShow[d]) ? ` title="当日加班 ${hf(effH)}h，其中 ${hf(carryInShow[d])}h 结转至 ${nextKey(cur)}（不折现）"` : (listFilter === 'carry' && carryShow[d] ? ` title="当日加班 ${hf(effH)}h，其中 ${hf(carryShow[d])}h 结转下月（不折现）"` : '')}>
+      <td class="dcell"><span class="dn">${d}</span><span class="wk">周${w}</span><span class="tychip ${T.cls}">${T.name}</span></td>
+      <td class="center">${timePicker(r.start, 'start', startDef, r.end)}</td>
+      <td class="center">${timePicker(r.end, 'end', endDef, r.start)}</td>
+      <td class="center"><span class="hcell"><input class="cellin" data-f="hours" type="number" min="1" step="0.5" value="${manual ? esc(r.hours) : (hasAuto ? hf(auto) : '')}" placeholder="${hasAuto ? '' : '—'}" style="width:62px;text-align:center;${manual ? 'font-weight:650' : (hasAuto ? 'color:#3b6bff' : '')}"><span class="hcell-clr" title="清除时长（恢复按开始/结束自动计算）">×</span></span></td>
+      <td><span class="rcell"><input class="cellin" data-f="reason" value="${esc(r.reason)}" placeholder="事由" style="min-width:150px"><span class="ca ca-copy" title="复制事由">⧉</span><span class="ca ca-clr" title="清除事由">×</span></span></td>
+    <td class="center leave-col">${restPicker(r.leaveH, r.annual, isWork)}</td>
+      <td><span class="rcell"><input class="cellin lr-${r.leaveH > 0 ? 'lv' : (r.annual > 0 ? 'an' : '')}" data-f="leaveReason" value="${esc(r.leaveReason)}" placeholder="事由" style="min-width:110px"><span class="ca ca-copy" title="复制事由">⧉</span><span class="ca ca-clr" title="清除事由">×</span></span></td>
+      ${mealCell}
+      <td class="center"><button class="oa-btn ${r.oa ? 'on' : ''}" data-f="oa">${r.oa ? '✅' : '○'}</button></td>
+    </tr>`;
+  }
+  if (carryInView) {
+    if (!rows) rows = `<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--tx-3)">${DB.months[nextKey(cur)] ? `下月（${nextKey(cur)}）无结转来源记录` : '无下一月数据'}，<a href="javascript:exitCarryInView()" style="color:var(--brand)">返回本月</a></td></tr>`;
+  } else if (listFilter && !rows) rows = `<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--tx-3)">当前筛选条件下无记录，<a href="javascript:setListFilter(null)" style="color:var(--brand)">清除筛选</a></td></tr>`;
+  const c = compute(cur);
+  const nk = nextKey(cur);
+  const nx = DB.months[nk] ? compute(nk) : null;
+  let head;
+  if (carryInView) {
+    const src = nx ? `工 ${hf(nx.carryIn.work)} · 休 ${hf(nx.carryIn.rest)} · 节 ${hf(nx.carryIn.holi)}` : '无';
+    head = `<div class="card-h"><h3>${cur.replace('-', ' 年 ')} 月明细 · 结转来源</h3>
+      <span class="spacer"></span>
+      <span class="carry-in-note">下表为结转至 <b>${nk.replace('-', ' 年 ')} 月</b> 的加班来源（共 ${src}）</span>
+      <button class="btn sm" onclick="exitCarryInView()" title="返回当前月份">← 返回 ${nk.replace('-', ' 年 ')} 月</button>
+    </div>`;
+  } else {
+    head = `<div class="card-h"><h3>${cur.replace('-', ' 年 ')} 月明细</h3>
+      <span class="spacer"></span>
+      <button class="btn sm ot-settle" onclick="openMonthSettle('${cur}')" title="本月加班结算：加班费 / 结转下月 / 换休核销">结算</button>
+    </div>`;
+  }
+  return `<div class="card">
+    ${head}
+    <div class="dt-wrap"><table class="dt">
+      <thead><tr><th class="center" style="min-width:104px">日期</th><th class="center" style="min-width:66px">开始</th><th class="center" style="min-width:66px">结束</th><th class="center" style="min-width:70px">时长</th><th style="min-width:150px">加班事由</th><th class="center leave-col" style="min-width:90px">换休/年假</th><th style="min-width:120px">换休/年假事由</th><th class="center" style="min-width:66px">餐补</th><th class="center" style="min-width:56px">OA</th></tr></thead>
+      <tbody id="dtb">${rows}</tbody>
+    </table></div>
+  </div>`;
+}
+
+function bindList() {
+  const tb = $('#dtb'); if (!tb) return;
+  // 提交单元格数据：rebuild=true 时重建行（失焦/选择），rebuild=false 时仅实时刷新 KPI（输入中）
+  function commitCell(el, rebuild) {
+    const d = el.closest('tr').dataset.d, f = el.dataset.f;
+    const days = M(cur).days, r = days[d] || (days[d] = {});
+    let v = (el.value == null ? '' : String(el.value)).trim();
+    if (['hours', 'leaveH', 'annual', 'meal'].includes(f)) {
+      let num = v === '' ? '' : (+v || 0);
+      if (rebuild && f === 'leaveH' && num !== '') {
+        // 换休时长不超过本月可用加班总时长（上月结转 + 本月工作日加班）
+        const c = compute(cur);
+        const budget = c.carryIn.work + c.gain.work;
+        let others = 0;
+        Object.keys(days).forEach(dd => { if (dd !== d) others += +((days[dd] || {}).leaveH || 0); });
+        const maxLeave = Math.max(0, budget - others);
+        if (num > maxLeave) { num = maxLeave; el.value = num; toast('换休时长不可超过可用加班总时长 ' + hf(budget) + 'h（本行最多 ' + hf(maxLeave) + 'h）'); }
+      }
+      if (num === '' || (f === 'leaveH' && num === 0)) delete r[f]; else r[f] = num;
+      if (f === 'leaveH' && (num === '' || num === 0)) delete r.leaveSrc;  // 无换休时长则清空对应
+    }
+    else if (v === '') delete r[f]; else r[f] = v;
+    if ((f === 'start' || f === 'end') && r.start && r.end && r.end < r.start) delete r.end;  // 结束不小于开始
+    if (!Object.keys(r).length) delete days[d];
+    save(); renderKPI();
+    if (rebuild) renderBody();
+  }
+  // 输入中实时刷新 KPI（不重建行，保留焦点）
+  tb.addEventListener('input', e => { const el = e.target; if (!el.dataset.f) return; commitCell(el, false); });
+  // 失焦/选择完成时提交并重建行
+  tb.addEventListener('change', e => { const el = e.target; if (!el.dataset.f) return; commitCell(el, true); });
+  tb.addEventListener('click', e => {
+    const mt = e.target.closest('.meal-toggle');
+    if (mt) {
+      const d = mt.closest('tr').dataset.d, days = M(cur).days, r = days[d] || (days[d] = {});
+      if (+r.meal > 0) delete r.meal; else r.meal = 1;   // 双休日/节假日餐补：点击记 1，再次点击取消
+      save(); renderKPI(); renderBody();
+      return;
+    }
+    const clr = e.target.closest('.hcell-clr');
+    if (clr) {
+      const d = clr.closest('tr').dataset.d, days = M(cur).days, r = days[d];
+      if (!r) return;
+      confirmDialog({ title:'清除加班时长', msg:'确定清除本日加班时长吗？清除后将恢复按「开始 / 结束」自动计算。', okText:'清除', danger:true, onOk: () => {
+        delete r.hours; if (!Object.keys(r).length) delete days[d];
+        save(); renderKPI(); renderBody();
+      }});
+      return;
+    }
+    const ca = e.target.closest('.rcell .ca');
+    if (ca) {
+      const span = ca.closest('.rcell'), inp = span.querySelector('input.cellin'), f = inp.dataset.f;
+      const d = span.closest('tr').dataset.d, days = M(cur).days, r = days[d] || {};
+      if (ca.classList.contains('ca-copy')) {
+        const v = inp.value.trim();
+        if (!v) { toast('无内容可复制'); return; }
+        copyText(v); toast('已复制：' + v);
+      } else {
+        delete r[f]; if (!Object.keys(r).length) delete days[d];
+        save(); renderKPI(); renderBody();
+      }
+      return;
+    }
+    const b = e.target.closest('.oa-btn'); if (!b) return;
+    const d = b.closest('tr').dataset.d, days = M(cur).days, r = days[d] || (days[d] = {});
+    if (r.oa) delete r.oa; else r.oa = '✅';
+    if (!Object.keys(r).length) delete days[d];
+    save(); renderBody();
+  });
+  // 回车跳到下一行同列
+  tb.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const el = e.target; if (!el.classList.contains('cellin')) return;
+    e.preventDefault(); el.blur();
+    const tr = el.closest('tr').nextElementSibling;
+    if (tr) { const nx = tr.querySelector(`[data-f="${el.dataset.f}"]`); if (nx) { nx.focus(); nx.select(); } }
+  });
+  bindTimePickers();
+  bindRestPickers();
+}
+
+/* ------------------------- 月度加班柱状图（内联 SVG 手绘） ------------------------- */
+function monthlyBarChart() {
+  const months = monthKeys().filter(k => k <= cur).slice(-13);
+  const data = months.map(k => { const c = compute(k); return { k, gain: +(c.gainTotal || 0), cash: +(c.cashTotal || 0), days: +(c.otDays || 0) }; });
+  const n = data.length;
+  if (!n) return '<div style="color:var(--tx-3);font-size:13px;padding:10px 0">暂无数据</div>';
+  const W = 720, PL = 42, PR = 14, PT = 26, PB = 42, H = 286;
+  const pw = W - PL - PR, ph = H - PT - PB;
+  let maxV = 0;
+  data.forEach(d => { maxV = Math.max(maxV, d.gain, d.cash); });
+  if (maxV <= 0) maxV = 10;
+  const step = maxV <= 20 ? 5 : (maxV <= 50 ? 10 : 20);
+  maxV = Math.ceil(maxV / step) * step;
+  const Y = v => PT + ph * (1 - v / maxV);
+  const baseY = Y(0);
+  const slotW = pw / n;
+  const bw = Math.max(8, Math.min(slotW * 0.32, 24));
+  const gapB = Math.min(bw * 0.5, slotW * 0.12);
+  let grid = '';
+  for (let g = 0; g <= 4; g++) {
+    const v = maxV * g / 4, y = Y(v).toFixed(1);
+    grid += `<line x1="${PL}" y1="${y}" x2="${W - PR}" y2="${y}" stroke="#eef0f5" stroke-width="1"/>`;
+    grid += `<text x="${PL - 6}" y="${(+y + 4).toFixed(1)}" text-anchor="end" font-size="12" fill="#9aa1b2">${Math.round(v)}</text>`;
+  }
+  let bars = '', xl = '';
+  data.forEach((d, i) => {
+    const xc = PL + (i + 0.5) * slotW;
+    const gx = xc - bw - gapB / 2;
+    const cx = xc + gapB / 2;
+    const gh = Math.max(0, baseY - Y(d.gain));
+    const ch = Math.max(0, baseY - Y(d.cash));
+    bars += `<rect x="${gx.toFixed(1)}" y="${Y(d.gain).toFixed(1)}" width="${bw.toFixed(1)}" height="${gh.toFixed(1)}" rx="3" fill="#3b6fe0"><title>${d.k} 本月加班 ${hf(d.gain)}h · ${d.days} 天</title></rect>`;
+    bars += `<rect x="${cx.toFixed(1)}" y="${Y(d.cash).toFixed(1)}" width="${bw.toFixed(1)}" height="${ch.toFixed(1)}" rx="3" fill="#16a34a"><title>${d.k} 折现 ${hf(d.cash)}h</title></rect>`;
+    if (d.gain > 0) bars += `<text x="${(gx + bw / 2).toFixed(1)}" y="${(Y(d.gain) - 5).toFixed(1)}" text-anchor="middle" font-size="11" fill="#3b6fe0" font-weight="600">${hf(d.gain)}h</text>`;
+    if (d.cash > 0) bars += `<text x="${(cx + bw / 2).toFixed(1)}" y="${(Y(d.cash) - 5).toFixed(1)}" text-anchor="middle" font-size="11" fill="#16a34a" font-weight="600">${hf(d.cash)}h</text>`;
+    const mm = +d.k.slice(5);
+    xl += `<text x="${xc.toFixed(1)}" y="${(H - 22).toFixed(1)}" text-anchor="middle" font-size="12" fill="#6b7280">${mm}月</text>`;
+    if (d.days > 0) xl += `<text x="${xc.toFixed(1)}" y="${(H - 8).toFixed(1)}" text-anchor="middle" font-size="11" fill="#9aa1b2">${d.days}天</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+    ${grid}${bars}${xl}
+  </svg>`;
+}
+
+/* ------------------------- 汇总视图 ------------------------- */
+function viewSum() {
+  const ks = monthKeys().filter(k => k <= cur).slice(-13).reverse();
+  const rows = ks.map(k => {
+    const c = compute(k);
+    return `<tr${k === cur ? ' style="background:#f3f6ff"' : ''}>
+      <td><b>${k}</b></td>
+      <td class="${c.carryInTotal ? '' : 'zero'}">${hf(c.carryInTotal)}</td>
+      <td class="${c.gain.work ? '' : 'zero'}">${hf(c.gain.work)}</td>
+      <td class="${c.gain.rest ? '' : 'zero'}">${hf(c.gain.rest)}</td>
+      <td class="${c.gain.holi ? '' : 'zero'}">${hf(c.gain.holi)}</td>
+      <td class="${c.leaveTotal ? '' : 'zero'}">${hf(c.leaveTotal)}</td>
+      <td class="${c.annualUse ? '' : 'zero'}" style="color:#1a9d50;font-weight:600">${hf(c.annualUse)}</td>
+      <td class="${c.carryOutTotal ? '' : 'zero'}">${hf(c.carryOutTotal)}</td>
+      <td class="${c.cashTotal ? '' : 'zero'}">${hf(c.cashTotal)}</td>
+      <td class="${c.otPay ? 'num-pos' : 'zero'}">${fx(c.otPay)}</td>
+      <td class="${c.mealPay ? 'num-pos' : 'zero'}">${fx(c.mealPay)}</td>
+      <td class="${c.mealCount ? '' : 'zero'}">${hf(c.mealCount)}</td></tr>`;
+  }).join('');
+  const all = monthKeys().map(k => compute(k));
+  const sum = f => all.reduce((s, c) => s + f(c), 0);
+  const yr = cur.slice(0, 4), yrs = monthKeys().filter(k => k.startsWith(yr)).map(k => compute(k));
+  const ysum = f => yrs.reduce((s, c) => s + f(c), 0);
+  return `<div style="display:grid;gap:16px">
+    <div class="card">
+      <div class="card-h"><h3>逐月汇总</h3><span class="sub">近 13 个月 · 单位：小时 / 元</span></div>
+      <div style="padding:6px 10px 10px;overflow:auto">
+        <table class="tb">
+          <thead><tr><th>月份</th><th>上月结转</th><th>工作日</th><th>双休日</th><th>节假日</th><th>换休</th><th>年假(天)</th><th>结转下月</th><th>折现</th><th>加班费(元)</th><th>餐补(元)</th><th>餐补(次)</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td>${yr} 年累计</td><td>—</td>
+            <td>${hf(ysum(c => c.gain.work))}</td><td>${hf(ysum(c => c.gain.rest))}</td><td>${hf(ysum(c => c.gain.holi))}</td>
+            <td>${hf(ysum(c => c.leaveTotal))}</td><td style="color:#1a9d50;font-weight:600">${hf(ysum(c => c.annualUse))}</td><td>—</td><td>${hf(ysum(c => c.cashTotal))}</td>
+            <td style="color:var(--brand)">${fx(ysum(c => c.otPay))}</td><td style="color:var(--brand)">${fx(ysum(c => c.mealPay))}</td>
+            <td>${hf(ysum(c => c.mealCount))}</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>全期统计</h3><span class="sub">${monthKeys()[0]} 起共 ${monthKeys().length} 个月</span></div>
+      <div class="st-grid">
+        ${[['累计加班时长', hf(sum(c => c.gainTotal)) + ' h'], ['累计换休', hf(sum(c => c.leaveTotal)) + ' h'],
+           ['累计年假', hf(sum(c => c.annualUse)) + ' 天'], ['年假剩余', hf(Math.max(0, (+DB.settings.annualTotal || 0) - sum(c => c.annualUse))) + ' 天'],
+           ['累计折现时长', hf(sum(c => c.cashTotal)) + ' h'], ['累计加班费', money(sum(c => c.otPay))],
+           ['累计餐补', money(sum(c => c.mealPay)) + ' / ' + hf(sum(c => c.mealCount)) + ' 次'],
+           ['累计总收入', money(sum(c => c.total))], ['月均加班', hf(sum(c => c.gainTotal) / all.length) + ' h'],
+           ['有加班天数', sum(c => c.otDays) + ' 天']].map(([k, v]) =>
+          `<div><div style="font-size:12px;color:var(--tx-3)">${k}</div><div style="font-size:19px;font-weight:660;margin-top:4px;letter-spacing:-.3px">${v}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>月度加班柱状图</h3><span class="sub">近 13 个月 · 单位：小时（柱顶标时长，轴下标天数）</span></div>
+      <div style="padding:14px 16px 16px;overflow-x:auto">
+        <div style="display:flex;gap:18px;margin-bottom:6px;font-size:12px;color:var(--tx-2)">
+          <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:10px;background:#3b6fe0;border-radius:2px;display:inline-block"></span>本月加班总时长</span>
+          <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:10px;background:#16a34a;border-radius:2px;display:inline-block"></span>折现时长</span>
+        </div>
+        <div style="min-width:560px">${monthlyBarChart()}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ------------------------- 设置视图 ------------------------- */
+function viewSet() {
+  const s = DB.settings, R = rateOf();
+  const F = (k, lb, hint, attr) => `<div class="fld"><label>${lb}</label><input data-s="${k}" value="${esc(s[k])}" ${attr || 'type="number" step="0.01"'}>${hint ? `<div class="hint">${hint}</div>` : ''}</div>`;
+  return `<div style="display:grid;gap:16px">
+    <div class="card">
+      <div class="card-h"><h3>加班费标准</h3><span class="sub">与原表一致：工作日按小时，休息日/节假日按天</span></div>
+      <div class="st-grid">
+        ${F('rateWork', '工作日（元/小时）', `折合 <b>${fx(R.work)}</b> 元/小时`)}
+        ${F('rateRest', '休息日（元/天）', `折合 <b>${fx(R.rest)}</b> 元/小时`)}
+        ${F('rateHoli', '节假日（元/天）', `折合 <b>${fx(R.holi)}</b> 元/小时`)}
+        ${F('dailyHours', '每日标准工时', '用于把「元/天」折算成「元/小时」')}
+        ${F('mealRate', '餐补（元/次）', '')}
+        ${F('annualTotal', '年假额度（天）', '剩余 = 额度 − 已用年假；当前已用 4 天 → 显示剩余 6 天', 'type="number" step="1" min="0"')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>时长计算规则</h3><span class="sub">明细里「时长」留空时按此规则自动算</span></div>
+      <div class="st-grid">
+        ${F('roundStep', '取整粒度（小时）', '0.5＝按半小时计')}
+        <div class="fld"><label>取整方式</label>
+          <select data-s="roundMode">
+            <option value="floor"${s.roundMode === 'floor' ? ' selected' : ''}>向下取整（推荐，与原表一致）</option>
+            <option value="round"${s.roundMode === 'round' ? ' selected' : ''}>四舍五入</option>
+            <option value="ceil"${s.roundMode === 'ceil' ? ' selected' : ''}>向上取整</option>
+          </select><div class="hint">按原表 20/23 条记录验证：向下取整最贴合</div></div>
+        ${F('breakMin', '扣除休息（分钟）', '每次加班固定扣除的用餐/休息时间')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>节假日</h3><span class="sub">已内置 2024–2026 国务院放假安排</span></div>
+      <div class="st-grid">
+        ${F('extraHoliday', '补充节假日（3 倍）', '格式 MM-DD，逗号分隔，如 05-20,12-25', 'type="text"')}
+        ${F('extraWorkday', '补充调休上班日（1.5 倍）', '格式 MM-DD，逗号分隔', 'type="text"')}
+      </div>
+      <div style="padding:0 18px 18px;font-size:12px;color:var(--tx-3);line-height:1.7">
+        单个日期的类型也可在日历里点开后手动指定，优先级最高。<br>
+        2026 年：元旦 1/1–1/3（1/4 补班）· 春节 2/15–2/23（2/14、2/28 补班）· 清明 4/4–4/6 · 劳动 5/1–5/5（5/9 补班）· 端午 6/19–6/21 · 中秋 9/25–9/27 · 国庆 10/1–10/7（9/20、10/10 补班）
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>调休 / 年假提醒</h3><span class="sub">到期预警（估算，供参考）</span></div>
+      <div class="st-grid">
+        ${F('leaveExpireMonths', '调休有效期（月）', '从最早产生可调休的月份起 N 个月内有效；0 = 不提醒到期', 'type="number" step="1" min="0"')}
+        ${F('leaveExpireDays', '调休有效期（天）', '加班/调休产生超过 N 天仍未换休，自动折现计入加班费；0 = 不启用', 'type="number" step="1" min="0"')}
+      </div>
+      <div style="padding:0 18px 18px;font-size:12px;color:var(--tx-3);line-height:1.7">
+        调休额度按月汇总存储，系统按「最早产生可调休的月份 + 有效期」估算到期日，并在顶部横幅提醒将到期 / 已过期部分。年假临近年底清零时也会提醒。
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>数据管理</h3><span class="sub">数据保存在本机浏览器</span></div>
+      <div style="padding:16px 18px 18px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" onclick="exportJSON()">⬇︎ 导出备份 (JSON)</button>
+        <button class="btn" onclick="$('#imp').click()">⬆︎ 导入备份</button>
+        <button class="btn" onclick="exportCSV()">⬇︎ 导出本月明细 (CSV)</button>
+        <button class="btn" onclick="exportAllCSV()">⬇︎ 导出全部汇总 (CSV)</button>
+        <button class="btn" onclick="window.print()">🖨 打印 / 存 PDF</button>
+        <span class="spacer"></span>
+        <button class="btn danger" onclick="resetAll()">恢复为原表数据</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>进入密码</h3><span class="sub">访问保护（轻量，防止误开）</span></div>
+      <div style="padding:16px 18px 18px;display:grid;gap:12px">
+        <div class="fld"><label>设置进入密码</label><input id="setPass" type="password" placeholder="留空 = 不设置密码" autocomplete="new-password"><div class="hint">设置后，每次打开需输入此密码才能进入。密码仅以散列形式保存在本机（云端同步也会携带）。忘记密码可清除浏览器数据重置。注意：本机数据仍存于浏览器，此密码为轻量防护而非加密级安全。</div></div>
+        <button class="btn" id="btnSetPass">保存密码</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>云端同步</h3><span class="sub">跨设备实时同步（基于 GitHub Gist，免费）</span></div>
+      <div style="padding:16px 18px 18px;display:grid;gap:12px">
+        <div class="fld"><label>GitHub Token</label><input id="syncToken" type="password" placeholder="ghp_xxx（仅本地保存，不会被导出）" value="${esc(SYNC.token || '')}"><div class="hint">GitHub → 右上角头像 → Settings → Developer settings → Personal access tokens → 勾选 <b>gist</b> 权限生成</div></div>
+        <div class="fld"><label>档案 ID</label><input id="syncGist" type="text" placeholder="留空则点击下方新建" value="${esc(SYNC.gist || '')}"></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--tx-2)"><input type="checkbox" id="syncAuto" ${SYNC.auto ? 'checked' : ''}> 自动同步（每次保存后自动上传到云端）</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--tx-2)"><input type="checkbox" id="syncDownOnly" ${SYNC.downloadOnly ? 'checked' : ''}> 仅下载（只读同步：自动拉取云端数据，禁止回传，保护线上数据）</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn" id="btnSyncNew">＋ 新建云端档案</button>
+          <button class="btn" id="btnSyncUp">⬆︎ 上传到云端</button>
+          <button class="btn" id="btnSyncDown">⬇︎ 从云端下载</button>
+        </div>
+        <div id="syncStatus" style="font-size:12px;color:var(--tx-3)"></div>
+      </div>
+    </div>
+  </div>`;
+}
+function bindSet() {
+  document.querySelectorAll('[data-s]').forEach(el => el.addEventListener('change', () => {
+    const k = el.dataset.s;
+    DB.settings[k] = (el.type === 'number') ? (+el.value || 0) : el.value;
+    save(); render(); toast('已保存');
+  }));
+  const sp = $('#setPass'), sb = $('#btnSetPass');
+  if (sp && sb && !sb._bound) {
+    sb._bound = true;
+    sb.onclick = () => {
+      const v = sp.value;
+      if (!v) { DB.settings.passHash = ''; save(); toast('已关闭进入密码'); sp.value = ''; return; }
+      DB.settings.passHash = passHash(v);
+      save();
+      toast('进入密码已设置，下次打开需输入');
+      sp.value = '';
+    };
+  }
+  bindSync();
+}
+
+/* ------------------------- 日期编辑弹窗 ------------------------- */
+function openDay(d) {
+  editing = d;
+  const r = M(cur).days[d] || {}, [y, m] = cur.split('-').map(Number);
+  const w = WD[new Date(y, m - 1, d).getDay()], t = dayType(cur, d);
+  // 工作日默认 17:00 起（无已有记录时）；休息日/节假日不预设
+  const defStart = (!r.start && t === 'work') ? '17:00' : (r.start || '');
+  const defEnd = (!r.end && t === 'work') ? '18:00' : (r.end || '');
+  // 换休默认 4 小时起（无已有记录时，任意日期）
+  const defLeave = (r.leaveH === undefined || r.leaveH === null || r.leaveH === '') ? 4 : r.leaveH;
+  const auto = autoHours(defStart, defEnd);
+  const el = document.createElement('div'); el.className = 'mask'; el.id = 'mask';
+  el.innerHTML = `<div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-h"><div><h3>${m} 月 ${d} 日 · 周${w}</h3><p>类型：${TYPES.find(x => x.k === t).name}${r.type ? '（手动指定）' : '（自动判定）'}</p></div>
+      <span class="spacer"></span><button class="btn ghost sm" onclick="closeDay()">✕</button></div>
+    <div class="modal-b">
+      <div class="frow">
+        <div class="fld"><label>开始时间</label><select class="time-sel" id="f_start">${timeOptions(defStart)}</select></div>
+        <div class="fld"><label>结束时间</label><select class="time-sel" id="f_end">${timeOptions(defEnd)}</select></div>
+      </div>
+      <div class="frow">
+        <div class="fld"><label>加班时长（小时）</label><input id="f_hours" type="number" step="0.5" value="${r.hours !== undefined ? r.hours : ''}" placeholder="${auto !== null ? '自动 ' + hf(auto) : '留空自动计算'}"><div class="hint" id="autohint">${auto !== null ? '自动计算：' + hf(auto) + ' 小时' : '填开始/结束后自动计算'}</div></div>
+        <div class="fld"><label>日期类型</label><select id="f_type">
+          <option value=""${!r.type ? ' selected' : ''}>自动（${TYPES.find(x => x.k === dayTypeAuto(cur, d)).name}）</option>
+          ${TYPES.map(x => `<option value="${x.k}"${r.type === x.k ? ' selected' : ''}>${x.name}</option>`).join('')}
+        </select></div>
+      </div>
+      <div class="frow one"><div class="fld"><label>加班事由</label><input id="f_reason" value="${esc(r.reason)}" placeholder="例：书展物料设计"></div></div>
+      <div class="frow">
+        <div class="fld"><label>换休 / 调休（小时）</label><input id="f_leaveH" class="cellin" type="number" step="2" min="0" max="8" value="${defLeave || ''}" placeholder="0" style="max-width:120px"></div>
+        <div class="fld"><label>换休事由</label><input id="f_leaveReason" value="${esc(r.leaveReason)}" placeholder="例：陪娃体检"></div>
+      </div>
+      <div class="frow">
+        <div class="fld"><label>年假（天/小时）</label><input id="f_annual" type="number" step="1" min="0" max="1" value="${r.annual || ''}" placeholder="0"></div>
+        ${t === 'work'
+          ? `<div class="fld"><label>餐补（次）</label><div class="readonly-note">🍚 工作日加班≥1.5h 自动计 1 次（不可编辑）</div></div>`
+          : `<div class="fld"><label>餐补（次）</label><input id="f_meal" type="number" step="1" min="0" value="${r.meal || ''}" placeholder="0"></div>`}
+      </div>
+      <div class="frow one"><div class="fld"><label>OA 流程</label>
+        <div class="seg"><button type="button" id="oa_n" class="${!r.oa ? 'on' : ''}">未提交</button><button type="button" id="oa_y" class="${r.oa ? 'on' : ''}">✅ 已提交</button></div></div></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn danger" onclick="clearDay()">清空本日</button><span class="spacer"></span>
+      <button class="btn" onclick="cancelDay()">取消</button><button class="btn primary" onclick="saveDay()">保存</button>
+    </div>
+  </div>`;
+  el.onclick = closeDay;
+  document.body.appendChild(el);
+  let oa = !!r.oa;
+  $('#oa_y').onclick = () => { oa = true; $('#oa_y').classList.add('on'); $('#oa_n').classList.remove('on'); };
+  $('#oa_n').onclick = () => { oa = false; $('#oa_n').classList.add('on'); $('#oa_y').classList.remove('on'); };
+  el.dataset.oa = '';
+  const upd = () => {
+    const a = autoHours($('#f_start').value, $('#f_end').value);
+    $('#autohint').textContent = a !== null ? '自动计算：' + hf(a) + ' 小时' : '填开始/结束后自动计算';
+    $('#f_hours').placeholder = a !== null ? '自动 ' + hf(a) : '留空自动计算';
+  };
+  $('#f_start').addEventListener('input', upd); $('#f_end').addEventListener('input', upd);
+  $('#f_start').focus();
+  window.__getOA = () => oa;
+}
+function dayTypeAuto(key, d) {
+  const r = M(key).days[d], t = r && r.type; if (t) { delete r.type; const v = dayType(key, d); r.type = t; return v; }
+  return dayType(key, d);
+}
+function closeDay() { const m = $('#mask'); if (m) m.remove(); editing = null; }
+function cancelDay() { closeDay(); setTimeout(scrollToToday, 0); }
+function saveDay() {
+  const d = editing, days = M(cur).days, r = {};
+  const g = id => $('#' + id).value.trim();
+  ['start', 'end', 'reason', 'leaveReason'].forEach(k => { const v = g('f_' + k); if (v) r[k] = v; });
+  ['hours', 'leaveH', 'annual', 'meal'].forEach(k => { const v = g('f_' + k); if (v !== '') r[k] = +v || 0; });
+  // 年假：不超过剩余天数（累计全月，排除当前行旧值）
+  if (r.annual > 0) {
+    let used = 0;
+    Object.keys(DB.months).forEach(k => {
+      const ds = (DB.months[k] || {}).days || {};
+      Object.keys(ds).forEach(dd => {
+        if (k === cur && +dd === editing) return;        // 排除本行旧值
+        used += +((ds[dd] || {}).annual) || 0;
+      });
+    });
+    const annTotal = +DB.settings.annualTotal || 0, remain = Math.max(0, annTotal - used);
+    if (r.annual > remain) {
+      if (remain <= 0) { delete r.annual; toast('年假剩余不足，未记入'); }
+      else { r.annual = remain; toast('年假已自动截断到剩余 ' + hf(remain) + ' 天'); }
+    }
+  }
+  const ty = g('f_type'); if (ty) r.type = ty;
+  if (window.__getOA && window.__getOA()) r.oa = '✅';
+  if (Object.keys(r).length) days[d] = r; else delete days[d];
+  save(); closeDay(); render(); toast('已保存 ' + cur + '-' + pad(d));
+}
+function clearDay() { delete M(cur).days[editing]; save(); closeDay(); render(); toast('已清空'); }
+
+// 仅刷新依赖数值，保留手动输入框焦点（结转弹窗 openOtCarry 复用）
+function partialCarryRefresh() {
+  renderKPI();
+  const c = compute(cur), d = leaveLedger(cur);
+  const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+  set('carryOutVal', hf(c.carryOutTotal) + ' h');
+  set('cashChainVal', hf((c.autoCash + c.expiredCash)) + ' h');
+  set('cash-work', hf(c.cash.work) + ' h');
+  set('cash-rest', hf(c.cash.rest) + ' h');
+  set('cash-holi', hf(c.cash.holi) + ' h');
+  set('amt-work', fx(c.amount.work));
+  set('amt-rest', fx(c.amount.rest));
+  set('amt-holi', fx(c.amount.holi));
+  set('otTotalTd', money(c.total));
+}
+
+/* ------------------------- 新建月份 ------------------------- */
+function newMonth() {
+  const k = nextKey(cur);
+  if (DB.months[k]) { cur = k; render(); return; }
+  const c = compute(cur);
+  DB.months[k] = { days: {} };
+  save(); cur = k; render();
+  toast(`已新建 ${k}，自动继承结转 ${hf(c.carryOutTotal)} 小时`);
+}
+
+/* ------------------------- 导入导出 ------------------------- */
+function dl(name, text, mime) {
+  const b = new Blob([text], { type: (mime || 'text/plain') + ';charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+function exportJSON() { dl(`加班统计备份_${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(DB, null, 1), 'application/json'); toast('已导出备份'); }
+function exportCSV() {
+  const n = daysIn(cur), mo = M(cur), L = [];
+  L.push(['日期', '星期', '类型', '开始', '结束', '时长', '加班事由', '换休', '换休/年假事由', '年假', '餐补', 'OA'].join(','));
+  const [y, m] = cur.split('-').map(Number);
+  for (let d = 1; d <= n; d++) {
+    const r = mo.days[d] || {}, t = TYPES.find(x => x.k === dayType(cur, d)).name;
+    L.push([`${m}月${d}日`, '周' + WD[new Date(y, m - 1, d).getDay()], t, r.start || '', r.end || '',
+      hoursOf(cur, d) || '', (r.reason || '').replace(/,/g, '，'), r.leaveH || '', (r.leaveReason || '').replace(/,/g, '，'),
+      r.annual || '', r.meal || '', r.oa ? '已提交' : ''].join(','));
+  }
+  const c = compute(cur);
+  L.push('');
+  L.push(['汇总', '上月结转', '本月加班', '本月换休', '可支配', '结转下月', '折现时长', '加班费', '餐补', '合计'].join(','));
+  L.push(['', c.carryInTotal, c.gainTotal, c.leaveTotal, c.availTotal, c.carryOutTotal, c.cashTotal, c.otPay, c.mealPay, c.total].join(','));
+  dl(`加班明细_${cur}.csv`, '\ufeff' + L.join('\n'), 'text/csv');
+  toast('已导出 ' + cur + ' 明细');
+}
+function exportAllCSV() {
+  const L = [['月份', '上月结转', '工作日加班', '双休日加班', '节假日加班', '本月合计', '换休', '可支配', '结转下月', '折现时长', '加班费', '餐补次数', '餐补金额', '合计'].join(',')];
+  monthKeys().forEach(k => {
+    const c = compute(k);
+    L.push([k, c.carryInTotal, c.gain.work, c.gain.rest, c.gain.holi, c.gainTotal, c.leaveTotal, c.availTotal,
+      c.carryOutTotal, c.cashTotal, c.otPay, c.mealCount, c.mealPay, c.total].join(','));
+  });
+  dl('加班汇总_全部月份.csv', '\ufeff' + L.join('\n'), 'text/csv');
+  toast('已导出全部月份汇总');
+}
+
+/* 从「换休核销台账」面板导出的四段对账文本（移入核销面板）
+   段1：上月结转加班 ↔ 本月换休（核销口径，仅 30 天内）
+   段2：本月加班 ↔ 本月换休（核销口径）
+   段3：本月加班下月结转（逐日归属）
+   段4：本月加班未结转计算加班费（逐日归属） */
+function exportLedgerText(key) {
+  const [y, m] = key.split('-').map(Number);
+  const c = compute(key), n = daysIn(key);
+  const pad2 = v => String(v).padStart(2, '0');
+  const now = new Date();
+  const ts = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+  const tname = t => t === 'work' ? '工作日' : (t === 'rest' ? '双休日' : '节假日');
+  const srcLbl = e => e.earlier ? '更早月份结转' : `${e.m}月${e.d}日${e.t ? '（' + tname(e.t) + '）' : ''}`;
+  const L = [];
+  L.push('加班助手PRO · 换休核销四段对账');
+  L.push(`${y} 年 ${m} 月`);
+  L.push(`导出时间：${ts}`);
+  L.push('');
+
+  const d = leaveLedger(key);
+
+  // ---- 段1：上月结转加班 ↔ 本月换休 ----
+  L.push('【一、上月结转加班 ↔ 本月换休】');
+  const carryPairs = [];
+  d.leaves.forEach(l => l.pairs.forEach(p => {
+    if (p.e.y !== y || p.e.m !== m)   // 来源不是本月 = 上月结转（含更早结转）
+      carryPairs.push({ lvD: l.d, lvH: p.take, src: p.e, manual: p.manual, take: p.take });
+  }));
+  if (carryPairs.length) {
+    let acc = '';
+    carryPairs.forEach(pr => {
+      acc = `${m}月${pr.lvD}日 换休 ${hf(pr.take)}h ← 上月结转${pr.src.earlier ? '（更早结转）' : ''} ${srcLbl(pr.src)} 加班 ${hf(pr.src.h)}h`;
+      L.push('  · ' + acc);
+    });
+  } else {
+    L.push('  （本月无核销上月结转的换休记录）');
+  }
+  L.push('');
+
+  // ---- 段2：本月加班 ↔ 本月换休 ----
+  L.push('【二、本月加班 ↔ 本月换休】');
+  const curPairs = [];
+  d.leaves.forEach(l => l.pairs.forEach(p => {
+    if (p.e.y === y && p.e.m === m)   // 来源是本月加班
+      curPairs.push({ lvD: l.d, lvH: p.take, src: p.e, manual: p.manual, take: p.take });
+  }));
+  if (curPairs.length) {
+    curPairs.forEach(pr => {
+      L.push(`  · ${m}月${pr.lvD}日 换休 ${hf(pr.take)}h ← ${m}月${pr.src.d}日 加班 ${hf(pr.src.h)}h${pr.manual ? '（手动指定）' : ''}`);
+    });
+  } else {
+    L.push('  （本月换休均来自上月结转，无本月加班配对）');
+  }
+  // 超窗口/超有效期自动转加班费（未参与换休配对）的加班，单独提示
+  const autoCashPool = d.carryPool.concat(d.curPool).filter(e => e.cash || e.expired);
+  if (autoCashPool.length) {
+    const expN = Math.round(+DB.settings.leaveExpireDays || 0);
+    autoCashPool.forEach(e => {
+      if (e.y === y && e.m === m)
+        L.push(`  ※ ${m}月${e.d}日 加班剩余 ${hf(e.left)}h（${e.expired ? ('超' + expN + '天(产生日)') : '超30天(距换休)'}已自动转加班费）`);
+    });
+  }
+  let unmatched = d.leaves.filter(l => l.short > 0.001);
+  if (unmatched.length) unmatched.forEach(l => L.push(`  ⚠ ${m}月${l.d}日 换休缺 ${hf(l.short)}h 无30天内可用来源`));
+  L.push('');
+
+  // ---- 段3 & 段4：本月加班逐日归属（结转下月 / 未结转算加班费） ----
+  // 归属规则（与计算引擎一致）：换休先消耗上月结转再消耗本月（本月内先产生先消耗）；
+  // 剩余中，结转下月优先归属到较晚的加班日，未结转部分（较早的）逐日算加班费。
+  const gainByDay = {};   // d -> {work,rest,holi}
+  for (let d0 = 1; d0 <= n; d0++) {
+    const h = hoursOf(key, d0); if (!(h > 0)) continue;
+    const t = dayType(key, d0);
+    (gainByDay[d0] = gainByDay[d0] || {})[t] = +h.toFixed(2);
+  }
+  // 1) 减去本月被换休消耗的部分 usedCur（本月内先产生先消耗 → 从 d=1 正序）
+  const order = ['work', 'rest', 'holi'];
+  order.forEach(t => {
+    let need = c.usedCur[t];
+    for (let d0 = 1; d0 <= n && need > 0.001; d0++) {
+      if (!gainByDay[d0] || !(gainByDay[d0][t] > 0)) continue;
+      const take = +Math.min(need, gainByDay[d0][t]).toFixed(2);
+      gainByDay[d0][t] = +(gainByDay[d0][t] - take).toFixed(2);
+      need = +(need - take).toFixed(2);
+    }
+  });
+  // 2) 结转下月：从 d=n 倒序归属（较晚的优先结转）
+  const carryByDay = {};
+  order.forEach(t => {
+    let need = c.carryOut[t];
+    for (let d0 = n; d0 >= 1 && need > 0.001; d0--) {
+      if (!gainByDay[d0] || !(gainByDay[d0][t] > 0)) continue;
+      const take = +Math.min(need, gainByDay[d0][t]).toFixed(2);
+      gainByDay[d0][t] = +(gainByDay[d0][t] - take).toFixed(2);
+      carryByDay[d0] = carryByDay[d0] || { work: 0, rest: 0, holi: 0 };
+      carryByDay[d0][t] = +(carryByDay[d0][t] + take).toFixed(2);
+      need = +(need - take).toFixed(2);
+    }
+  });
+  // 3) 剩余即「未结转算加班费」部分
+  const cashByDay = {};
+  order.forEach(t => {
+    for (let d0 = 1; d0 <= n; d0++) {
+      if (gainByDay[d0] && gainByDay[d0][t] > 0.001) {
+        cashByDay[d0] = cashByDay[d0] || { work: 0, rest: 0, holi: 0 };
+        cashByDay[d0][t] = +(cashByDay[d0][t] + gainByDay[d0][t]).toFixed(2);
+      }
+    }
+  });
+
+  L.push('【三、本月加班下月结转】');
+  const R = c.rates;
+  let carryTotal = 0;
+  const carryDays = Object.keys(carryByDay).map(Number).sort((a, b) => a - b);
+  if (carryDays.length) {
+    carryDays.forEach(d0 => {
+      order.forEach(t => {
+        const v = carryByDay[d0][t];
+        if (v > 0.001) {
+          L.push(`  · ${m}月${d0}日 ${hf(v)}h ${tname(t)} → 结转下月`);
+          carryTotal = +(carryTotal + v).toFixed(2);
+        }
+      });
+    });
+    L.push(`  本月结转下月合计：${hf(carryTotal)}h`);
+  } else if (c.carryOutTotal > 0.001) {
+    L.push(`  （结转 ${hf(c.carryOutTotal)}h：部分来自上月/更早结转余额，未精确到本月日期）`);
+    carryTotal = c.carryOutTotal;
+  } else {
+    L.push('  （本月无结转下月时长）');
+  }
+  L.push('');
+
+  L.push('【四、本月加班未结转算加班费】');
+  let cashTotal = 0, cashMoney = 0;
+  const cashDays = Object.keys(cashByDay).map(Number).sort((a, b) => a - b);
+  if (cashDays.length) {
+    cashDays.forEach(d0 => {
+      order.forEach(t => {
+        const v = cashByDay[d0][t];
+        if (v > 0.001) {
+          const amt = +(v * R[t]).toFixed(2);
+          L.push(`  · ${m}月${d0}日 ${hf(v)}h ${tname(t)} → 加班费 ¥${fx(amt)}`);
+          cashTotal = +(cashTotal + v).toFixed(2);
+          cashMoney = +(cashMoney + amt).toFixed(2);
+        }
+      });
+    });
+    L.push(`  本月未结转算加班费合计：${hf(cashTotal)}h · ¥${fx(cashMoney)}`);
+  } else if (c.cashTotal > 0.001) {
+    L.push(`  （折现 ${hf(c.cashTotal)}h 全部来自上月/更早结转余额，无本月加班部分）`);
+    cashTotal = c.cashTotal;
+  } else {
+    L.push('  （本月无未结转算加班费的时长）');
+  }
+  L.push('');
+
+  // 汇总校验
+  L.push('【汇总校验】');
+  L.push(`  本月新增加班：${hf(c.gainTotal)}h`);
+  L.push(`  本月换休：${hf(c.leaveTotal)}h（其中核销上月结转 ${hf(d.usedCarry)}h、核销本月加班 ${hf(d.usedCur)}h）`);
+  L.push(`  结转下月：${hf(c.carryOutTotal)}h`);
+  L.push(`  未结转算加班费：${hf(c.cashTotal)}h · ¥${fx(c.otPay)}`);
+  L.push(`  餐补：${hf(c.mealCount)} 次 · ¥${fx(c.mealPay)}`);
+  L.push('  口径说明：段一/二为核销口径（仅30天内配对），段三/四为结算口径（计算引擎），两套口径下被换休消耗的本月加班量可能不同，属正常差异。');
+  if (d.warnings && d.warnings.length) L.push('  ⚠️ ' + d.warnings.join('；'));
+
+  dl(`换休核销对账_${key}.txt`, '\uFEFF' + L.join('\n'), 'text/plain;charset=utf-8');
+  toast('文本已导出');
+}
+
+/* 导出当月汇总为 TXT 文本（含换休一一对应 / 结转下月明细） */
+function exportScreenshot() {
+  const [y, m] = cur.split('-').map(Number);
+  const mo = M(cur), n = daysIn(cur), c = compute(cur);
+  const pad2 = v => String(v).padStart(2, '0');
+  const now = new Date();
+  const ts = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+
+  const L = [];
+  L.push('加班助手PRO · 当月汇总导出');
+  L.push(`${y} 年 ${m} 月`);
+  L.push(`导出时间：${ts}`);
+  L.push('');
+
+  let any = false;
+
+  // 换休：按来源分组；上月结转做「换休日期/时长 ↔ 上月加班日期/时长」一一对应
+  const carryLeaves = [], curLeaves = [], unspLeaves = [];
+  for (let d = 1; d <= n; d++) {
+    const r = mo.days[d]; if (!r || !r.leaveH) continue;
+    const item = { d, h: +r.leaveH, reason: r.leaveReason || '' };
+    if (r.leaveSrc === 'carry') carryLeaves.push(item);
+    else if (r.leaveSrc && String(r.leaveSrc).startsWith('D')) { item.srcDay = +String(r.leaveSrc).slice(1); curLeaves.push(item); }
+    else unspLeaves.push(item);
+  }
+  if (carryLeaves.length || curLeaves.length || unspLeaves.length) {
+    any = true;
+    L.push(`【换休（${m}月）】`);
+    if (carryLeaves.length) {
+      // 上月加班来源（按日期顺序，仅工作日，结转池）
+      const pk = prevKey(cur);
+      const prevOt = [];
+      if (DB.months[pk]) {
+        const [py, pm0] = pk.split('-').map(Number);
+        const pn = daysIn(pk);
+        for (let d = 1; d <= pn; d++) {
+          const r = M(pk).days[d]; if (!r) continue;
+          if (dayType(pk, d) !== 'work') continue;
+          const h = hoursOf(pk, d); if (!h) continue;
+          prevOt.push({ d, h, y: py, m: pm0 });
+        }
+      }
+      // FIFO 配对：换休条目的时长，按序从上月加班里逐笔扣减，得到一一对应
+      let pi = 0, pleft = prevOt.length ? prevOt[0].h : 0;
+      carryLeaves.forEach(lv => {
+        let rem = lv.h, parts = [];
+        while (rem > 0.001 && pi < prevOt.length) {
+          const take = Math.min(rem, pleft);
+          parts.push(`${prevOt[pi].y}年${prevOt[pi].m}月${prevOt[pi].d}日 ${hf(take)}h加班`);
+          rem = +(rem - take).toFixed(2);
+          pleft = +(pleft - take).toFixed(2);
+          if (pleft <= 0.001) { pi++; if (pi < prevOt.length) pleft = prevOt[pi].h; }
+        }
+        let line = `  · ${m}月${lv.d}日 换休 ${hf(lv.h)}h`;
+        if (lv.reason) line += `（事由：${lv.reason}）`;
+        line += ` → 上月结转：${parts.join(' + ') || '（无对应来源记录）'}`;
+        L.push(line);
+      });
+    }
+    curLeaves.forEach(lv => {
+      let line = `  · ${m}月${lv.d}日 换休 ${hf(lv.h)}h`;
+      if (lv.reason) line += `（事由：${lv.reason}）`;
+      line += ` → 对应 ${m}月${lv.srcDay}日加班`;
+      L.push(line);
+    });
+    unspLeaves.forEach(lv => {
+      let line = `  · ${m}月${lv.d}日 换休 ${hf(lv.h)}h`;
+      if (lv.reason) line += `（事由：${lv.reason}）`;
+      L.push(line);
+    });
+    L.push(`本月换休共计 ${hf(c.leaveTotal)}h`);
+    L.push('');
+  }
+
+  // 加班费：当月所有有加班时长的日期（含已结转下月的部分，单独标注）
+  const payLines = [];
+  for (let d = 1; d <= n; d++) {
+    const r = mo.days[d]; if (!r) continue;
+    const h = hoursOf(cur, d); if (!h) continue;
+    const t = dayType(cur, d);
+    const tname = t === 'work' ? '工作日' : (t === 'rest' ? '双休日' : '节假日');
+    let line = `  · ${m}月${d}日 ${hf(h)}h ${tname}`;
+    if (r.reason) line += ` · ${r.reason}`;
+    payLines.push(line);
+  }
+  if (payLines.length) {
+    any = true;
+    L.push('【加班费】');
+    payLines.forEach(l => L.push(l));
+    if (c.carryOutTotal > 0) {
+      L.push(`  ※ 其中结转到下月（不计入本月加班费）：${hf(c.carryOutTotal)}h（工作日）`);
+    }
+    L.push(`本月折现/算加班费：${hf(c.cashTotal)}h，约 ¥${c.otPay}`);
+    L.push('');
+  }
+
+  // 年假
+  const annualLines = [];
+  let annMonth = 0;
+  for (let d = 1; d <= n; d++) {
+    const r = mo.days[d]; if (!r || !r.annual) continue;
+    annMonth += +r.annual;
+    let line = `${m}月${d}日 ${hf(+r.annual)}天`;
+    if (r.leaveReason) line += ` · ${r.leaveReason}`;
+    annualLines.push(line);
+  }
+  if (annualLines.length) {
+    const annTotal = +DB.settings.annualTotal || 0;
+    let annUsed = 0;
+    Object.keys(DB.months).forEach(k => {
+      Object.values((DB.months[k] || {}).days || {}).forEach(rr => annUsed += +(rr.annual || 0));
+    });
+    any = true;
+    L.push('【年假】');
+    annualLines.forEach(l => L.push('  ' + l));
+    L.push(`本月年假共计 ${hf(annMonth)}天 · 额度 ${hf(annTotal)} 剩余 ${hf(Math.max(0, annTotal - annUsed))} 天`);
+    L.push('');
+  }
+
+  if (!any) { toast('当月无数据可导出'); return; }
+
+  dl(`加班汇总_${cur}.txt`, '﻿' + L.join('\n'), 'text/plain;charset=utf-8');
+  toast('文本已导出');
+}
+
+function importJSON(file) {
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const o = JSON.parse(fr.result);
+      if (!o.months) throw 0;
+      DB = { version: 1, settings: Object.assign({}, DEF_SETTINGS, o.settings), months: o.months };
+      save(); load(); render(); toast('导入成功');
+    } catch (e) { toast('文件格式不正确'); }
+  };
+  fr.readAsText(file);
+}
+function resetAll() {
+  if (!confirm('将丢弃所有本地修改，恢复为「加班统计.xlsx」导入的原始数据。继续？')) return;
+  store.removeItem(KEY); load(); render(); toast('已恢复原表数据');
+}
+
+function bindMonthPicker() {
+  const wrap = $('#mselWrap'), btn = $('#mselBtn'), pop = $('#mselPop');
+  if (!wrap || !btn || !pop) return;
+  const outside = e => { if (!wrap.contains(e.target)) hide(); };
+  const onKey = e => { if (e.key === 'Escape') hide(); };
+  function show() {
+    renderTop(); pop.hidden = false;
+    requestAnimationFrame(() => {
+      ensureSpacers(pop, '.mopt');
+      centerOn(pop, pop.querySelector('.mopt.cur'));
+      scrollHighlightMark(pop, '.mopt');
+    });
+    setTimeout(() => document.addEventListener('click', outside, true), 0);
+    document.addEventListener('keydown', onKey);
+  }
+  function hide() { pop.hidden = true; document.removeEventListener('click', outside, true); document.removeEventListener('keydown', onKey); }
+  btn.addEventListener('click', e => { e.stopPropagation(); pop.hidden ? show() : hide(); });
+  pop.addEventListener('click', e => {
+    const del = e.target.closest('.mopt-del');
+    if (del) {
+      e.stopPropagation();
+      const k = del.dataset.del;
+      const ks = monthKeys();
+      const isCur = k === cur;
+      const isLast = k === ks[ks.length - 1];
+      if (!isLast) { toast('只能删除最末尾的月份，以保持结转链连续'); return; }
+      confirmDialog({ title:'删除月份', msg:`确定删除 ${k.replace('-', ' 年 ')} 月吗？该月所有加班/换休记录将被清除，且不可恢复。`, okText:'删除', danger:true, onOk:() => {
+        delete DB.months[k];
+        if (isCur) {
+          const nks = monthKeys();
+          cur = nks[nks.length - 1] || mk(new Date().getFullYear(), new Date().getMonth() + 1);
+          if (!DB.months[cur]) DB.months[cur] = { days: {} };
+        }
+        save(); render(); hide();
+      }});
+      return;
+    }
+    const it = e.target.closest('.mopt');
+    if (it) { cur = it.dataset.v; render(); hide(); return; }
+    const nw = e.target.closest('.mnew');
+    if (nw && !nw.disabled) { newMonth(); hide(); }
+  });
+  pop.addEventListener('wheel', e => { e.preventDefault(); pop.scrollTop += (e.deltaY > 0 ? 40 : -40); }, { passive: false });
+  attachScrollHighlight(pop, '.mopt');
+}
+
+/* ============================ 进入密码（访问保护） ============================ */
+function setLockErr(msg) { const el = $('#lockErr'); if (el) el.textContent = msg || ''; }
+function tryUnlock() {
+  const inp = $('#lockPass'); if (!inp) return;
+  const ph = (DB && DB.settings && DB.settings.passHash) || '';
+  if (!ph) { document.body.classList.remove('locked'); return; }
+  if (passHash(inp.value) === ph) {
+    document.body.classList.remove('locked');
+    setLockErr('');
+    inp.blur();
+  } else {
+    setLockErr('密码错误，请重试');
+    inp.value = ''; inp.focus();
+  }
+}
+function maybeLock() {
+  const ph = (DB && DB.settings && DB.settings.passHash) || '';
+  if (!ph) { document.body.classList.remove('locked'); return; }
+  document.body.classList.add('locked');
+  setLockErr('');
+  const inp = $('#lockPass');
+  if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 30); }
+  const btn = $('#lockBtn');
+  if (btn && !btn._bound) { btn._bound = true; btn.onclick = tryUnlock; }
+  const ip = $('#lockPass');
+  if (ip && !ip._bound) { ip._bound = true; ip.addEventListener('keydown', e => { if (e.key === 'Enter') tryUnlock(); }); }
+}
+/* 应用内刷新：拉取云端最新并刷新视图，不刷新整页（不会重新要求输入密码） */
+async function refreshApp() {
+  if (SYNC.token && SYNC.gist) {
+    await syncDownload(true);
+    toast('已刷新：拉取云端最新');
+  } else {
+    render();
+    toast('已刷新视图');
+  }
+}
+
+/* ============================ 启动 ============================ */
+function boot() {
+  load();
+  maybeLock();
+  bindMonthPicker();
+  $('#mprev').onclick = () => { const ks = monthKeys(), i = ks.indexOf(cur); if (i > 0) { cur = ks[i - 1]; render(); } };
+  $('#mnext').onclick = () => { const ks = monthKeys(), i = ks.indexOf(cur); if (i < ks.length - 1) { cur = ks[i + 1]; render(); } };
+  $('#imp').addEventListener('change', e => { if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ''; });
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.tab; render(); });
+  $('#btnRefresh').onclick = refreshApp;
+  $('#btnToday').onclick = () => {
+    const now = new Date(), nowK = mk(now.getFullYear(), now.getMonth() + 1);
+    cur = monthKeys().includes(nowK) ? nowK : (monthKeys().length ? monthKeys()[monthKeys().length - 1] : nowK);
+    if (tab === 'sum' || tab === 'set') tab = 'cal';
+    render();
+    setTimeout(scrollToToday, 30);
+  };
+  // KPI 区域滚动鼠标滚轮切换视图（明细 → 日历 → 汇总 → 明细 …），高度锁避免连跳
+  const kpiEl = $('#kpi');
+  kpiEl.title = '在此区域滚动鼠标滚轮可切换「明细 / 日历 / 汇总」视图';
+  const tabCycle = ['list', 'cal', 'sum'];
+  let wheelLock = false;
+  kpiEl.addEventListener('wheel', e => {
+    e.preventDefault();
+    if (wheelLock) return;
+    const dir = e.deltaY > 0 ? 1 : -1;
+    let idx = tabCycle.indexOf(tab); if (idx === -1) idx = 0;
+    idx = (idx + dir + tabCycle.length) % tabCycle.length;
+    const next = tabCycle[idx];
+    if (next !== tab) { tab = next; render(); }
+    wheelLock = true;
+    setTimeout(() => { wheelLock = false; }, 420);
+  }, { passive: false });
+
+  // KPI 顶栏保持常驻，不再随滚动收起（用户要求）；上方滚轮仍可切换明细/日历/汇总视图
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (carryInView) { exitCarryInView(); return; }
+      closeDay();
+    }
+    if (e.key === 'Enter' && $('#mask') && e.target.tagName === 'INPUT') saveDay();
+  });
+  render();
+  if (SYNC.token && SYNC.gist && (SYNC.auto || SYNC.downloadOnly)) syncDownload(true);
+}
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>
