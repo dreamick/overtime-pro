@@ -3120,18 +3120,8 @@ function exportScreenshot() {
     L.push('');
   }
 
-  // 加班费：当月所有有加班时长的日期（含已结转下月的部分，单独标注）
-  const payLines = [];
-  for (let d = 1; d <= n; d++) {
-    const r = mo.days[d]; if (!r) continue;
-    const h = hoursOf(cur, d); if (!h) continue;
-    const t = dayType(cur, d);
-    const tname = t === 'work' ? '工作日' : (t === 'rest' ? '双休日' : '节假日');
-    let line = `  · ${m}月${d}日 ${hf(h)}h ${tname}`;
-    if (r.reason) line += ` · ${r.reason}`;
-    payLines.push(line);
-  }
-  if (payLines.length) {
+  // 加班费：仅输出汇总（单日明细已省略）
+  if (c.gainTotal > 0) {
     any = true;
     L.push('加班费');
     if (c.carryOutTotal > 0) {
