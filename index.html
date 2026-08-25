@@ -65,12 +65,21 @@
 .lsel-in:focus{box-shadow:inset 0 0 0 2px var(--brand);border-radius:6px}
 .lsel-pop{
   position:fixed;z-index:60;
-  width:auto;min-width:212px;max-width:320px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:12px;
+  width:auto;min-width:240px;max-width:320px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:12px;
   box-shadow:0 14px 36px rgba(20,30,60,.20);animation:popin .14s ease;overflow:hidden;
-  display:flex;gap:4px;
+  display:flex;gap:4px;flex-wrap:wrap;
 }
 .lsel-pop[hidden],.tsel-pop[hidden],.asel-pop[hidden],.msel-pop[hidden]{display:none}
 .lsel-pop .lopt-col{display:flex;flex-direction:column;gap:2px;flex:1}
+.lsel-pop .lopt-hd{font-size:11px;color:var(--tx-3);text-align:center;font-weight:600;padding:1px 0 3px}
+.lsel-pop .lopt-foot{flex-basis:100%;display:flex;justify-content:center;padding-top:5px;margin-top:3px;border-top:1px solid var(--line)}
+.lsel-pop .lopt-clear{border:none;background:transparent;color:#ef4444;font-size:12px;cursor:pointer;padding:2px 10px}
+.lsel-circles{display:inline-flex;gap:4px;align-items:center;justify-content:center;min-height:22px;cursor:pointer;flex-wrap:wrap}
+.rest-empty{color:#cdd3e0;font-size:14px}
+.rest-circle{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;color:#fff;font-size:11px;font-weight:600;line-height:1}
+.rc-lv{background:#7c3aed}
+.rc-an{background:#1a9d50}
+.rc-ot{background:#2563eb}
 .lsel-pop .lopt{
   display:flex;align-items:center;justify-content:center;gap:5px;flex:0 0 auto;
   height:34px;font-size:13px;text-align:center;color:var(--tx);
@@ -1557,57 +1566,65 @@ function centerOn(pop, el) { if (!el) return; pop.scrollTop = el.offsetTop - pop
 
 function bindRestPickers() {
   document.querySelectorAll('.lsel').forEach(span => {
-    const inp = span.querySelector('.lsel-in'), hid = span.querySelector('.lsel-hid'), pop = span.querySelector('.lsel-pop');
+    const circlesEl = span.querySelector('.lsel-circles'), pop = span.querySelector('.lsel-pop');
+    const d = span.closest('tr').dataset.d;
+    const days = M(cur).days;
+    const rec = () => (days[d] || (days[d] = {}));
     const opts = [
       { v: 2, lbl: '2h', field: 'leaveH' },
       { v: 4, lbl: '4h', field: 'leaveH' },
       { v: 6, lbl: '6h', field: 'leaveH' },
       { v: 8, lbl: '8h', field: 'leaveH' },
-      { v: 0.5, lbl: '年假0.5', field: 'annual' },
-      { v: 1, lbl: '年假1', field: 'annual' },
-      { v: 0.5, lbl: '外出0.5', field: 'outing' },
-      { v: 1, lbl: '外出1', field: 'outing' },
+      { v: 0.5, lbl: '0.5', field: 'annual' },
+      { v: 1, lbl: '1', field: 'annual' },
+      { v: 0.5, lbl: '0.5', field: 'outing' },
+      { v: 1, lbl: '1', field: 'outing' },
     ];
-    const curVal = () => (hid.value === '' || +hid.value === 0) ? '' : +hid.value;
-    const curField = () => span.dataset.curField || '';
+    const refreshCircles = () => { const rr = rec(); circlesEl.innerHTML = restCirclesHTML(rr.leaveH, rr.annual, rr.outing); };
+    const refreshReasonColor = () => {
+      const rr = rec();
+      const inp = span.closest('tr').querySelector('input[data-f="leaveReason"]');
+      if (!inp) return;
+      const cls = (+rr.outing > 0) ? 'ot' : ((+rr.annual > 0) ? 'an' : ((+rr.leaveH > 0) ? 'lv' : ''));
+      inp.className = 'cellin lr-' + cls;
+    };
     const render = () => {
-      const cf = curField(), cv = curVal();
+      const rr = rec();
+      const lv = +rr.leaveH, an = +rr.annual, ot = +rr.outing;
       const buildItem = o => {
-        const on = (cf === o.field && cv === o.v) ? ' on' : (!cf && o.v === 4) ? ' on' : '';
+        const on = (o.field === 'leaveH' && lv === o.v) || (o.field === 'annual' && an === o.v) || (o.field === 'outing' && ot === o.v);
         const cls = o.field === 'annual' ? ' lopt-annual' : (o.field === 'outing' ? ' lopt-outing' : '');
-        return `<div class="lopt${cls}${on}" data-v="${o.v}" data-field="${o.field}">${o.lbl}</div>`;
+        return `<div class="lopt${cls}${on ? ' on' : ''}" data-v="${o.v}" data-field="${o.field}">${o.lbl}</div>`;
       };
       const left = opts.filter(o => o.field === 'leaveH').map(buildItem).join('');
       const mid = opts.filter(o => o.field === 'annual').map(buildItem).join('');
       const right = opts.filter(o => o.field === 'outing').map(buildItem).join('');
-      pop.innerHTML = `<div class="lopt-col">${left}</div><div class="lopt-col">${mid}</div><div class="lopt-col">${right}</div>`;
+      pop.innerHTML = `<div class="lopt-col"><div class="lopt-hd">换休</div>${left}</div><div class="lopt-col"><div class="lopt-hd">年假</div>${mid}</div><div class="lopt-col"><div class="lopt-hd">外出</div>${right}</div><div class="lopt-foot"><button type="button" class="lopt-clear">清除全部</button></div>`;
     };
     const outside = e => { if (!span.contains(e.target)) hide(); };
     const onKey = e => { if (e.key === 'Escape') hide(); };
-    let onScrollResize;                          // 表格滚动/缩放时关闭弹窗（fixed 不会跟随）
+    let onScrollResize;
     function place() {
-      // 弹窗为 position:fixed，按 inp 视口坐标定位；窄屏下避免被 .dt-wrap 的 overflow:auto 剪裁
-      const r = inp.getBoundingClientRect();
-      const pw = pop.offsetWidth || 168, gap = 5;
+      const r = circlesEl.getBoundingClientRect();
+      const pw = pop.offsetWidth || 220, gap = 5;
       let top = r.bottom + gap, left = r.left + r.width / 2 - pw / 2;
       const minTop = 4, maxTop = window.innerHeight - 4;
-      if (top + 200 > maxTop) top = Math.max(minTop, r.top - 200 - gap);   // 下方空间不够则翻到上方
+      if (top + 220 > maxTop) top = Math.max(minTop, r.top - 220 - gap);
       left = Math.max(4, Math.min(window.innerWidth - pw - 4, left));
       pop.style.top = top + 'px';
       pop.style.left = left + 'px';
     }
     function show() {
       render();
-      pop.style.visibility = 'hidden'; pop.hidden = false;   // 先拿到真实尺寸
+      pop.style.visibility = 'hidden'; pop.hidden = false;
       place();
       pop.style.visibility = '';
       setTimeout(() => document.addEventListener('click', outside, true), 0);
       document.addEventListener('keydown', onKey);
-      // 滚动/缩放时关闭（fixed 不会随表格滚动）—— 监听 window + 最近的滚动容器
       onScrollResize = () => { if (!pop.hidden) hide(); };
       window.addEventListener('scroll', onScrollResize, true);
       window.addEventListener('resize', onScrollResize);
-      let p = inp.parentElement;
+      let p = circlesEl.parentElement;
       while (p && p !== document.body) { p.addEventListener('scroll', onScrollResize, { passive: true, capture: true }); p = p.parentElement; }
     }
     function hide() {
@@ -1616,7 +1633,7 @@ function bindRestPickers() {
       if (onScrollResize) {
         window.removeEventListener('scroll', onScrollResize, true);
         window.removeEventListener('resize', onScrollResize);
-        let p = inp.parentElement;
+        let p = circlesEl.parentElement;
         while (p && p !== document.body) { p.removeEventListener('scroll', onScrollResize, { capture: true }); p = p.parentElement; }
         onScrollResize = null;
       }
@@ -1624,54 +1641,51 @@ function bindRestPickers() {
       document.removeEventListener('keydown', onKey);
     }
     function clearRest() {
-      const d = span.closest('tr').dataset.d;
-      const days = M(cur).days, r = days[d] || {};
-      delete r.leaveH; delete r.annual; delete r.leaveSrc; delete r.outing;
+      const r = days[d] || {};
+      delete r.leaveH; delete r.annual; delete r.outing; delete r.leaveSrc; delete r.leaveReason;
       if (!Object.keys(r).length) delete days[d];
       save(); renderKPI(); renderBody();
     }
-    inp.addEventListener('click', e => {
-      e.stopPropagation();
-      if (curVal() !== '') {                         // 已有值时点击 → 清除确认
-        confirmDialog({ title:'清除换休/年假/外出', msg:'确定清除本日换休/年假/外出吗？', okText:'清除', danger:true, onOk: clearRest });
-        return;
-      }
-      show();
-    });
+    circlesEl.addEventListener('click', e => { e.stopPropagation(); if (pop.hidden) show(); else hide(); });
+    circlesEl.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (pop.hidden) show(); else hide(); } });
     pop.addEventListener('wheel', e => { e.preventDefault(); pop.scrollTop += e.deltaY > 0 ? 28 : -28; }, { passive: false });
     attachScrollHighlight(pop, '.lopt');
     pop.addEventListener('click', e => {
+      const clr = e.target.closest('.lopt-clear');
+      if (clr) {
+        confirmDialog({ title: '清除换休·年假·外出', msg: '确定清除本日换休·年假·外出吗？', okText: '清除', danger: true, onOk: () => { clearRest(); hide(); } });
+        return;
+      }
       const it = e.target.closest('.lopt'); if (!it) return;
+      e.stopPropagation();
       const v = +it.dataset.v, field = it.dataset.field;
-      const cv = curVal(), cf = curField();
-      if (cf === field && cv === v) {            // 再次点击当前已选值 → 清除
-        confirmDialog({ title:'清除换休/年假/外出', msg:'确定清除本日换休/年假/外出吗？', okText:'清除', danger:true, onOk: clearRest });
-        hide(); return;
-      }
-      const d = span.closest('tr').dataset.d;
-      const days = M(cur).days, r = days[d] || (days[d] = {});
-      if (field === 'annual') {
-        let used = 0;
-        Object.keys(DB.months).forEach(k => {
-          const ds = (DB.months[k] || {}).days || {};
-          Object.keys(ds).forEach(dd => { if (k === cur && dd === d) return; used += +((ds[dd] || {}).annual) || 0; });
-        });
-        const annTotal = +DB.settings.annualTotal || 0;
-        if (used + v > annTotal) { toast('年假剩余不足（已用 ' + hf(used) + ' / 额度 ' + hf(annTotal) + ' 天）'); hide(); return; }
-        r.annual = v; delete r.leaveH; delete r.leaveSrc; delete r.outing;
-      } else if (field === 'outing') {
-        r.outing = v; delete r.leaveH; delete r.annual; delete r.leaveSrc;
+      const rr = rec();
+      if (+rr[field] === v) {                       // 再次点击已选值 → 取消该类（保留其他类）
+        delete rr[field];
+        if (field === 'leaveH') delete rr.leaveSrc;
       } else {
-        const c = compute(cur);
-        const budget = c.carryIn.work + c.gain.work;
-        let others = 0;
-        Object.keys(days).forEach(dd => { if (dd !== d) others += +((days[dd] || {}).leaveH || 0); });
-        const maxLeave = Math.max(0, budget - others);
-        if (v > maxLeave) { toast('换休时长不可超过可用加班总时长 ' + hf(budget) + 'h（本行最多 ' + hf(maxLeave) + 'h）'); hide(); return; }
-        r.leaveH = v; delete r.annual; delete r.outing;
+        if (field === 'annual') {
+          let used = 0;
+          Object.keys(DB.months).forEach(k => {
+            const ds = (DB.months[k] || {}).days || {};
+            Object.keys(ds).forEach(dd => { if (k === cur && dd === d) return; used += +((ds[dd] || {}).annual) || 0; });
+          });
+          const annTotal = +DB.settings.annualTotal || 0;
+          if (used + v > annTotal) { toast('年假剩余不足（已用 ' + hf(used) + ' / 额度 ' + hf(annTotal) + ' 天）'); return; }
+          rr.annual = v;
+        } else if (field === 'outing') {
+          rr.outing = v;
+        } else {
+          const c = compute(cur);
+          const budget = c.carryIn.work + c.gain.work;
+          let others = 0;
+          Object.keys(days).forEach(dd => { if (dd !== d) others += +((days[dd] || {}).leaveH || 0); });
+          const maxLeave = Math.max(0, budget - others);
+          if (v > maxLeave) { toast('换休时长不可超过可用加班总时长 ' + hf(budget) + 'h（本行最多 ' + hf(maxLeave) + 'h）'); return; }
+          rr.leaveH = v; delete rr.leaveSrc;
+        }
       }
-      save(); renderKPI(); renderBody();
-      hide();
+      save(); renderKPI(); refreshCircles(); refreshReasonColor(); render();   // 原地刷新，保持面板打开以便继续多选
     });
   });
 }
@@ -2274,7 +2288,7 @@ function viewList() {
       <td class="center"><span class="hcell"><input class="cellin" data-f="hours" type="number" min="1" step="0.5" value="${manual ? esc(r.hours) : (hasAuto ? hf(auto) : '')}" placeholder="${hasAuto ? '' : '—'}" style="width:62px;text-align:center;color:#ea580c;${manual ? 'font-weight:650' : ''}"><span class="hcell-clr" title="清除时长（恢复按开始/结束自动计算）">×</span></span></td>
       <td><span class="rcell"><input class="cellin" data-f="reason" value="${esc(r.reason)}" placeholder="事由" style="min-width:150px"><span class="ca ca-copy" title="复制事由">⧉</span><span class="ca ca-clr" title="清除事由">×</span></span></td>
     <td class="center leave-col">${restPicker(r.leaveH, r.annual, r.outing, isWork)}</td>
-      <td><span class="rcell"><input class="cellin lr-${r.leaveH > 0 ? 'lv' : (r.annual > 0 ? 'an' : (r.outing > 0 ? 'ot' : ''))}" data-f="leaveReason" value="${esc(r.leaveReason)}" placeholder="换休/年假/外出事由" style="min-width:110px"><span class="ca ca-copy" title="复制事由">⧉</span><span class="ca ca-clr" title="清除事由">×</span></span></td>
+      <td><span class="rcell"><input class="cellin lr-${(+r.outing > 0) ? 'ot' : ((+r.annual > 0) ? 'an' : ((+r.leaveH > 0) ? 'lv' : ''))}" data-f="leaveReason" value="${esc(r.leaveReason)}" placeholder="事由" style="min-width:110px"><span class="ca ca-copy" title="复制事由">⧉</span><span class="ca ca-clr" title="清除事由">×</span></span></td>
       ${mealCell}
       <td class="center"><button class="oa-btn ${r.oa ? 'on' : ''}" data-f="oa">${r.oa ? '✅' : '○'}</button></td>
     </tr>`;
@@ -2302,7 +2316,7 @@ function viewList() {
   return `<div class="card">
     ${head}
     <div class="dt-wrap"><table class="dt">
-      <thead><tr><th class="center" style="min-width:104px">日期</th><th class="center" style="min-width:66px">开始</th><th class="center" style="min-width:66px">结束</th><th class="center" style="min-width:70px;color:#ea580c">时长</th><th style="min-width:150px">加班事由</th><th class="center leave-col" style="min-width:90px">换休/年假/外出</th><th style="min-width:120px">换休/年假/外出事由</th><th class="center" style="min-width:66px">餐补</th><th class="center" style="min-width:56px">OA</th></tr></thead>
+      <thead><tr><th class="center" style="min-width:104px">日期</th><th class="center" style="min-width:66px">开始</th><th class="center" style="min-width:66px">结束</th><th class="center" style="min-width:70px;color:#ea580c">时长</th><th style="min-width:150px">加班事由</th><th class="center leave-col" style="min-width:110px">换休·年假·外出</th><th style="min-width:80px">事由</th><th class="center" style="min-width:66px">餐补</th><th class="center" style="min-width:56px">OA</th></tr></thead>
       <tbody id="dtb">${rows}</tbody>
     </table></div>
   </div>`;
@@ -2633,7 +2647,7 @@ function openDay(d) {
       <div class="frow one"><div class="fld"><label>加班事由</label><input id="f_reason" value="${esc(r.reason)}" placeholder="例：书展物料设计"></div></div>
       <div class="frow">
         <div class="fld"><label>换休 / 调休（小时）</label><input id="f_leaveH" class="cellin" type="number" step="2" min="0" max="8" value="${defLeave || ''}" placeholder="0" style="max-width:120px"></div>
-        <div class="fld"><label>换休/年假/外出事由</label><input id="f_leaveReason" value="${esc(r.leaveReason)}" placeholder="例：陪娃体检"></div>
+        <div class="fld"><label>事由</label><input id="f_leaveReason" value="${esc(r.leaveReason)}" placeholder="例：陪娃体检"></div>
       </div>
       <div class="frow">
         <div class="fld"><label>年假（天）</label><input id="f_annual" type="number" step="1" min="0" max="1" value="${r.annual || ''}" placeholder="0"></div>
@@ -2740,7 +2754,7 @@ function dl(name, text, mime) {
 function exportJSON() { dl(`加班统计备份_${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(DB, null, 1), 'application/json'); toast('已导出备份'); }
 function exportCSV() {
   const n = daysIn(cur), mo = M(cur), L = [];
-  L.push(['日期', '星期', '类型', '开始', '结束', '时长', '加班事由', '换休', '换休/年假/外出事由', '年假', '外出', '餐补', 'OA'].join(','));
+  L.push(['日期', '星期', '类型', '开始', '结束', '时长', '加班事由', '换休', '事由', '年假', '外出', '餐补', 'OA'].join(','));
   const [y, m] = cur.split('-').map(Number);
   for (let d = 1; d <= n; d++) {
     const r = mo.days[d] || {}, t = TYPES.find(x => x.k === dayType(cur, d)).name;
