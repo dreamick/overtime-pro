@@ -3099,7 +3099,7 @@ function exportScreenshot() {
           pleft = +(pleft - take).toFixed(2);
           if (pleft <= 0.001) { pi++; if (pi < prevOt.length) pleft = prevOt[pi].h; }
         }
-        let line = `  · ${m}月${lv.d}日 换休 ${hf(lv.h)}h`;
+        let line = `  ${m}月${lv.d}日 换休 ${hf(lv.h)}h`;
         if (lv.reason) line += `（事由：${lv.reason}）`;
         line += ` → 上月结转：${parts.join(' + ') || '（无对应来源记录）'}`;
         L.push(line);
