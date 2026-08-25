@@ -60,7 +60,7 @@
 .tsel-pop .topt.cur{background:var(--brand);color:#fff;font-weight:600}
 /* 换休：点击弹框选择 2/4/6/8 */
 .lsel{position:relative;display:block;width:100%}
-.lsel-in{cursor:pointer;width:100%;text-align:center;box-sizing:border-box;border:none;background:transparent;outline:none;padding:0;font:inherit;color:#7c3aed;appearance:none;-webkit-appearance:none;-moz-appearance:none}
+.lsel-in{cursor:pointer;width:100%;text-align:center;box-sizing:border-box;border:none;background:transparent;outline:none;padding:0;font:inherit;color:#12b76a;appearance:none;-webkit-appearance:none;-moz-appearance:none}
 .lsel-in.empty{color:#cdd3e0}
 .lsel-in:focus{box-shadow:inset 0 0 0 2px var(--brand);border-radius:6px}
 .lsel-pop{
@@ -1916,7 +1916,7 @@ function renderKPI() {
   const annTotal = +DB.settings.annualTotal || 0, annRemain = Math.max(0, annTotal - annUsed);
   const dl = (a, b) => { if (!p) return ''; const d = a - b; if (Math.abs(d) < .01) return '<span class="muted">与上月持平</span>'; return `<b style="color:${d > 0 ? '#e5484d' : '#12b76a'}">${d > 0 ? '↑' : '↓'}${hf(Math.abs(d))}</b> 较上月`; };
   const box = [
-    { lb: '本月加班', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7.5"/><path d="M11 6.5V11l3 2"/></svg>', ac: '#3b6bff', vl: hf(c.gainTotal), u: '小时', df: dl(c.gainTotal, p ? p.gainTotal : 0), f: 'ot' },
+    { lb: '本月加班', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7.5"/><path d="M11 6.5V11l3 2"/></svg>', ac: '#ea580c', vl: hf(c.gainTotal), u: '小时', df: dl(c.gainTotal, p ? p.gainTotal : 0), f: 'ot' },
     { lb: '上月结转', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11A6 6 0 0 1 17 11"/><path d="M14 8l3 3-3 3"/></svg>', ac: '#6366f1', vl: hf(c.carryInTotal), u: '小时', df: c.carryInTotal ? `<span class="muted">工 ${hf(c.carryIn.work)} 休 ${hf(c.carryIn.rest)} 节 ${hf(c.carryIn.holi)}</span>` : '<span class="muted">无结转</span>', f: 'carryIn' },
     (() => {
       const budget = c.carryIn.work + c.gain.work;
@@ -2595,7 +2595,7 @@ function viewSum() {
       <td class="${c.gain.rest ? '' : 'zero'}">${hf(c.gain.rest)}</td>
       <td class="${c.gain.holi ? '' : 'zero'}">${hf(c.gain.holi)}</td>
       <td class="${c.leaveTotal ? '' : 'zero'}">${hf(c.leaveTotal)}</td>
-      <td class="${c.annualUse ? '' : 'zero'}" style="color:#1a9d50;font-weight:600">${hf(c.annualUse)}</td>
+      <td class="${c.annualUse ? '' : 'zero'}" style="color:#7c3aed;font-weight:600">${hf(c.annualUse)}</td>
       <td class="${c.carryOutTotal ? '' : 'zero'}">${hf(c.carryOutTotal)}</td>
       <td class="${c.cashTotal ? '' : 'zero'}">${hf(c.cashTotal)}</td>
       <td class="${c.otPay ? 'num-pos' : 'zero'}">${fx(c.otPay)}</td>
@@ -2615,7 +2615,7 @@ function viewSum() {
           <tbody>${rows}</tbody>
           <tfoot><tr><td>${yr} 年累计</td><td>—</td>
             <td>${hf(ysum(c => c.gain.work))}</td><td>${hf(ysum(c => c.gain.rest))}</td><td>${hf(ysum(c => c.gain.holi))}</td>
-            <td>${hf(ysum(c => c.leaveTotal))}</td><td style="color:#1a9d50;font-weight:600">${hf(ysum(c => c.annualUse))}</td><td>—</td><td>${hf(ysum(c => c.cashTotal))}</td>
+            <td>${hf(ysum(c => c.leaveTotal))}</td><td style="color:#7c3aed;font-weight:600">${hf(ysum(c => c.annualUse))}</td><td>—</td><td>${hf(ysum(c => c.cashTotal))}</td>
             <td style="color:var(--brand)">${fx(ysum(c => c.otPay))}</td><td style="color:var(--brand)">${fx(ysum(c => c.mealPay))}</td>
             <td>${hf(ysum(c => c.mealCount))}</td></tr></tfoot>
         </table>
