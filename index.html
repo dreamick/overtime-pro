@@ -2298,7 +2298,7 @@ function viewList() {
       <td class="center">${timePicker(r.start, 'start', startDef, r.end)}</td>
       <td class="center">${timePicker(r.end, 'end', endDef, r.start)}</td>
       <td class="center gap-r"><span class="hcell"><input class="cellin" data-f="hours" type="number" min="1" step="0.5" value="${manual ? esc(r.hours) : (hasAuto ? hf(auto) : '')}" placeholder="${hasAuto ? '' : '—'}" style="width:62px;text-align:center;color:#ea580c;${manual ? 'font-weight:650' : ''}"><span class="hcell-clr" title="清除时长（恢复按开始/结束自动计算）">×</span></span></td>
-      <td class="center"><span class="rcell"><input class="cellin" data-f="reason" value="${esc(r.reason)}" placeholder="事由" style="min-width:150px;text-align:center"><span class="ca ca-copy" title="复制事由">⧉</span><span class="ca ca-clr" title="清除事由">×</span></span></td>
+      <td class="center"><span class="rcell"><input class="cellin" data-f="reason" value="${esc(r.reason)}" placeholder="事由" style="min-width:150px;text-align:center;color:var(--brand)"><span class="ca ca-copy" title="复制事由">⧉</span><span class="ca ca-clr" title="清除事由">×</span></span></td>
     <td class="center leave-col gap-r">${restPicker(r.leaveH, r.annual, r.outing, isWork)}</td>
       <td class="center"><span class="rcell"><input class="cellin lr-${(+r.outing > 0) ? 'ot' : ((+r.annual > 0) ? 'an' : ((+r.leaveH > 0) ? 'lv' : ''))}" data-f="leaveReason" value="${esc(r.leaveReason)}" placeholder="事由" style="min-width:110px;text-align:center"><span class="ca ca-copy" title="复制事由">⧉</span><span class="ca ca-clr" title="清除事由">×</span></span></td>
       ${mealCell}
