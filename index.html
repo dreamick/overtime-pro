@@ -1915,7 +1915,8 @@ function renderKPI() {
   const annTotal = +DB.settings.annualTotal || 0, annRemain = Math.max(0, annTotal - annUsed);
   const dl = (a, b) => { if (!p) return ''; const d = a - b; if (Math.abs(d) < .01) return '<span class="muted">与上月持平</span>'; return `<b style="color:${d > 0 ? '#e5484d' : '#12b76a'}">${d > 0 ? '↑' : '↓'}${hf(Math.abs(d))}</b> 较上月`; };
   const box = [
-    <svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7.5"/><path d="M11 6.5V11l3 2"/></svg>
+    { lb: '本月加班', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7.5"/><path d="M11 6.5V11l3 2"/></svg>', ac: '#3b6bff', vl: hf(c.gainTotal), u: '小时', df: dl(c.gainTotal, p ? p.gainTotal : 0), f: 'ot' },
+    { lb: '上月结转', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11A6 6 0 0 1 17 11"/><path d="M14 8l3 3-3 3"/></svg>', ac: '#6366f1', vl: hf(c.carryInTotal), u: '小时', df: c.carryInTotal ? `<span class="muted">工 ${hf(c.carryIn.work)} 休 ${hf(c.carryIn.rest)} 节 ${hf(c.carryIn.holi)}</span>` : '<span class="muted">无结转</span>', f: 'carryIn' },
     { lb: '上月结转', ic: '↩', ac: '#6366f1', vl: hf(c.carryInTotal), u: '小时', df: c.carryInTotal ? `<span class="muted">工 ${hf(c.carryIn.work)} 休 ${hf(c.carryIn.rest)} 节 ${hf(c.carryIn.holi)}</span>` : '<span class="muted">无结转</span>', f: 'carryIn' },
     (() => {
       const budget = c.carryIn.work + c.gain.work;
