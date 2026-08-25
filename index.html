@@ -2909,7 +2909,7 @@ function exportLedgerText(key) {
     let acc = '';
     carryPairs.forEach(pr => {
       acc = `${m}月${pr.lvD}日 换休 ${hf(pr.take)}h ← 上月结转${pr.src.earlier ? '（更早结转）' : ''} ${srcLbl(pr.src)} 加班 ${hf(pr.src.h)}h`;
-      L.push('  · ' + acc);
+      L.push('  ' + acc);
     });
   } else {
     L.push('  （本月无核销上月结转的换休记录）');
@@ -2917,7 +2917,7 @@ function exportLedgerText(key) {
   L.push('');
 
   // ---- 段2：本月加班 ↔ 本月换休 ----
-  L.push('【二、本月加班 ↔ 本月换休】');
+  L.push('二、本月加班 ↔ 本月换休');
   const curPairs = [];
   d.leaves.forEach(l => l.pairs.forEach(p => {
     if (p.e.y === y && p.e.m === m)   // 来源是本月加班
