@@ -3024,7 +3024,7 @@ function exportLedgerText(key) {
     }
   });
 
-  L.push('三、本月加班下月结转');
+  L.push('本月加班下月结转');
   const R = c.rates;
   let carryTotal = 0;
   const carryDays = Object.keys(carryByDay).map(Number).sort((a, b) => a - b);
@@ -3047,7 +3047,7 @@ function exportLedgerText(key) {
   }
   L.push('');
 
-  L.push('四、本月加班未结转算加班费');
+  L.push('本月加班未结转算加班费');
   let cashTotal = 0, cashMoney = 0;
   const cashDays = Object.keys(cashByDay).map(Number).sort((a, b) => a - b);
   if (cashDays.length) {
