@@ -1236,6 +1236,39 @@ function openMonthSettle(key) {
   el._onEsc = onEsc;  // 便于 closeModal 解绑，避免重复叠加
 }
 
+/* 加班费 KPI 点击 → 仅弹出「加班费明细」面板（各类加班折现时长与金额），不展开结转下月设置 / 换休核销台账 */
+function openOvertimePayDetail(key) {
+  const c = compute(key);
+  const otRows = TYPES.map(t => `<tr>
+      <td><span class="dot" style="background:${t.color}"></span> ${t.name}</td>
+      <td class="${c.cash[t.k] ? '' : 'zero'}">${hf(c.cash[t.k])} h</td>
+      <td class="muted">${fx(c.rates[t.k])} 元/h</td>
+      <td class="${c.amount[t.k] ? 'num-pos' : 'zero'}">${fx(c.amount[t.k])} 元</td></tr>`).join('');
+  const el = document.createElement('div'); el.className = 'mask'; el.id = 'otPayMask';
+  el.innerHTML = `<div class="modal carry-modal" onclick="event.stopPropagation()" style="width:560px;max-width:calc(100vw - 32px)">
+    <div class="modal-h"><div><h3>${key.replace('-', ' 年 ')} 月 · 加班费明细</h3><p>各类加班折现时长与金额</p></div>
+      <span class="spacer"></span><button class="btn ghost sm" onclick="closeModal('otPayMask')">✕</button></div>
+    <div class="modal-b">
+      <div class="otc-sec">
+        <div class="otc-tit">加班费明细</div>
+        <table class="tb" style="width:100%">
+          <thead><tr><th>类型</th><th>折现时长</th><th>单价</th><th>金额</th></tr></thead>
+          <tbody>${otRows}
+            <tr><td>🍚 餐补</td><td class="${c.mealCount ? '' : 'zero'}">${hf(c.mealCount)} 次</td><td class="muted">${fx(DB.settings.mealRate)}</td><td class="${c.mealPay ? 'num-pos' : 'zero'}">${fx(c.mealPay)}</td></tr>
+          </tbody>
+          <tfoot><tr><td>合计</td><td>—</td><td>—</td><td style="color:var(--brand);font-size:14px;line-height:1.5">加班费 ${fx(c.otPay)}<br>餐补 ${fx(c.mealPay)}<br><b style="font-size:15px">${fx(c.total)} 元</b></td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="modal-f"><span class="spacer"></span><button class="btn primary" onclick="closeModal('otPayMask')">关闭</button></div>
+  </div>`;
+  el.onclick = () => closeModal('otPayMask');
+  document.body.appendChild(el);
+  const onEsc = e => { if (e.key === 'Escape') closeModal('otPayMask'); };
+  document.addEventListener('keydown', onEsc);
+  el._onEsc = onEsc;
+}
+
 function closeModal(id) {
   const m = $('#' + id);
   if (m) { if (m._onEsc) document.removeEventListener('keydown', m._onEsc); m.remove(); }
@@ -1754,9 +1787,9 @@ function exitCarryInView() {
 
 // KPI 卡片点击 → 切换明细筛选；加班费 KPI 直接打开本月结算面板；非明细 tab 切到明细 tab
 function kpiFilter(el) {
-  // 加班费 KPI：点击直接打开本月结算面板（不再作筛选切换）
+  // 加班费 KPI：点击直接打开「加班费明细」面板（仅明细，不展开结转/核销台账）
   if (el.dataset.act === 'settle') {
-    if (typeof openMonthSettle === 'function') openMonthSettle(cur);
+    openOvertimePayDetail(cur);
     return;
   }
   const f = el.dataset.f;  // '' 表示清除筛选
@@ -1838,7 +1871,7 @@ function renderKPI() {
     const isSettle = b.act === 'settle';
     const actAttr = isSettle ? ` data-act="settle"` : '';
     const fAttr = isSettle ? '' : ` data-f="${b.f == null ? '' : b.f}"`;
-    const tip = isSettle ? '点击查看加班费结算面板（加班费/结转下月/换休核销）' : `点击筛选：${b.lb}${b.f ? '' : '（清除筛选）'}`;
+    const tip = isSettle ? '点击查看本月加班费明细' : `点击筛选：${b.lb}${b.f ? '' : '（清除筛选）'}`;
     return `
     <div class="kpi${b.hl ? ' hl-' + b.hl : ''}${(listFilter === b.f || (carryInView && b.f === 'carryIn')) ? ' active' : ''}"${fAttr}${actAttr} onclick="kpiFilter(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();kpiFilter(this)}" role="button" tabindex="0" title="${tip}" style="${b.ac ? '--ac:' + b.ac : ''}">
       <div class="kpi-top"><span class="kpi-ic">${b.ic || ''}</span><span class="lb">${b.lb}</span></div>
