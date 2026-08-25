@@ -1862,7 +1862,7 @@ function renderKPI() {
       return { lb: '本月换休', ic: '🏖', ac: '#12b76a', vl: hf(c.leaveTotal), u: '小时', df: df + bar, f: 'leave' };
     })(),
     { lb: '结转下月', ic: '➡', ac: '#12b76a', vl: hf(c.carryOutTotal), u: '小时', df: `<span class="muted">${{ all: '全部结转', none: '全部折现', manual: '自定义' }[c.mode]}</span>`, f: 'carry' },
-    { lb: '折现时长', ic: '💱', ac: '#0ea5a4', vl: hf((c.autoCash + c.expiredCash)), u: '小时', df: (+DB.settings.leaveExpireDays || 0) > 0 ? `<span class="muted">超${Math.round(+DB.settings.leaveExpireDays)}天自动折现</span>` : '<span class="muted">未启用折现规则</span>', f: 'cash' },
+    { lb: '折现时长', ic: '💱', ac: '#0ea5a4', vl: hf(c.cashTotal), u: '小时', df: `<span class="muted">${{ all: '全部结转', none: '全部折现', manual: '自定义' }[c.mode]}</span>`, f: 'cash' },
     { lb: '年假剩余', ic: '🗓', ac: '#db2777', vl: hf(annRemain), u: '天', df: `<span class="muted">额度 ${hf(annTotal)} 天</span>`, f: 'annual' },
     { lb: '餐补', ic: '🍚', ac: '#f5a524', vl: money(c.mealPay).replace('¥', ''), u: '元', df: `<span class="lt">共 ${hf(c.mealCount)} 次</span>`, hl: 'blue', f: 'meal' },
     { lb: '加班费', ic: '💰', ac: '#ff7a18', vl: money(c.otPay).replace('¥', ''), u: '元', df: `<span class="lt">工 ${hf(c.gain.work)} 休 ${hf(c.gain.rest)} 节 ${hf(c.gain.holi)}</span>`, hl: 'orange', f: null, act: 'settle' }
