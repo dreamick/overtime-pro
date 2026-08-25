@@ -2145,11 +2145,14 @@ function buildLvDetail() {
       : b.rows.map(row => {
         const wd = WD[new Date(y, m - 1, row.d).getDay()];
         const tag = row.kind === 'ot' ? '加班' : '换休';
-        const doneCls = row.kind === 'ot' && row.done ? ' done' : (row.kind === 'ot' && row.partial ? ' partial' : '');
+        const doneCls = row.kind === 'ot' && row.tag !== 'live' ? ' ' + row.tag : '';
         let doneTag = '';
-        // 加班行：保留旧角标 + 新增「被哪些换休核销」链接 chips
-        if (row.kind === 'ot' && row.done) doneTag = '<span class="donetag">已结转</span>';
-        else if (row.kind === 'ot' && row.partial) doneTag = `<span class="donetag">已结转 ${hf(row.used)}/${hf(row.h)}h</span>`;
+        // 加班行：四种角标文案 + chips
+        if (row.kind === 'ot' && row.tag === 'done') doneTag = '<span class="donetag">已核销</span>';
+        else if (row.kind === 'ot' && row.tag === 'partial') doneTag = `<span class="donetag">已核销 ${hf(row.used)}/${hf(row.h)}h</span>`;
+        else if (row.kind === 'ot' && row.tag === 'carryDone') doneTag = `<span class="donetag">已结转核销${row.isExpired ? '（自动折现）' : ''}</span>`;
+        else if (row.kind === 'ot' && row.tag === 'carryPartial') doneTag = `<span class="donetag">已结转核销 ${hf(row.used)}/${hf(row.h)}h</span>`;
+        else if (row.kind === 'ot' && row.tag === 'carryLive') doneTag = '<span class="donetag">已结转</span>';
         let linkTag = '';
         if (row.kind === 'ot' && row.byLeaves && row.byLeaves.length) {
           // 同一天可能被多笔换休共同消费，按 leaveKey+leaveD 合并显示
