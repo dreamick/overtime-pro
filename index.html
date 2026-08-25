@@ -2120,13 +2120,41 @@ function buildLvDetail() {
         const tag = row.kind === 'ot' ? '加班' : '换休';
         const doneCls = row.kind === 'ot' && row.done ? ' done' : (row.kind === 'ot' && row.partial ? ' partial' : '');
         let doneTag = '';
+        // 加班行：保留旧角标 + 新增「被哪些换休核销」链接 chips
         if (row.kind === 'ot' && row.done) doneTag = '<span class="donetag">已结转</span>';
         else if (row.kind === 'ot' && row.partial) doneTag = `<span class="donetag">已结转 ${hf(row.used)}/${hf(row.h)}h</span>`;
-        return `<div class="lv-row ${row.kind}${doneCls}">
+        let linkTag = '';
+        if (row.kind === 'ot' && row.byLeaves && row.byLeaves.length) {
+          // 同一天可能被多笔换休共同消费，按 leaveKey+leaveD 合并显示
+          const grouped = {};
+          row.byLeaves.forEach(b2 => {
+            const key = b2.leaveKey + '|' + b2.leaveD;
+            grouped[key] = (grouped[key] || 0) + b2.take;
+          });
+          const chips = Object.keys(grouped).map(key => {
+            const [lk, ld] = key.split('|');
+            const [ly, lm] = lk.split('-').map(Number);
+            return `<span class="lv-link" data-lv-target="lv-${lk}-${ld}" data-lv-from="${row.otId}" title="点击跳到 ${lm}/${pad(+ld)} 换休行">→ ${lm}/${pad(+ld)} 换 ${hf(grouped[key])}h</span>`;
+          }).join('');
+          linkTag = `<span class="lv-links">${chips}</span>`;
+        }
+        else if (row.kind === 'lv' && row.sources && row.sources.length) {
+          // 换休行：「从哪些加班拉过来」链接 chips
+          const chips = row.sources.map(s => {
+            const lbl = s.earlier ? '更早结转' : `${s.m}/${pad(s.d)}`;
+            const targetOt = s.earlier ? '' : `ot-${s.y}-${pad(s.m)}-${s.d}`;
+            const cls = s.manual ? 'lv-link man' : 'lv-link';
+            const tip = s.earlier ? '更早月份的结转池（无具体日期）' : `点击跳到 ${lbl} 加班行`;
+            return `<span class="${cls}"${targetOt ? ` data-lv-target="${targetOt}"` : ''} data-lv-from="${row.lvId}" title="${tip}">← ${lbl} 加 ${hf(s.take)}h</span>`;
+          }).join('');
+          linkTag = `<span class="lv-links">${chips}</span>`;
+        }
+        const idAttr = row.otId ? ` id="${row.otId}"` : (row.lvId ? ` id="${row.lvId}"` : '');
+        return `<div class="lv-row ${row.kind}${doneCls}"${idAttr}>
           <span class="d">${m}/${pad(row.d)}</span>
           <span class="w">周${wd}</span>
           <span class="h">${tag} ${hf(row.h)}h</span>
-          <span class="rsn">${esc(row.rsn || (row.kind === 'ot' ? '（未填事由）' : '调休'))}</span>${doneTag}
+          <span class="rsn">${esc(row.rsn || (row.kind === 'ot' ? '（未填事由）' : '调休'))}</span>${doneTag}${linkTag}
         </div>`;
       }).join('');
     return `<div class="lv-month">
