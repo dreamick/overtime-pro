@@ -3033,7 +3033,7 @@ function exportLedgerText(key) {
   L.push('');
 
   // 汇总校验
-  L.push('【汇总校验】');
+  L.push('汇总校验');
   L.push(`  本月新增加班：${hf(c.gainTotal)}h`);
   L.push(`  本月换休：${hf(c.leaveTotal)}h（其中核销上月结转 ${hf(d.usedCarry)}h、核销本月加班 ${hf(d.usedCur)}h）`);
   L.push(`  结转下月：${hf(c.carryOutTotal)}h`);
