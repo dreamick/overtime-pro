@@ -2954,7 +2954,7 @@ function exportLedgerText(key) {
   L.push('');
 
   // ---- 段2：本月加班 ↔ 本月换休 ----
-  L.push('二、本月加班 ↔ 本月换休');
+  L.push('本月加班 ↔ 本月换休');
   const curPairs = [];
   d.leaves.forEach(l => l.pairs.forEach(p => {
     if (p.e.y === y && p.e.m === m)   // 来源是本月加班
