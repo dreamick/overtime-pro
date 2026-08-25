@@ -1205,7 +1205,9 @@ function openMonthSettle(key) {
     body.innerHTML = build();
     body.querySelectorAll('#carrySeg2 button').forEach(b => b.addEventListener('click', () => {
       const v = b.dataset.v, mo = M(key);
-      mo.carryMode = v; if (v !== 'manual') delete mo.carryOutManual;
+      mo.carryMode = v;
+      if (v !== 'manual') delete mo.carryOutManual;
+      else { const _cc = compute(key).carryCap; mo.carryOutManual = { work: _cc.work, rest: _cc.rest, holi: _cc.holi }; }  // 自定义默认填满可结转上限：只把超 30 天自动折现的部分算作加班费，其余结转下月
       save(); partialCarryRefresh(); paint();
     }));
     ['work','rest','holi'].forEach(t => {
