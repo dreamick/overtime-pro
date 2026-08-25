@@ -2042,16 +2042,24 @@ function buildLvDetail() {
     months.push(y + '-' + pad(m));
     m++; if (m > 12) { m = 1; y++; }
   }
-  // 跨月收集「被换休核销的加班日」：doneMap[mk][d] = {used,total,byLeaves}
+  // 跨月收集「被换休核销的加班日」：doneMap[mk][d] = {used,total,byLeaves,fromCarry,expired}
   //   byLeaves  = 本加班日被哪些换休日消耗了 [{ leaveKey, leaveD, take }]
+  //   fromCarry = 该 OT 来源是上月结转池（true）还是当月加班池（false）
+  //   expired   = 被自动折现（expiredCash / cash），也算"已核销"语义
   // 同步收集 restSrcMap[mk][d] = [{y,m,d,take,manual}] —— 换休日从哪些加班日拉过来
   const doneMap = {};
   const restSrcMap = {};
-  const markDone = (mk, d, used, total, byLeaves) => {
+  const markDone = (mk, d, used, total, byLeaves, fromCarry, expired) => {
     if (!doneMap[mk]) doneMap[mk] = {};
     const prev = doneMap[mk][d];
-    if (!prev) doneMap[mk][d] = { used: +used, total: +total, byLeaves: (byLeaves || []).slice() };
-    else { prev.used = +(prev.used + used).toFixed(2); prev.total = +(prev.total + total).toFixed(2); (byLeaves || []).forEach(x => prev.byLeaves.push(x)); }
+    if (!prev) doneMap[mk][d] = { used: +used, total: +total, byLeaves: (byLeaves || []).slice(), fromCarry: !!fromCarry, expired: !!expired };
+    else {
+      prev.used = +(prev.used + used).toFixed(2);
+      prev.total = +(prev.total + total).toFixed(2);
+      (byLeaves || []).forEach(x => prev.byLeaves.push(x));
+      prev.fromCarry = prev.fromCarry || !!fromCarry;
+      prev.expired = prev.expired || !!expired;
+    }
   };
   const addRestSrc = (mk, d, src) => {
     if (!restSrcMap[mk]) restSrcMap[mk] = {};
@@ -2062,20 +2070,24 @@ function buildLvDetail() {
     let lg = null;
     try { lg = leaveLedger(k); } catch (e) { lg = null; }
     if (!lg) return;
-    // 当月加班池：left 归零 → 被当月换休消耗
+    // 当月加班池：left < h → 被当月换休 / 过期 / 自动 cash
     (lg.curPool || []).forEach(e => {
       if (e.left > e.h - 0.001) return;
       const used = +(e.h - e.left).toFixed(2);
       const byLeaves = (e.used || []).map(u => ({ leaveKey: k, leaveD: u.l.d, take: +u.take }));
-      markDone(k, e.d, used, e.h, byLeaves);
+      markDone(k, e.d, used, e.h, byLeaves, false, !!(e.expired || e.cash));
     });
-    // 结转池：left 归零 → 上月结转到本月的加班被本月换休消耗（来源日 = e.y/e.m/e.d）
+    // 结转池：left 归零 → 上月结转到本月的加班被本月换休消耗/过期/cash（来源月 = e.y/e.m）
     (lg.carryPool || []).forEach(e => {
-      if (e.left > e.h - 0.001) return;
-      const used = +(e.h - e.left).toFixed(2);
       const mk = e.y + '-' + pad(e.m);
+      if (e.left > e.h - 0.001) {
+        // carry 池中未被消费的余额 → 标 fromCarry = true、used = 0（供 renderer 显示"已结转"）
+        markDone(mk, e.d, 0, e.h, [], true, false);
+        return;
+      }
+      const used = +(e.h - e.left).toFixed(2);
       const byLeaves = (e.used || []).map(u => ({ leaveKey: k, leaveD: u.l.d, take: +u.take }));
-      markDone(mk, e.d, used, e.h, byLeaves);
+      markDone(mk, e.d, used, e.h, byLeaves, true, !!(e.expired || e.cash));
     });
     // 换休行的加班来源：l.pairs（l=换休日，e=加班日）
     (lg.leaves || []).forEach(l => {
