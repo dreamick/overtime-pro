@@ -1993,7 +1993,7 @@ function buildAlerts() {
     const originLbl = `${oy}年${om}月`;
     const expLbl = `${exp.getFullYear()}-${pad(exp.getMonth() + 1)}-${pad(exp.getDate())}`;
     if (daysLeft <= 30) {
-      out.push({ key: 'lv_warn_' + Math.round(avail), cls: 'warn', ic: '🌴', html: `可调休约 <b>${hf(avail)}h</b> 将于 <b>${expLbl}</b> 到期（按 ${N} 个月有效期估算，还剩 ${daysLeft} 天），建议尽快使用。` });
+      out.push({ key: 'lv_warn_' + Math.round(avail), cls: 'warn', ic: '', html: `可调休约 <b>${hf(avail)}h</b> 将于 <b>${expLbl}</b> 到期（按 ${N} 个月有效期估算，还剩 ${daysLeft} 天），建议尽快使用。` });
     }
   }
   return out;
