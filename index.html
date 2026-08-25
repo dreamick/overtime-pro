@@ -2182,6 +2182,21 @@ function buildLvDetail() {
   </div>`;
 }
 
+/* 「来源明细」面板：加班 ↔ 换休 链接 chip 跳转：滚到目标行 + 短暂闪烁高亮 */
+function lvLinkJump(targetId, src) {
+  const tgt = document.getElementById(targetId);
+  if (!tgt) return;
+  tgt.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  document.querySelectorAll('.lv-row.lv-flash').forEach(el => { el.classList.remove('lv-flash'); void el.offsetWidth; });
+  void tgt.offsetWidth;
+  tgt.classList.add('lv-flash');
+  setTimeout(() => tgt.classList.remove('lv-flash'), 1500);
+  if (src && src.closest) {
+    const pop = src.closest('.lsel-pop');
+    if (pop) pop.hidden = true;
+  }
+}
+
 function renderBody() {
   renderAlerts();  // 实时刷新调休/年假预警条（任何数据变更后立即重算）
   const f = { cal: viewCal, list: viewList, sum: viewSum, set: viewSet }[tab];
