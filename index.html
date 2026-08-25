@@ -1621,7 +1621,7 @@ function bindRestPickers() {
     function clearRest() {
       const d = span.closest('tr').dataset.d;
       const days = M(cur).days, r = days[d] || {};
-      delete r.leaveH; delete r.annual; delete r.leaveSrc;
+      delete r.leaveH; delete r.annual; delete r.leaveSrc; delete r.outing;
       if (!Object.keys(r).length) delete days[d];
       save(); renderKPI(); renderBody();
     }
