@@ -2650,13 +2650,13 @@ function openDay(d) {
       </div>
       <div class="frow">
         <div class="fld"><label>年假（天）</label><input id="f_annual" type="number" step="1" min="0" max="1" value="${r.annual || ''}" placeholder="0"></div>
-        <div class="fld"><label>外出（天）</label><input id="f_outing" type="number" step="0.5" min="0" max="1" value="${r.outing || ''}" placeholder="0"></div>
+        <div class="fld"><label>外出</label><label class="chk-inline"><input type="checkbox" id="f_outing" ${r.outing ? 'checked' : ''}> 记外出（仅请假记录）</label></div>
       </div>
       <div class="frow">
         ${t === 'work'
           ? `<div class="fld"><label>餐补（次）</label><div class="readonly-note">🍚 工作日加班≥1.5h 自动计 1 次（不可编辑）</div></div>`
           : `<div class="fld"><label>餐补（次）</label><input id="f_meal" type="number" step="1" min="0" value="${r.meal || ''}" placeholder="0"></div>`}
-        <div class="fld"><label>说明</label><div class="readonly-note">换休 / 年假 / 外出 互斥，二选一记录</div></div>
+        <div class="fld"><label>说明</label><div class="readonly-note">换休 / 年假 / 外出 可多选（外出仅请假记录，不影响加班费）</div></div>
       </div>
       <div class="frow one"><div class="fld"><label>OA 流程</label>
         <div class="seg"><button type="button" id="oa_n" class="${!r.oa ? 'on' : ''}">未提交</button><button type="button" id="oa_y" class="${r.oa ? 'on' : ''}">✅ 已提交</button></div></div></div>
@@ -3075,7 +3075,7 @@ function exportScreenshot() {
   for (let d = 1; d <= n; d++) {
     const r = mo.days[d]; if (!r || !r.outing) continue;
     outingMonth += +r.outing;
-    let line = `${m}月${d}日 外出 ${hf(+r.outing)}天`;
+    let line = `${m}月${d}日 外出`;
     if (r.leaveReason) line += ` · ${r.leaveReason}`;
     outingLines.push(line);
   }
