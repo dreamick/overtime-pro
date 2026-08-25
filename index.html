@@ -1560,6 +1560,8 @@ function bindRestPickers() {
       { v: 8, lbl: '8h', field: 'leaveH' },
       { v: 0.5, lbl: '年假0.5', field: 'annual' },
       { v: 1, lbl: '年假1', field: 'annual' },
+      { v: 0.5, lbl: '外出0.5', field: 'outing' },
+      { v: 1, lbl: '外出1', field: 'outing' },
     ];
     const curVal = () => (hid.value === '' || +hid.value === 0) ? '' : +hid.value;
     const curField = () => span.dataset.curField || '';
@@ -1567,12 +1569,13 @@ function bindRestPickers() {
       const cf = curField(), cv = curVal();
       const buildItem = o => {
         const on = (cf === o.field && cv === o.v) ? ' on' : (!cf && o.v === 4) ? ' on' : '';
-        const cls = o.field === 'annual' ? ' lopt-annual' : '';
+        const cls = o.field === 'annual' ? ' lopt-annual' : (o.field === 'outing' ? ' lopt-outing' : '');
         return `<div class="lopt${cls}${on}" data-v="${o.v}" data-field="${o.field}">${o.lbl}</div>`;
       };
       const left = opts.filter(o => o.field === 'leaveH').map(buildItem).join('');
-      const right = opts.filter(o => o.field === 'annual').map(buildItem).join('');
-      pop.innerHTML = `<div class="lopt-col">${left}</div><div class="lopt-col">${right}</div>`;
+      const mid = opts.filter(o => o.field === 'annual').map(buildItem).join('');
+      const right = opts.filter(o => o.field === 'outing').map(buildItem).join('');
+      pop.innerHTML = `<div class="lopt-col">${left}</div><div class="lopt-col">${mid}</div><div class="lopt-col">${right}</div>`;
     };
     const outside = e => { if (!span.contains(e.target)) hide(); };
     const onKey = e => { if (e.key === 'Escape') hide(); };
