@@ -1628,7 +1628,7 @@ function bindRestPickers() {
     inp.addEventListener('click', e => {
       e.stopPropagation();
       if (curVal() !== '') {                         // 已有值时点击 → 清除确认
-        confirmDialog({ title:'清除换休/年假', msg:'确定清除本日换休/年假吗？', okText:'清除', danger:true, onOk: clearRest });
+        confirmDialog({ title:'清除换休/年假/外出', msg:'确定清除本日换休/年假/外出吗？', okText:'清除', danger:true, onOk: clearRest });
         return;
       }
       show();
@@ -1640,7 +1640,7 @@ function bindRestPickers() {
       const v = +it.dataset.v, field = it.dataset.field;
       const cv = curVal(), cf = curField();
       if (cf === field && cv === v) {            // 再次点击当前已选值 → 清除
-        confirmDialog({ title:'清除换休/年假', msg:'确定清除本日换休/年假吗？', okText:'清除', danger:true, onOk: clearRest });
+        confirmDialog({ title:'清除换休/年假/外出', msg:'确定清除本日换休/年假/外出吗？', okText:'清除', danger:true, onOk: clearRest });
         hide(); return;
       }
       const d = span.closest('tr').dataset.d;
