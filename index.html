@@ -420,6 +420,21 @@ table.tb tfoot td{font-weight:650;border-top:1.5px solid var(--line);border-bott
 .lv-row.ot.partial .h{color:#8f8a82}
 .lv-row.ot.partial .rsn{color:#b3aea5}
 .lv-row.ot.partial .donetag{display:inline-block;color:#9a6b00;background:#fbf0d6}
+/* carry 池已结转核销（跨月后被换休消费 / 过期 / 已 cash） */
+.lv-row.ot.carryDone{background:#fbf1ed;color:#a37461;text-decoration:line-through}
+.lv-row.ot.carryDone .d,.lv-row.ot.carryDone .w{color:#bca28f}
+.lv-row.ot.carryDone .h{color:#a06252;text-decoration:line-through}
+.lv-row.ot.carryDone .rsn{color:#a37461;text-decoration:line-through}
+.lv-row.ot.carryDone .donetag{display:inline-block;color:#9c2c10;background:#fde2d2;border:1px solid #f3b09a;text-decoration:none;font-weight:600}
+/* carry 池部分已结转核销 */
+.lv-row.ot.carryPartial{background:#fbf1ed;color:#a37461}
+.lv-row.ot.carryPartial .d,.lv-row.ot.carryPartial .w{color:#bca28f}
+.lv-row.ot.carryPartial .h{color:#a06252}
+.lv-row.ot.carryPartial .rsn{color:#a37461}
+.lv-row.ot.carryPartial .donetag{display:inline-block;color:#9c2c10;background:#fde2d2;border:1px solid #f3b09a;text-decoration:none;font-weight:600}
+/* carry 池剩余未消费 = 已结转（仅跨月留存，仍可被本月换休使用） */
+.lv-row.ot.carryLive .donetag{display:inline-block;color:#1a6b3a;background:#e2f3e2;border:1px solid #aedeb0;font-weight:600}
+.lv-row.ot.carryLive{background:#f5fbf6;color:#5a8a72}
 .lv-row .rsn{flex:1 1 auto;color:#7a6a4a;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* 加班 ↔ 换休 对应核销链接：紫色小 chip，点击跳到对端行并闪烁一次 */
 .lv-row .lv-links{flex:0 1 auto;display:inline-flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;min-width:0;max-width:46%}
