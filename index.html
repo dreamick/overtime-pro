@@ -3160,7 +3160,7 @@ function exportScreenshot() {
       Object.values((DB.months[k] || {}).days || {}).forEach(rr => annUsed += +(rr.annual || 0));
     });
     any = true;
-    L.push('【年假】');
+    L.push('年假');
     annualLines.forEach(l => L.push('  ' + l));
     L.push(`本月年假共计 ${hf(annMonth)}天 · 额度 ${hf(annTotal)} 剩余 ${hf(Math.max(0, annTotal - annUsed))} 天`);
     L.push('');
