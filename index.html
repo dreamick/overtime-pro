@@ -2691,10 +2691,8 @@ function saveDay() {
   const d = editing, days = M(cur).days, r = {};
   const g = id => $('#' + id).value.trim();
   ['start', 'end', 'reason', 'leaveReason'].forEach(k => { const v = g('f_' + k); if (v) r[k] = v; });
-  ['hours', 'leaveH', 'annual', 'outing', 'meal'].forEach(k => { const v = g('f_' + k); if (v !== '') r[k] = +v || 0; });
-  // 换休 / 年假 / 外出 互斥（与选择器一致）：leaveH 优先，其次 annual，最后 outing
-  if (r.leaveH > 0) { delete r.annual; delete r.outing; }
-  else if (r.annual > 0) { delete r.outing; }
+  ['hours', 'leaveH', 'annual', 'meal'].forEach(k => { const v = g('f_' + k); if (v !== '') r[k] = +v || 0; });
+  if (document.getElementById('f_outing').checked) r.outing = 1;
   // 年假：不超过剩余天数（累计全月，排除当前行旧值）
   if (r.annual > 0) {
     let used = 0;
