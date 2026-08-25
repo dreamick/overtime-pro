@@ -1518,7 +1518,7 @@ function restPicker(leaveH, annual, outing, enabled) {
   else if (+outing > 0) { val = +outing; isOuting = true; field = 'outing'; }
   else if (+leaveH > 0) { val = +leaveH; field = 'leaveH'; }
   const inStyle = isOuting
-    ? 'width:30px;height:30px;border-radius:50%;border:2px solid #2563eb;color:#2563eb;background:#eaf1fe;cursor:pointer;text-align:center;font-weight:650;padding:0'
+    ? 'display:block;margin:0 auto;width:30px;height:30px;border-radius:50%;border:2px solid #2563eb;color:#2563eb;background:#eaf1fe;cursor:pointer;text-align:center;font-weight:650;padding:0'
     : 'width:52px;cursor:pointer;text-align:center';
   return `<span class="lsel" data-cur-field="${field}">
     <input class="cellin lsel-in${val ? '' : ' empty'}${isAnnual ? ' annual-val' : ''}${isOuting ? ' outing-val' : ''}" type="text" readonly value="${val ? esc(val) : '—'}" placeholder="0" style="${inStyle}">
@@ -2679,7 +2679,10 @@ function saveDay() {
   const d = editing, days = M(cur).days, r = {};
   const g = id => $('#' + id).value.trim();
   ['start', 'end', 'reason', 'leaveReason'].forEach(k => { const v = g('f_' + k); if (v) r[k] = v; });
-  ['hours', 'leaveH', 'annual', 'meal'].forEach(k => { const v = g('f_' + k); if (v !== '') r[k] = +v || 0; });
+  ['hours', 'leaveH', 'annual', 'outing', 'meal'].forEach(k => { const v = g('f_' + k); if (v !== '') r[k] = +v || 0; });
+  // 换休 / 年假 / 外出 互斥（与选择器一致）：leaveH 优先，其次 annual，最后 outing
+  if (r.leaveH > 0) { delete r.annual; delete r.outing; }
+  else if (r.annual > 0) { delete r.outing; }
   // 年假：不超过剩余天数（累计全月，排除当前行旧值）
   if (r.annual > 0) {
     let used = 0;
@@ -2738,13 +2741,13 @@ function dl(name, text, mime) {
 function exportJSON() { dl(`加班统计备份_${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(DB, null, 1), 'application/json'); toast('已导出备份'); }
 function exportCSV() {
   const n = daysIn(cur), mo = M(cur), L = [];
-  L.push(['日期', '星期', '类型', '开始', '结束', '时长', '加班事由', '换休', '换休/年假事由', '年假', '餐补', 'OA'].join(','));
+  L.push(['日期', '星期', '类型', '开始', '结束', '时长', '加班事由', '换休', '换休/年假/外出事由', '年假', '外出', '餐补', 'OA'].join(','));
   const [y, m] = cur.split('-').map(Number);
   for (let d = 1; d <= n; d++) {
     const r = mo.days[d] || {}, t = TYPES.find(x => x.k === dayType(cur, d)).name;
     L.push([`${m}月${d}日`, '周' + WD[new Date(y, m - 1, d).getDay()], t, r.start || '', r.end || '',
       hoursOf(cur, d) || '', (r.reason || '').replace(/,/g, '，'), r.leaveH || '', (r.leaveReason || '').replace(/,/g, '，'),
-      r.annual || '', r.meal || '', r.oa ? '已提交' : ''].join(','));
+      r.annual || '', r.outing || '', r.meal || '', r.oa ? '已提交' : ''].join(','));
   }
   const c = compute(cur);
   L.push('');
@@ -3051,6 +3054,24 @@ function exportScreenshot() {
     L.push('【年假】');
     annualLines.forEach(l => L.push('  ' + l));
     L.push(`本月年假共计 ${hf(annMonth)}天 · 额度 ${hf(annTotal)} 剩余 ${hf(Math.max(0, annTotal - annUsed))} 天`);
+    L.push('');
+  }
+
+  // 外出
+  const outingLines = [];
+  let outingMonth = 0;
+  for (let d = 1; d <= n; d++) {
+    const r = mo.days[d]; if (!r || !r.outing) continue;
+    outingMonth += +r.outing;
+    let line = `${m}月${d}日 外出 ${hf(+r.outing)}天`;
+    if (r.leaveReason) line += ` · ${r.leaveReason}`;
+    outingLines.push(line);
+  }
+  if (outingLines.length) {
+    any = true;
+    L.push('【外出】');
+    outingLines.forEach(l => L.push('  ' + l));
+    L.push(`本月外出共计 ${hf(outingMonth)}天`);
     L.push('');
   }
 
