@@ -2996,7 +2996,7 @@ function exportLedgerText(key) {
       order.forEach(t => {
         const v = carryByDay[d0][t];
         if (v > 0.001) {
-          L.push(`  · ${m}月${d0}日 ${hf(v)}h ${tname(t)} → 结转下月`);
+          L.push(`  ${m}月${d0}日 ${hf(v)}h ${tname(t)} → 结转下月`);
           carryTotal = +(carryTotal + v).toFixed(2);
         }
       });
@@ -3010,7 +3010,7 @@ function exportLedgerText(key) {
   }
   L.push('');
 
-  L.push('【四、本月加班未结转算加班费】');
+  L.push('四、本月加班未结转算加班费');
   let cashTotal = 0, cashMoney = 0;
   const cashDays = Object.keys(cashByDay).map(Number).sort((a, b) => a - b);
   if (cashDays.length) {
@@ -3018,10 +3018,8 @@ function exportLedgerText(key) {
       order.forEach(t => {
         const v = cashByDay[d0][t];
         if (v > 0.001) {
-          const amt = +(v * R[t]).toFixed(2);
-          L.push(`  · ${m}月${d0}日 ${hf(v)}h ${tname(t)} → 加班费 ¥${fx(amt)}`);
           cashTotal = +(cashTotal + v).toFixed(2);
-          cashMoney = +(cashMoney + amt).toFixed(2);
+          cashMoney = +(cashMoney + v * R[t]).toFixed(2);
         }
       });
     });
