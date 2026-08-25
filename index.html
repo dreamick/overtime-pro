@@ -1526,7 +1526,7 @@ function restCirclesHTML(leaveH, annual, outing) {
 }
 function restPicker(leaveH, annual, outing, enabled) {
   if (!enabled) {
-    const v = (+annual > 0) ? (hf(+annual) + ' 天') : ((+outing > 0) ? ('外出' + hf(+outing) + ' 天') : ((+leaveH > 0) ? (hf(+leaveH) + 'h') : ''));
+    const v = (+annual > 0) ? (hf(+annual) + ' 天') : ((+outing > 0) ? '外出' : ((+leaveH > 0) ? (hf(+leaveH) + 'h') : ''));
     return `<span class="lsel-disabled" title="双休日 / 节假日无需填写换休·年假·外出">${v || '—'}</span>`;
   }
   return `<span class="lsel">
@@ -1577,8 +1577,7 @@ function bindRestPickers() {
       { v: 8, lbl: '8h', field: 'leaveH' },
       { v: 0.5, lbl: '0.5', field: 'annual' },
       { v: 1, lbl: '1', field: 'annual' },
-      { v: 0.5, lbl: '0.5', field: 'outing' },
-      { v: 1, lbl: '1', field: 'outing' },
+      { v: 1, lbl: '外出', field: 'outing' },
     ];
     const refreshCircles = () => { const rr = rec(); circlesEl.innerHTML = restCirclesHTML(rr.leaveH, rr.annual, rr.outing); };
     const refreshReasonColor = () => {
