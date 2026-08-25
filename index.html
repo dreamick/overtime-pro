@@ -461,11 +461,11 @@ table.tb tfoot td{font-weight:650;border-top:1.5px solid var(--line);border-bott
 .chip.ot{background:#e6ecff;color:#2a4fd6}
 .chip.lv{background:#e8f7ef;color:#0f8a52}
 .chip.meal{background:#fff3df;color:#b57810}
-.chip.carry{background:#eef2ff;color:#6366f1}
+.chip.carry{background:#eef3ff;color:#3b6bff}
 .chip.ot.active{box-shadow:inset 0 0 0 2px #3b6fe0}
 .chip.lv.active{box-shadow:inset 0 0 0 2px #16a34a}
 .chip.meal.active{box-shadow:inset 0 0 0 2px #e0a030}
-.chip.carry.active{box-shadow:inset 0 0 0 2px #6366f1}
+.chip.carry.active{box-shadow:inset 0 0 0 2px #3b6bff}
 
 /* ---------- detail table ---------- */
 #body{flex:1 1 auto;min-height:0;overflow:auto;padding-bottom:10px;overscroll-behavior:contain}
@@ -489,9 +489,9 @@ table.dt tbody tr{scroll-snap-align:start}
 table.dt tr.today td{box-shadow:inset 0 1px 0 var(--brand),inset 0 -1px 0 var(--brand)}
 /* 上月结转来源高亮行：淡蓝底 + 左侧蓝条，与「上月结转」KPI 蓝色呼应 */
 table.dt tr.carry-in-src td{background:#eef2ff}
-table.dt tr.carry-in-src td:first-child{box-shadow:inset 3px 0 0 #6366f1}
+table.dt tr.carry-in-src td:first-child{box-shadow:inset 3px 0 0 #3b6bff}
 .carry-in-note{font-size:12.5px;color:var(--tx-2);margin-right:8px}
-.carry-in-note b{color:#6366f1;font-weight:600}
+.carry-in-note b{color:#3b6bff;font-weight:600}
 table.dt .cellin{
   width:100%;height:36px;border:none;background:none;padding:0 8px;font-size:13.5px;
   font-variant-numeric:tabular-nums;border-radius:0;outline:none;
@@ -1923,7 +1923,7 @@ function renderKPI() {
   const dl = (a, b) => { if (!p) return ''; const d = a - b; if (Math.abs(d) < .01) return '<span class="muted">与上月持平</span>'; return `<b style="color:${d > 0 ? '#e5484d' : '#12b76a'}">${d > 0 ? '↑' : '↓'}${hf(Math.abs(d))}</b> 较上月`; };
   const box = [
     { lb: '本月加班', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7.5"/><path d="M11 6.5V11l3 2"/></svg>', ac: '#3b6bff', vl: hf(c.gainTotal), u: '小时', df: dl(c.gainTotal, p ? p.gainTotal : 0), f: 'ot' },
-    { lb: '上月结转', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11A6 6 0 0 1 17 11"/><path d="M14 8l3 3-3 3"/></svg>', ac: '#6366f1', vl: hf(c.carryInTotal), u: '小时', df: c.carryInTotal ? `<span class="muted">工 ${hf(c.carryIn.work)} 休 ${hf(c.carryIn.rest)} 节 ${hf(c.carryIn.holi)}</span>` : '<span class="muted">无结转</span>', f: 'carryIn' },
+    { lb: '上月结转', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11A6 6 0 0 1 17 11"/><path d="M14 8l3 3-3 3"/></svg>', ac: '#3b6bff', vl: hf(c.carryInTotal), u: '小时', df: c.carryInTotal ? `<span class="muted">工 ${hf(c.carryIn.work)} 休 ${hf(c.carryIn.rest)} 节 ${hf(c.carryIn.holi)}</span>` : '<span class="muted">无结转</span>', f: 'carryIn' },
     (() => {
       const budget = c.carryIn.work + c.gain.work;
       const used = c.leaveTotal;
@@ -1984,7 +1984,7 @@ function buildAlerts() {
   Object.keys(DB.months).forEach(k => { const ds = (DB.months[k] || {}).days || {}; Object.keys(ds).forEach(d => { annUsed += +((ds[d] || {}).annual) || 0; }); });
   const annRemain = Math.max(0, annTotal - annUsed);
   if (annRemain > 0 && (now.getMonth() + 1) >= 11) {
-    out.push({ key: 'ann_warn_' + Math.round(annRemain), cls: 'warn', ic: '🗓', html: `<b>年假剩余 ${hf(annRemain)} 天</b>，将于 <b>12 月 31 日</b> 清零（按自然年），请尽快安排使用。` });
+    out.push({ key: 'ann_warn_' + Math.round(annRemain), cls: 'an', ic: '🗓', html: `<b>年假剩余 ${hf(annRemain)} 天</b>，将于 <b>12 月 31 日</b> 清零（按自然年），请尽快安排使用。` });
   } else if (annTotal > 0 && annRemain <= 0) {
     out.push({ key: 'ann_done', cls: 'info', ic: '🗓', html: `年假额度（${hf(annTotal)} 天）已用尽。` });
   }
@@ -1999,7 +1999,7 @@ function buildAlerts() {
     const originLbl = `${oy}年${om}月`;
     const expLbl = `${exp.getFullYear()}-${pad(exp.getMonth() + 1)}-${pad(exp.getDate())}`;
     if (daysLeft <= 30) {
-      out.push({ key: 'lv_warn_' + Math.round(avail), cls: 'warn', ic: '', html: `可调休约 <b>${hf(avail)}h</b> 将于 <b>${expLbl}</b> 到期（按 ${N} 个月有效期估算，还剩 ${daysLeft} 天），建议尽快使用。` });
+      out.push({ key: 'lv_warn_' + Math.round(avail), cls: 'lv', ic: '', html: `可调休约 <b>${hf(avail)}h</b> 将于 <b>${expLbl}</b> 到期（按 ${N} 个月有效期估算，还剩 ${daysLeft} 天），建议尽快使用。` });
     }
   }
   return out;
