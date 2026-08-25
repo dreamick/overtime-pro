@@ -2082,6 +2082,7 @@ function buildLvDetail() {
     const rows = []; let gainSum = 0, leaveSum = 0;
     const [ky, km] = k.split('-').map(Number);
     const dm = doneMap[k] || {};
+    const rsm = restSrcMap[k] || {};
     for (let d = 1; d <= n; d++) {
       const rowDate = new Date(ky, km - 1, d); rowDate.setHours(0, 0, 0, 0);
       if ((today0 - rowDate) / 86400000 > 30) continue;   // 距今天 30 天外的行不显示
@@ -2093,10 +2094,17 @@ function buildLvDetail() {
         const used = info ? info.used : 0;           // 已被换休核销的部分
         const done = info && used >= h - 0.001;       // 全额核销
         const partial = info && used > 0.001 && used < h - 0.001; // 部分核销
-        rows.push({ d, kind: 'ot', h, rsn: r.reason || '', done, partial, used });
+        // 加班日唯一标识（用于跨行点击跳转）：ot-{mk}-{d}
+        const byLeaves = info ? info.byLeaves : [];
+        rows.push({ d, kind: 'ot', h, rsn: r.reason || '', done, partial, used, byLeaves, otId: `ot-${k}-${d}` });
         gainSum += h;
       }
-      else if (lv > 0) { rows.push({ d, kind: 'lv', h: lv, rsn: r.leaveReason || r.reason || '' }); leaveSum += lv; }
+      else if (lv > 0) {
+        const sources = rsm[d] || [];
+        // 换休日唯一标识：lv-{mk}-{d}
+        rows.push({ d, kind: 'lv', h: lv, rsn: r.leaveReason || r.reason || '', sources, lvId: `lv-${k}-${d}` });
+        leaveSum += lv;
+      }
     }
     rows.sort((a, b) => a.d - b.d);
     return { k, rows, gainSum, leaveSum };
