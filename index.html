@@ -1653,7 +1653,9 @@ function bindRestPickers() {
         });
         const annTotal = +DB.settings.annualTotal || 0;
         if (used + v > annTotal) { toast('年假剩余不足（已用 ' + hf(used) + ' / 额度 ' + hf(annTotal) + ' 天）'); hide(); return; }
-        r.annual = v; delete r.leaveH; delete r.leaveSrc;
+        r.annual = v; delete r.leaveH; delete r.leaveSrc; delete r.outing;
+      } else if (field === 'outing') {
+        r.outing = v; delete r.leaveH; delete r.annual; delete r.leaveSrc;
       } else {
         const c = compute(cur);
         const budget = c.carryIn.work + c.gain.work;
@@ -1661,7 +1663,7 @@ function bindRestPickers() {
         Object.keys(days).forEach(dd => { if (dd !== d) others += +((days[dd] || {}).leaveH || 0); });
         const maxLeave = Math.max(0, budget - others);
         if (v > maxLeave) { toast('换休时长不可超过可用加班总时长 ' + hf(budget) + 'h（本行最多 ' + hf(maxLeave) + 'h）'); hide(); return; }
-        r.leaveH = v; delete r.annual;
+        r.leaveH = v; delete r.annual; delete r.outing;
       }
       save(); renderKPI(); renderBody();
       hide();
@@ -2119,6 +2121,7 @@ function viewCal() {
     if (h > 0) bits.push(`<span class="pill ot ${T.cls}">加 ${hf(h)}h</span>`);
     if (+r.leaveH) bits.push(`<span class="pill lv">休 ${hf(+r.leaveH)}h</span>`);
     if (+r.annual) bits.push(`<span class="pill an">年假 ${hf(+r.annual)}</span>`);
+    if (+r.outing) bits.push(`<span class="pill ot">外出 ${hf(+r.outing)}天</span>`);
     cells += `<div class="cel ${t}${isToday(cur, d) ? ' today' : ''}" data-d="${d}">
         <div class="dn"><span>${d}</span>${t !== 'work' ? `<span class="tag ${T.cls}">${T.name}</span>` : (r.type ? '<span class="tag w">工作日</span>' : '')}</div>
         <div class="bar">${bits.join('')}</div>
