@@ -2257,7 +2257,7 @@ function viewList() {
     let show = true;
     if (carryInView) show = (carryInShow && (carryInShow[d] || 0) > 0);   // 上月结转来源：仅显示被结转给下月的加班行
     else if (listFilter === 'ot') show = effH > 0;
-    else if (listFilter === 'leave') show = (+r.leaveH || 0) > 0 || (+r.annual || 0) > 0;
+    else if (listFilter === 'leave') show = (+r.leaveH || 0) > 0 || (+r.annual || 0) > 0 || (+r.outing || 0) > 0;
     else if (listFilter === 'carry') show = (carryShow[d] || 0) > 0;   // 构成本月结转下月时长的加班行
     else if (listFilter === 'meal') show = mealCnt > 0;
     else if (listFilter === 'annual') show = (+r.annual || 0) > 0;
