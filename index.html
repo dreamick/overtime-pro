@@ -1592,7 +1592,7 @@ function bindRestPickers() {
       const lv = +rr.leaveH, an = +rr.annual, ot = +rr.outing;
       const buildItem = o => {
         const on = (o.field === 'leaveH' && lv === o.v) || (o.field === 'annual' && an === o.v) || (o.field === 'outing' && ot === o.v);
-        const cls = o.field === 'annual' ? ' lopt-annual' : (o.field === 'outing' ? ' lopt-outing' : '');
+        const cls = o.field === 'leaveH' ? ' lopt-leaveH' : (o.field === 'annual' ? ' lopt-annual' : (o.field === 'outing' ? ' lopt-outing' : ''));
         return `<div class="lopt${cls}${on ? ' on' : ''}" data-v="${o.v}" data-field="${o.field}">${o.lbl}</div>`;
       };
       const left = opts.filter(o => o.field === 'leaveH').map(buildItem).join('');
@@ -2139,7 +2139,7 @@ function viewCal() {
     if (h > 0) bits.push(`<span class="pill ot ${T.cls}">加 ${hf(h)}h</span>`);
     if (+r.leaveH) bits.push(`<span class="pill lv">休 ${hf(+r.leaveH)}h</span>`);
     if (+r.annual) bits.push(`<span class="pill an">年假 ${hf(+r.annual)}</span>`);
-    if (+r.outing) bits.push(`<span class="pill ot">外出 ${hf(+r.outing)}天</span>`);
+    if (+r.outing) bits.push(`<span class="pill ot">外出</span>`);
     cells += `<div class="cel ${t}${isToday(cur, d) ? ' today' : ''}" data-d="${d}">
         <div class="dn"><span>${d}</span>${t !== 'work' ? `<span class="tag ${T.cls}">${T.name}</span>` : (r.type ? '<span class="tag w">工作日</span>' : '')}</div>
         <div class="bar">${bits.join('')}</div>
