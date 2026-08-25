@@ -2899,7 +2899,7 @@ function exportLedgerText(key) {
   const d = leaveLedger(key);
 
   // ---- 段1：上月结转加班 ↔ 本月换休 ----
-  L.push('【一、上月结转加班 ↔ 本月换休】');
+  L.push('一、上月结转加班 ↔ 本月换休');
   const carryPairs = [];
   d.leaves.forEach(l => l.pairs.forEach(p => {
     if (p.e.y !== y || p.e.m !== m)   // 来源不是本月 = 上月结转（含更早结转）
@@ -3178,7 +3178,7 @@ function exportScreenshot() {
   }
   if (outingLines.length) {
     any = true;
-    L.push('【外出】');
+    L.push('外出');
     outingLines.forEach(l => L.push('  ' + l));
     L.push(`本月外出共计 ${hf(outingMonth)}天`);
     L.push('');
