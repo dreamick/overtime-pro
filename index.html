@@ -342,7 +342,7 @@ button{cursor:pointer;background:none;border:none}
 .pill.ot.h{background:#efe2cf;color:#8a5a36}
 .pill.lv{background:#e8f7ef;color:#0f8a52}
 .pill.an{background:#f2ebff;color:#6b3fd4}
-.pill.jb{background:#fdeede;color:#c2410c}
+.pill.jb{background:#dbe8ff;color:#1e40af}
 .cel .rsn{font-size:10.5px;color:var(--tx-3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cel .mk{position:absolute;right:7px;bottom:6px;display:flex;gap:3px;align-items:center}
 .cel .mk i{font-style:normal;font-size:10px;line-height:1}
@@ -396,21 +396,21 @@ table.tb tfoot td{font-weight:650;border-top:1.5px solid var(--line);border-bott
 .alert.danger .alert-x:hover{background:rgba(192,57,43,.22)}
 
 /* 调休预警 · 展开明细 */
-.lv-detail{margin-top:6px;padding:14px 16px;background:#fffbf2;border:1px solid #ffe1a8;border-radius:12px;color:#5b4612;font-size:12.5px;line-height:1.65;animation:popin .18s ease}
-.lv-detail-hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px dashed #f0d499;gap:8px}
-.lv-detail-hd b{font-weight:700;color:#92590a;font-size:13.5px}
-.lv-detail-hd .meta{font-size:11.5px;color:#a07c4a;font-variant-numeric:tabular-nums}
+.lv-detail{margin-top:6px;padding:14px 16px;background:#f7f8fc;border:1px solid #e2e8f0;border-radius:12px;color:#2d3748;font-size:12.5px;line-height:1.65;animation:popin .18s ease}
+.lv-detail-hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px dashed #e2e8f0;gap:8px}
+.lv-detail-hd b{font-weight:700;color:#1a202c;font-size:13.5px}
+.lv-detail-hd .meta{font-size:11.5px;color:#718096;font-variant-numeric:tabular-nums}
 .lv-month{margin:10px 0 4px}
-.lv-month-hd{display:flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;color:#92590a}
-.lv-month-hd .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#92590a}
-.lv-month-hd .sub{margin-left:auto;font-weight:500;font-size:11.5px;color:#a07c4a;font-variant-numeric:tabular-nums}
+.lv-month-hd{display:flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;color:#1a202c}
+.lv-month-hd .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#4a5568}
+.lv-month-hd .sub{margin-left:auto;font-weight:500;font-size:11.5px;color:#718096;font-variant-numeric:tabular-nums}
 .lv-list{margin:4px 0 0 14px;display:flex;flex-direction:column;gap:4px}
 .lv-row{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:6px;font-size:12px;font-variant-numeric:tabular-nums}
-.lv-row .d{flex:0 0 56px;color:#92590a;font-weight:600}
-.lv-row .w{flex:0 0 32px;color:#a07c4a;font-size:11px}
+.lv-row .d{flex:0 0 56px;color:#2d3748;font-weight:600}
+.lv-row .w{flex:0 0 32px;color:#a0aec0;font-size:11px}
 .lv-row .h{flex:0 0 78px;text-align:right;font-weight:650}
 .lv-row.ot{background:rgba(255,255,255,.6)}
-.lv-row.ot .h{color:#ea580c}
+.lv-row.ot .h{color:#3b6bff}
 .lv-row.lv{background:#e8f7ef;color:#0f8a52}
 .lv-row.lv .h{color:#0f8a52}
 /* 已结转（被换休核销）的加班日：横线划掉 + 变灰（保留可见以便核对来源） */
@@ -428,32 +428,34 @@ table.tb tfoot td{font-weight:650;border-top:1.5px solid var(--line);border-bott
 .lv-row.ot.partial .rsn{color:#b3aea5}
 .lv-row.ot.partial .donetag{display:inline-block;color:#9a6b00;background:#fbf0d6}
 /* carry 池已结转核销（跨月后被换休消费 / 过期 / 已 cash） */
-.lv-row.ot.carryDone{background:#fbf1ed;color:#a37461;text-decoration:line-through}
-.lv-row.ot.carryDone .d,.lv-row.ot.carryDone .w{color:#bca28f}
-.lv-row.ot.carryDone .h{color:#a06252;text-decoration:line-through}
-.lv-row.ot.carryDone .rsn{color:#a37461;text-decoration:line-through}
-.lv-row.ot.carryDone .donetag{display:inline-block;color:#9c2c10;background:#fde2d2;border:1px solid #f3b09a;text-decoration:none;font-weight:600}
+.lv-row.ot.carryDone{background:#f0f2f8;color:#7a8aab;text-decoration:line-through}
+.lv-row.ot.carryDone .d,.lv-row.ot.carryDone .w{color:#a3b0c8}
+.lv-row.ot.carryDone .h{color:#7a8aab;text-decoration:line-through}
+.lv-row.ot.carryDone .rsn{color:#7a8aab;text-decoration:line-through}
+.lv-row.ot.carryDone .donetag{display:inline-block;color:#1e3a8a;background:#dbe8ff;border:1px solid #a3c2f7;text-decoration:none;font-weight:600}
 /* carry 池部分已结转核销 */
-.lv-row.ot.carryPartial{background:#fbf1ed;color:#a37461}
-.lv-row.ot.carryPartial .d,.lv-row.ot.carryPartial .w{color:#bca28f}
-.lv-row.ot.carryPartial .h{color:#a06252}
-.lv-row.ot.carryPartial .rsn{color:#a37461}
-.lv-row.ot.carryPartial .donetag{display:inline-block;color:#9c2c10;background:#fde2d2;border:1px solid #f3b09a;text-decoration:none;font-weight:600}
+.lv-row.ot.carryPartial{background:#f0f2f8;color:#7a8aab}
+.lv-row.ot.carryPartial .d,.lv-row.ot.carryPartial .w{color:#a3b0c8}
+.lv-row.ot.carryPartial .h{color:#7a8aab}
+.lv-row.ot.carryPartial .rsn{color:#7a8aab}
+.lv-row.ot.carryPartial .donetag{display:inline-block;color:#1e3a8a;background:#dbe8ff;border:1px solid #a3c2f7;text-decoration:none;font-weight:600}
 /* carry 池剩余未消费 = 已结转（仅跨月留存，仍可被本月换休使用） */
 .lv-row.ot.carryLive .donetag{display:inline-block;color:#1a6b3a;background:#e2f3e2;border:1px solid #aedeb0;font-weight:600}
 .lv-row.ot.carryLive{background:#f5fbf6;color:#5a8a72}
-.lv-row .rsn{flex:1 1 auto;color:#7a6a4a;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* 加班 ↔ 换休 对应核销链接：紫色小 chip，点击跳到对端行并闪烁一次 */
+.lv-row .rsn{flex:1 1 auto;color:#4a5568;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 加班 ↔ 换休 对应核销链接：加班(← 加)=蓝小 chip， 换休(→ 换)=绿小 chip，点击跳到对端行并闪烁一次 */
 .lv-row .lv-links{flex:0 1 auto;display:inline-flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;min-width:0;max-width:46%}
-.lv-row .lv-link{display:inline-flex;align-items:center;height:18px;padding:0 7px;font-size:10.5px;line-height:1;border-radius:9px;background:#e3f6ee;color:#0e7a4a;font-weight:600;white-space:nowrap;cursor:pointer;transition:background .12s,transform .08s;flex:0 0 auto}
-.lv-row .lv-link:hover{background:#c8ede0}
+.lv-row .lv-link{display:inline-flex;align-items:center;height:18px;padding:0 7px;font-size:10.5px;line-height:1;border-radius:9px;background:#dbe8ff;color:#1e40af;font-weight:600;white-space:nowrap;cursor:pointer;transition:background .12s,transform .08s;flex:0 0 auto}
+.lv-row .lv-link:hover{background:#c2d6ff}
 .lv-row .lv-link:active{transform:translateY(1px)}
-.lv-row .lv-link.man{background:#fff1d9;color:#a16207}    /* 手动指定来源：橙色区分 */
+.lv-row .lv-link.lv{background:#e3f6ee;color:#0e7a4a}    /* 换休 chip：绿 */
+.lv-row .lv-link.lv:hover{background:#c8ede0}
+.lv-row .lv-link.man{background:#3b6bff;color:#fff}    /* 手动指定加班来源：实心蓝区分 */
 /* 跳转目标行闪烁：先高亮再渐隐 */
-@keyframes lvflash{0%{background:#fff3a8;box-shadow:0 0 0 2px #f59e0b inset}100%{background:transparent;box-shadow:0 0 0 0 transparent inset}}
+@keyframes lvflash{0%{background:#dbe8ff;box-shadow:0 0 0 2px #3b6bff inset}100%{background:transparent;box-shadow:0 0 0 0 transparent inset}}
 .lv-row.lv-flash{animation:lvflash 1.4s ease-out 1}
-.lv-row.empty{color:#a07c4a;font-style:italic;background:transparent;padding:4px 8px}
-.lv-ft{margin-top:10px;padding-top:10px;border-top:1px dashed #f0d499;font-size:11.5px;color:#a07c4a;line-height:1.6}
+.lv-row.empty{color:#a0aec0;font-style:italic;background:transparent;padding:4px 8px}
+.lv-ft{margin-top:10px;padding-top:10px;border-top:1px dashed #e2e8f0;font-size:11.5px;color:#718096;line-height:1.6}
 .num-pos{color:var(--ok);font-weight:600}
 .chip{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;font-size:12px;border-radius:8px;background:var(--line-2);color:var(--tx-2);font-weight:500;cursor:pointer;user-select:none;transition:box-shadow .12s,transform .08s}
 .chip:hover{filter:brightness(.98)}
@@ -2186,7 +2188,7 @@ function buildLvDetail() {
           const chips = Object.keys(grouped).map(key => {
             const [lk, ld] = key.split('|');
             const [ly, lm] = lk.split('-').map(Number);
-            return `<span class="lv-link" onclick="lvLinkJump('lv-${lk}-${ld}', this)" title="点击跳到 ${lm}/${pad(+ld)} 换休行">→ ${lm}/${pad(+ld)} 换 ${hf(grouped[key])}h</span>`;
+            return `<span class="lv-link lv" onclick="lvLinkJump('lv-${lk}-${ld}', this)" title="点击跳到 ${lm}/${pad(+ld)} 换休行">→ ${lm}/${pad(+ld)} 换 ${hf(grouped[key])}h</span>`;
           }).join('');
           linkTag = `<span class="lv-links">${chips}</span>`;
         }
