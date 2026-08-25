@@ -2033,22 +2033,48 @@ function buildLvDetail() {
     months.push(y + '-' + pad(m));
     m++; if (m > 12) { m = 1; y++; }
   }
-  // 跨月收集「被换休核销的加班日」：doneMap[monthKey][day] = {used,total}
+  // 跨月收集「被换休核销的加班日」：doneMap[mk][d] = {used,total,byLeaves}
+  //   byLeaves  = 本加班日被哪些换休日消耗了 [{ leaveKey, leaveD, take }]
+  // 同步收集 restSrcMap[mk][d] = [{y,m,d,take,manual}] —— 换休日从哪些加班日拉过来
   const doneMap = {};
-  const markDone = (mk, d, used, total) => {
+  const restSrcMap = {};
+  const markDone = (mk, d, used, total, byLeaves) => {
     if (!doneMap[mk]) doneMap[mk] = {};
     const prev = doneMap[mk][d];
-    if (!prev) doneMap[mk][d] = { used: +used, total: +total };
-    else { prev.used = +(prev.used + used).toFixed(2); prev.total = +(prev.total + total).toFixed(2); }
+    if (!prev) doneMap[mk][d] = { used: +used, total: +total, byLeaves: (byLeaves || []).slice() };
+    else { prev.used = +(prev.used + used).toFixed(2); prev.total = +(prev.total + total).toFixed(2); (byLeaves || []).forEach(x => prev.byLeaves.push(x)); }
+  };
+  const addRestSrc = (mk, d, src) => {
+    if (!restSrcMap[mk]) restSrcMap[mk] = {};
+    if (!restSrcMap[mk][d]) restSrcMap[mk][d] = [];
+    restSrcMap[mk][d].push(src);
   };
   months.forEach(k => {
     let lg = null;
     try { lg = leaveLedger(k); } catch (e) { lg = null; }
     if (!lg) return;
     // 当月加班池：left 归零 → 被当月换休消耗
-    (lg.curPool || []).forEach(e => { if (e.left <= 0.001) markDone(k, e.d, e.h, e.h); else if (e.left < e.h - 0.001) markDone(k, e.d, +(e.h - e.left).toFixed(2), e.h); });
+    (lg.curPool || []).forEach(e => {
+      if (e.left > e.h - 0.001) return;
+      const used = +(e.h - e.left).toFixed(2);
+      const byLeaves = (e.used || []).map(u => ({ leaveKey: k, leaveD: u.l.d, take: +u.take }));
+      markDone(k, e.d, used, e.h, byLeaves);
+    });
     // 结转池：left 归零 → 上月结转到本月的加班被本月换休消耗（来源日 = e.y/e.m/e.d）
-    (lg.carryPool || []).forEach(e => { if (e.left <= 0.001) markDone(e.y + '-' + pad(e.m), e.d, e.h, e.h); else if (e.left < e.h - 0.001) markDone(e.y + '-' + pad(e.m), e.d, +(e.h - e.left).toFixed(2), e.h); });
+    (lg.carryPool || []).forEach(e => {
+      if (e.left > e.h - 0.001) return;
+      const used = +(e.h - e.left).toFixed(2);
+      const mk = e.y + '-' + pad(e.m);
+      const byLeaves = (e.used || []).map(u => ({ leaveKey: k, leaveD: u.l.d, take: +u.take }));
+      markDone(mk, e.d, used, e.h, byLeaves);
+    });
+    // 换休行的加班来源：l.pairs（l=换休日，e=加班日）
+    (lg.leaves || []).forEach(l => {
+      if (!l.pairs || !l.pairs.length) return;
+      l.pairs.forEach(p => {
+        addRestSrc(k, l.d, { y: p.e.y, m: p.e.m, d: p.e.d, take: +p.take, manual: !!p.manual, earlier: !!p.e.earlier });
+      });
+    });
   });
   const blocks = months.map(k => {
     const n = daysIn(k);
