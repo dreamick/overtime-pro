@@ -1918,7 +1918,7 @@ function renderKPI() {
   const dl = (a, b) => { if (!p) return ''; const d = a - b; if (Math.abs(d) < .01) return '<span class="muted">与上月持平</span>'; return `<b style="color:${d > 0 ? '#e5484d' : '#12b76a'}">${d > 0 ? '↑' : '↓'}${hf(Math.abs(d))}</b> 较上月`; };
   const box = [
     { lb: '本月加班', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7.5"/><path d="M11 6.5V11l3 2"/></svg>', ac: '#ea580c', vl: hf(c.gainTotal), u: '小时', df: dl(c.gainTotal, p ? p.gainTotal : 0), f: 'ot' },
-    { lb: '上月结转', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11A6 6 0 0 1 17 11"/><path d="M14 8l3 3-3 3"/></svg>', ac: '#6366f1', vl: hf(c.carryInTotal), u: '小时', df: c.carryInTotal ? `<span class="muted">工 ${hf(c.carryIn.work)} 休 ${hf(c.carryIn.rest)} 节 ${hf(c.carryIn.holi)}</span>` : '<span class="muted">无结转</span>', f: 'carryIn' },
+    { lb: '上月结转', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11A6 6 0 0 1 17 11"/><path d="M14 8l3 3-3 3"/></svg>', ac: '#ea580c', vl: hf(c.carryInTotal), u: '小时', df: c.carryInTotal ? `<span class="muted">工 ${hf(c.carryIn.work)} 休 ${hf(c.carryIn.rest)} 节 ${hf(c.carryIn.holi)}</span>` : '<span class="muted">无结转</span>', f: 'carryIn' },
     (() => {
       const budget = c.carryIn.work + c.gain.work;
       const used = c.leaveTotal;
@@ -1931,7 +1931,7 @@ function renderKPI() {
     })(),
     { lb: '结转下月', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11h13"/><path d="M13 6l4 5-4 5"/></svg>', ac: '#12b76a', vl: hf(c.carryOutTotal), u: '小时', df: `<span class="muted">${{ all: '全部结转', none: '全部折现', manual: '自定义' }[c.mode]}</span>`, f: 'carry' },
     { lb: '折现时长', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5l10 12"/><path d="M16 5L6 17"/><path d="M5.5 11h11"/><path d="M5.5 14h11"/></svg>', ac: '#0ea5a4', vl: hf(c.cashTotal), u: '小时', df: `<span class="muted">${{ all: '全部结转', none: '全部折现', manual: '自定义' }[c.mode]}</span>`, f: 'cash' },
-    { lb: '年假剩余', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="15" height="14" rx="2"/><path d="M3.5 9.5h15"/><path d="M8 3.5v3"/><path d="M14 3.5v3"/><rect x="8.5" y="12" width="5" height="3.5" rx="0.7" fill="currentColor"/></svg>', ac: '#db2777', vl: hf(annRemain), u: '天', df: `<span class="muted">额度 ${hf(annTotal)} 天</span>`, f: 'annual' },
+    { lb: '年假剩余', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="15" height="14" rx="2"/><path d="M3.5 9.5h15"/><path d="M8 3.5v3"/><path d="M14 3.5v3"/><rect x="8.5" y="12" width="5" height="3.5" rx="0.7" fill="currentColor"/></svg>', ac: '#7c3aed', vl: hf(annRemain), u: '天', df: `<span class="muted">额度 ${hf(annTotal)} 天</span>`, f: 'annual' },
     { lb: '餐补', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v3"/><path d="M9 4v3"/><path d="M5 7h4l-1 11h-2z" fill="currentColor" fill-opacity=".12"/><path d="M9 4l-1 3"/><rect x="11" y="7" width="9" height="11" rx="1.6"/><path d="M11 11h9"/></svg>', ac: '#f5a524', vl: money(c.mealPay).replace('¥', ''), u: '元', df: `<span class="lt">共 ${hf(c.mealCount)} 次</span>`, hl: 'blue', f: 'meal' },
     { lb: '加班费', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="16" height="11" rx="2"/><circle cx="15.5" cy="12.5" r="1.2" fill="currentColor"/><path d="M5 7l3-2h6l3 2"/></svg>', ac: '#ff7a18', vl: money(c.otPay).replace('¥', ''), u: '元', df: `<span class="lt">工 ${hf(c.gain.work)} 休 ${hf(c.gain.rest)} 节 ${hf(c.gain.holi)}</span>`, hl: 'orange', f: null, act: 'settle' }
   ];
@@ -2274,7 +2274,7 @@ function viewCal() {
     const t = dayType(cur, d), r = M(cur).days[d] || {}, h = hoursOf(cur, d);
     const T = TYPES.find(x => x.k === t);
     const bits = [];
-    if (h > 0) bits.push(`<span class="pill ot ${T.cls}">加 ${hf(h)}h</span>`);
+    if (h > 0) bits.push(`<span class="pill jb">加 ${hf(h)}h</span>`);
     if (+r.leaveH) bits.push(`<span class="pill lv">休 ${hf(+r.leaveH)}h</span>`);
     if (+r.annual) bits.push(`<span class="pill an">年假 ${hf(+r.annual)}</span>`);
     if (+r.outing) bits.push(`<span class="pill ot">外出</span>`);
