@@ -2634,7 +2634,7 @@ function openDay(d) {
       <div class="frow one"><div class="fld"><label>加班事由</label><input id="f_reason" value="${esc(r.reason)}" placeholder="例：书展物料设计"></div></div>
       <div class="frow">
         <div class="fld"><label>换休 / 调休（小时）</label><input id="f_leaveH" class="cellin" type="number" step="2" min="0" max="8" value="${defLeave || ''}" placeholder="0" style="max-width:120px"></div>
-        <div class="fld"><label>换休事由</label><input id="f_leaveReason" value="${esc(r.leaveReason)}" placeholder="例：陪娃体检"></div>
+        <div class="fld"><label>换休/年假/外出事由</label><input id="f_leaveReason" value="${esc(r.leaveReason)}" placeholder="例：陪娃体检"></div>
       </div>
       <div class="frow">
         <div class="fld"><label>年假（天/小时）</label><input id="f_annual" type="number" step="1" min="0" max="1" value="${r.annual || ''}" placeholder="0"></div>
