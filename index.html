@@ -1508,21 +1508,20 @@ function timePicker(val, f, def, bound) {
     <div class="tsel-pop" hidden></div>
   </span>`;
 }
+function restCirclesHTML(leaveH, annual, outing) {
+  const p = [];
+  if (+leaveH > 0) p.push(`<span class="rest-circle rc-lv" title="换休 ${hf(+leaveH)}h">${hf(+leaveH)}</span>`);
+  if (+annual > 0) p.push(`<span class="rest-circle rc-an" title="年假 ${hf(+annual)}天">${hf(+annual)}</span>`);
+  if (+outing > 0) p.push(`<span class="rest-circle rc-ot" title="外出 ${hf(+outing)}天">${hf(+outing)}</span>`);
+  return p.length ? p.join('') : '<span class="rest-empty">—</span>';
+}
 function restPicker(leaveH, annual, outing, enabled) {
   if (!enabled) {
     const v = (+annual > 0) ? (hf(+annual) + ' 天') : ((+outing > 0) ? ('外出' + hf(+outing) + ' 天') : ((+leaveH > 0) ? (hf(+leaveH) + 'h') : ''));
-    return `<span class="lsel-disabled" title="双休日 / 节假日无需填写换休 / 年假 / 外出">${v || '—'}</span>`;
+    return `<span class="lsel-disabled" title="双休日 / 节假日无需填写换休·年假·外出">${v || '—'}</span>`;
   }
-  let val = '', isAnnual = false, isOuting = false, field = '';
-  if (+annual > 0) { val = +annual; isAnnual = true; field = 'annual'; }
-  else if (+outing > 0) { val = +outing; isOuting = true; field = 'outing'; }
-  else if (+leaveH > 0) { val = +leaveH; field = 'leaveH'; }
-  const inStyle = isOuting
-    ? 'display:block;margin:0 auto;width:30px;height:30px;border-radius:50%;border:2px solid #2563eb;color:#2563eb;background:#eaf1fe;cursor:pointer;text-align:center;font-weight:650;padding:0'
-    : 'width:52px;cursor:pointer;text-align:center';
-  return `<span class="lsel" data-cur-field="${field}">
-    <input class="cellin lsel-in${val ? '' : ' empty'}${isAnnual ? ' annual-val' : ''}${isOuting ? ' outing-val' : ''}" type="text" readonly value="${val ? esc(val) : '—'}" placeholder="0" style="${inStyle}">
-    <input type="hidden" class="lsel-hid" data-f="${field}" value="${val}">
+  return `<span class="lsel">
+    <span class="lsel-circles" tabindex="0" title="点击设置换休·年假·外出（可多选）">${restCirclesHTML(leaveH, annual, outing)}</span>
     <div class="lsel-pop" hidden></div>
   </span>`;
 }
