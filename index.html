@@ -1521,7 +1521,7 @@ function restCirclesHTML(leaveH, annual, outing) {
   const p = [];
   if (+leaveH > 0) p.push(`<span class="rest-circle rc-lv" title="换休 ${hf(+leaveH)}h">${hf(+leaveH)}</span>`);
   if (+annual > 0) p.push(`<span class="rest-circle rc-an" title="年假 ${hf(+annual)}天">${hf(+annual)}</span>`);
-  if (+outing > 0) p.push(`<span class="rest-circle rc-ot" title="外出 ${hf(+outing)}天">${hf(+outing)}</span>`);
+  if (+outing > 0) p.push(`<span class="rest-circle rc-ot" title="外出">外</span>`);
   return p.length ? p.join('') : '<span class="rest-empty">—</span>';
 }
 function restPicker(leaveH, annual, outing, enabled) {
