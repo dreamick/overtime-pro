@@ -2925,7 +2925,7 @@ function exportLedgerText(key) {
   }));
   if (curPairs.length) {
     curPairs.forEach(pr => {
-      L.push(`  · ${m}月${pr.lvD}日 换休 ${hf(pr.take)}h ← ${m}月${pr.src.d}日 加班 ${hf(pr.src.h)}h${pr.manual ? '（手动指定）' : ''}`);
+      L.push(`  ${m}月${pr.lvD}日 换休 ${hf(pr.take)}h ← ${m}月${pr.src.d}日 加班 ${hf(pr.src.h)}h${pr.manual ? '（手动指定）' : ''}`);
     });
   } else {
     L.push('  （本月换休均来自上月结转，无本月加班配对）');
@@ -2987,7 +2987,7 @@ function exportLedgerText(key) {
     }
   });
 
-  L.push('【三、本月加班下月结转】');
+  L.push('三、本月加班下月结转');
   const R = c.rates;
   let carryTotal = 0;
   const carryDays = Object.keys(carryByDay).map(Number).sort((a, b) => a - b);
