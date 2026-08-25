@@ -3106,13 +3106,13 @@ function exportScreenshot() {
       });
     }
     curLeaves.forEach(lv => {
-      let line = `  · ${m}月${lv.d}日 换休 ${hf(lv.h)}h`;
+      let line = `  ${m}月${lv.d}日 换休 ${hf(lv.h)}h`;
       if (lv.reason) line += `（事由：${lv.reason}）`;
       line += ` → 对应 ${m}月${lv.srcDay}日加班`;
       L.push(line);
     });
     unspLeaves.forEach(lv => {
-      let line = `  · ${m}月${lv.d}日 换休 ${hf(lv.h)}h`;
+      let line = `  ${m}月${lv.d}日 换休 ${hf(lv.h)}h`;
       if (lv.reason) line += `（事由：${lv.reason}）`;
       L.push(line);
     });
