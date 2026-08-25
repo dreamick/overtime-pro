@@ -421,6 +421,15 @@ table.tb tfoot td{font-weight:650;border-top:1.5px solid var(--line);border-bott
 .lv-row.ot.partial .rsn{color:#b3aea5}
 .lv-row.ot.partial .donetag{display:inline-block;color:#9a6b00;background:#fbf0d6}
 .lv-row .rsn{flex:1 1 auto;color:#7a6a4a;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 加班 ↔ 换休 对应核销链接：紫色小 chip，点击跳到对端行并闪烁一次 */
+.lv-row .lv-links{flex:0 1 auto;display:inline-flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;min-width:0;max-width:46%}
+.lv-row .lv-link{display:inline-flex;align-items:center;height:18px;padding:0 7px;font-size:10.5px;line-height:1;border-radius:9px;background:#ede4ff;color:#5b3aa8;font-weight:600;white-space:nowrap;cursor:pointer;transition:background .12s,transform .08s;flex:0 0 auto}
+.lv-row .lv-link:hover{background:#dccaff}
+.lv-row .lv-link:active{transform:translateY(1px)}
+.lv-row .lv-link.man{background:#fff1d9;color:#a16207}    /* 手动指定来源：橙色区分 */
+/* 跳转目标行闪烁：先高亮再渐隐 */
+@keyframes lvflash{0%{background:#fff3a8;box-shadow:0 0 0 2px #f59e0b inset}100%{background:transparent;box-shadow:0 0 0 0 transparent inset}}
+.lv-row.lv-flash{animation:lvflash 1.4s ease-out 1}
 .lv-row.empty{color:#a07c4a;font-style:italic;background:transparent;padding:4px 8px}
 .lv-ft{margin-top:10px;padding-top:10px;border-top:1px dashed #f0d499;font-size:11.5px;color:#a07c4a;line-height:1.6}
 .num-pos{color:var(--ok);font-weight:600}
@@ -2134,7 +2143,7 @@ function buildLvDetail() {
           const chips = Object.keys(grouped).map(key => {
             const [lk, ld] = key.split('|');
             const [ly, lm] = lk.split('-').map(Number);
-            return `<span class="lv-link" data-lv-target="lv-${lk}-${ld}" data-lv-from="${row.otId}" title="点击跳到 ${lm}/${pad(+ld)} 换休行">→ ${lm}/${pad(+ld)} 换 ${hf(grouped[key])}h</span>`;
+            return `<span class="lv-link" onclick="lvLinkJump('lv-${lk}-${ld}', this)" title="点击跳到 ${lm}/${pad(+ld)} 换休行">→ ${lm}/${pad(+ld)} 换 ${hf(grouped[key])}h</span>`;
           }).join('');
           linkTag = `<span class="lv-links">${chips}</span>`;
         }
@@ -2145,7 +2154,8 @@ function buildLvDetail() {
             const targetOt = s.earlier ? '' : `ot-${s.y}-${pad(s.m)}-${s.d}`;
             const cls = s.manual ? 'lv-link man' : 'lv-link';
             const tip = s.earlier ? '更早月份的结转池（无具体日期）' : `点击跳到 ${lbl} 加班行`;
-            return `<span class="${cls}"${targetOt ? ` data-lv-target="${targetOt}"` : ''} data-lv-from="${row.lvId}" title="${tip}">← ${lbl} 加 ${hf(s.take)}h</span>`;
+            const onclk = s.earlier ? '' : `onclick="lvLinkJump('${targetOt}', this)"`;
+            return `<span class="${cls}" ${onclk} title="${tip}">← ${lbl} 加 ${hf(s.take)}h</span>`;
           }).join('');
           linkTag = `<span class="lv-links">${chips}</span>`;
         }
