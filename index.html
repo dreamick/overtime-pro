@@ -3135,10 +3135,9 @@ function exportScreenshot() {
   }
   if (payLines.length) {
     any = true;
-    L.push('【加班费】');
-    payLines.forEach(l => L.push(l));
+    L.push('加班费');
     if (c.carryOutTotal > 0) {
-      L.push(`  ※ 其中结转到下月（不计入本月加班费）：${hf(c.carryOutTotal)}h（工作日）`);
+      L.push(`  其中结转到下月（不计入本月加班费）：${hf(c.carryOutTotal)}h（工作日）`);
     }
     L.push(`本月折现/算加班费：${hf(c.cashTotal)}h，约 ¥${c.otPay}`);
     L.push('');
