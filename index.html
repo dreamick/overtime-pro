@@ -2525,8 +2525,10 @@ function oneClickCancel(key, target, title, okText) {
     title, okText,
     msg: `将取消「${key.replace('-', ' 年 ')} 月」的一键${target === 'all' ? '结转' : '折现'}，恢复为「${prevLbl}」。确认继续？`,
     onOk: () => {
-      if (prev.wasDefault) delete mo.carryMode;   // 原为本月默认策略 → 还原为未显式设定（沿用默认，状态回到“待调休”）
-      else { mo.carryMode = prev.mode; if (prev.mode === 'manual' && prev.manual) mo.carryOutManual = prev.manual; else delete mo.carryOutManual; }
+      // 取消一键 = 撤销批量决策，回到「待调休（未决定）」；只有一键前是 manual（自定义上限）才保留回 manual。
+      // 注意：不再恢复 _prevCarry.mode —— 反复在 all/none 间切换会污染快照，导致取消后仍卡在 all/none 回不到待调休。
+      if (prev.mode === 'manual') { mo.carryMode = 'manual'; if (prev.manual) mo.carryOutManual = prev.manual; else delete mo.carryOutManual; }
+      else delete mo.carryMode;
       delete mo._prevCarry;
       save(); renderKPI(); renderBody(); renderAlerts();
       const c = compute(key);
