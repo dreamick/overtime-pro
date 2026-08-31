@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
+<html lang="zh-CN" data-page-node-id="HsGJcMDO8QFVy3SMqWnF1n">
+<head data-page-node-id="33gdFyLGpWiZZxHIweRpax">
+<meta charset="UTF-8" data-page-node-id="bk4fWqgzdfnsQQiC1DDcGX">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" data-page-node-id="x8RFvjzSkAwQOYK4x3QQ1J">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="vxhNMOhXD0UTBSje5aqIdN">
+<meta http-equiv="Pragma" content="no-cache" data-page-node-id="pfWXsn3AIYsGZTgIVzDPj5">
+<meta http-equiv="Expires" content="0" data-page-node-id="6qPEkpTpDn5ko3iwupjwOF">
 <title>加班助手PRO</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%234c7bff'/><text y='70' x='50' text-anchor='middle' font-size='58' fill='white' font-family='sans-serif'>加</text></svg>">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2224%22%20fill%3D%22%234c7bff%22%2F%3E%3Ctext%20y%3D%2270%22%20x%3D%2250%22%20text-anchor%3D%22middle%22%20font-size%3D%2258%22%20fill%3D%22white%22%20font-family%3D%22sans-serif%22%3E%E5%8A%A0%3C%2Ftext%3E%3C%2Fsvg%3E">
 <style>/* ---------- 自定义时间选择器：仅显示临近 5 档，滚轮查看更多 ---------- */
 .tsel{position:relative;display:block;width:100%}
 .tsel-in{cursor:pointer;width:100%;text-align:center;padding-right:16px}
@@ -148,7 +148,7 @@
   --r:14px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden}
+html,body{height:100vh;height:100dvh;overflow:hidden}
 body{
   background:var(--bg);
   color:var(--tx);
@@ -158,9 +158,11 @@ body{
 }
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:none}
-::-webkit-scrollbar{width:10px;height:10px}
-::-webkit-scrollbar-thumb{background:#d6dae4;border-radius:8px;border:3px solid var(--bg)}
-::-webkit-scrollbar-thumb:hover{background:#c2c8d6}
+::-webkit-scrollbar{width:7px;height:7px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(120,130,150,.26);border-radius:8px;border:none}
+::-webkit-scrollbar-thumb:hover{background:rgba(120,130,150,.42)}
+* { scrollbar-width: thin; scrollbar-color: rgba(120,130,150,.26) transparent; }
 
 /* ---------- layout ---------- */
 .wrap{max-width:1280px;margin:0 auto;padding:18px 24px 0;
@@ -442,6 +444,12 @@ table.tb tfoot td{font-weight:650;border-top:1.5px solid var(--line);border-bott
 /* carry 池剩余未消费 = 已结转（仅跨月留存，仍可被本月换休使用） */
 .lv-row.ot.carryLive .donetag{display:inline-block;color:#1a6b3a;background:#e2f3e2;border:1px solid #aedeb0;font-weight:600}
 .lv-row.ot.carryLive{background:#f5fbf6;color:#5a8a72}
+/* 还剩 7 天内到期（产生日距今 [EXP-7, EXP) 天）的未调休加班：红色高亮 + 标注 */
+.lv-row.ot.near-expire{background:#fff1f0;border:1px solid #ffc9c2;color:#c0392b;box-shadow:0 0 0 1px #ffd5d0 inset}
+.lv-row.ot.near-expire .d,.lv-row.ot.near-expire .w{color:#d46a5f}
+.lv-row.ot.near-expire .h{color:#c0392b;font-weight:700}
+.lv-row.ot.near-expire .rsn{color:#d46a5f}
+.lv-row .neartag{display:inline-block;flex:0 0 auto;margin-left:6px;font-size:10.5px;color:#fff;background:#e5484d;padding:1px 7px;border-radius:6px;font-weight:600;white-space:nowrap}
 .lv-row .rsn{flex:1 1 auto;color:#4a5568;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* 加班 ↔ 换休 对应核销链接：加班(← 加)=蓝小 chip， 换休(→ 换)=绿小 chip，点击跳到对端行并闪烁一次 */
 .lv-row .lv-links{flex:0 1 auto;display:inline-flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;min-width:0;max-width:46%}
@@ -517,6 +525,30 @@ table.dt th.left, table.dt td.left{text-align:left}
 .oa-btn{width:100%;height:36px;font-size:14px;color:#d5dae5;transition:.14s}
 .oa-btn.on{color:var(--ok)}
 .oa-btn:hover{background:var(--line-2)}
+/* 明细表格「调休状态」列徽章（整合自原调休预警明细） */
+.otstat{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;white-space:nowrap;line-height:1.5;border:1px solid transparent}
+.otstat.done{color:#1a6b3a;background:#e2f3e2;border-color:#aedeb0}
+.otstat.carrdone{color:#1e3a8a;background:#dbe8ff;border-color:#a3c2f7}
+.otstat.carrlive{color:#4f8a6e;background:#f5fbf6;border-color:#c7e6cf}
+.otstat.near{color:#c0392b;background:#fff1f0;border-color:#ffc9c2}
+.otstat.live{color:#6b7a99;background:#f0f2f8;border-color:#dde3ee}
+.otstat.leave{color:#7c3aed;background:#f3ecfe;border-color:#e2d3fb}
+.otstat.cashed{color:#8a6d1b;background:#fbf3df;border-color:#ecd9a6}
+.otstat.none{color:#b6bccb;background:transparent;border-color:transparent}
+.otstat.clickable{cursor:pointer;transition:filter .12s,box-shadow .12s}
+.otstat.clickable:hover{filter:brightness(.96);box-shadow:0 0 0 2px rgba(60,107,255,.18)}
+.otstat.clickable:focus{outline:none;box-shadow:0 0 0 2px rgba(60,107,255,.35)}
+.otstat-cell{vertical-align:middle}
+/* 调休状态列「结转到下月/折现」小菜单 */
+.settle-menu{position:fixed;z-index:60;min-width:188px;background:#fff;border:1px solid #d9deea;border-radius:12px;box-shadow:0 12px 34px rgba(28,42,71,.18);padding:8px;font-size:13px}
+.settle-menu .sm-hd{padding:4px 8px 8px;color:#5b6478;font-size:12px;border-bottom:1px solid #eef1f6;margin-bottom:6px}
+.settle-menu .sm-opt{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;background:#f6f8fc;border:1px solid #e3e8f1;border-radius:9px;padding:8px 10px;margin-bottom:6px;cursor:pointer;color:#2b3142}
+.settle-menu .sm-opt b{font-size:13px;font-weight:650}
+.settle-menu .sm-opt span{font-size:11px;color:#8b93a7;margin-top:2px}
+.settle-menu .sm-opt:hover{background:#eef3ff;border-color:#c7d6f7}
+.settle-menu .sm-opt.on{background:#e7f0ff;border-color:#7aa0f5;box-shadow:inset 0 0 0 1px #7aa0f5}
+.settle-menu .sm-cancel{width:100%;text-align:center;background:transparent;border:none;color:#9aa1b2;padding:6px;cursor:pointer;border-radius:8px}
+.settle-menu .sm-cancel:hover{background:#f1f3f8;color:#5b6478}
 
 /* ---------- charts ---------- */
 .chart{width:100%;display:block;overflow:visible}
@@ -569,6 +601,12 @@ table.dt th.left, table.dt td.left{text-align:left}
 .btn.ot-lv:hover{filter:brightness(1.04)}
 .btn.ot-settle{background:linear-gradient(150deg,#fb923c,#ea580c);color:#fff;border-color:transparent;font-weight:600;box-shadow:0 4px 12px rgba(234,88,12,.28)}
 .btn.ot-settle:hover{filter:brightness(1.04)}
+.btn.carry-btn{background:#e9f8f0;color:#12b76a;border-color:#bfe6d4;font-weight:600}
+.btn.carry-btn:hover{filter:brightness(.97)}
+.btn.carry-btn.active{background:#12b76a;color:#fff;border-color:#12b76a;box-shadow:0 4px 12px rgba(18,183,106,.28)}
+.btn.cash-btn{background:#e6f7f6;color:#0ea5a4;border-color:#b6e5e3;font-weight:600}
+.btn.cash-btn:hover{filter:brightness(.97)}
+.btn.cash-btn.active{background:#0ea5a4;color:#fff;border-color:#0ea5a4;box-shadow:0 4px 12px rgba(14,165,164,.28)}
 .carry-modal{width:1080px;max-width:calc(100vw - 32px);scrollbar-width:none;-ms-overflow-style:none;max-height:90vh;margin:0 auto}
 .carry-modal::-webkit-scrollbar{display:none;width:0;height:0}
 /* 结算面板：结算（左）与核销（右）左右两栏布局 */
@@ -717,48 +755,48 @@ body.locked .wrap{display:none}
 @keyframes popin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 </style>
 </head>
-<body>
+<body data-page-node-id="DsHb6CLDPUgxCcrEFt5FMc">
 
-<div class="topbar">
-  <div class="topbar-in">
-    <div class="logo"><span class="mk">加</span><span class="hide-sm">加班助手PRO</span></div>
-    <div class="msw">
-      <button id="mprev" title="上一月">‹</button>
-      <span class="cur msel-wrap" id="mselWrap">
-        <button class="msel-btn" id="mselBtn" title="切换月份 / 管理月份"></button>
-        <div class="msel-pop" id="mselPop" hidden></div>
+<div class="topbar" data-page-node-id="ISbENzptRjYPO3AYRIbIZ3">
+  <div class="topbar-in" data-page-node-id="YQD9aUVqfI3iAKTKFilfWm">
+    <div class="logo" data-page-node-id="0uiw9Jb5HVgbz816HEL6Mt"><span class="mk" data-page-node-id="6FZ74rZpfBgnzlv2HdQbtJ">加</span><span class="hide-sm" data-page-node-id="pROGUB1OnjrBSYl2GvYFKx">加班助手PRO</span></div>
+    <div class="msw" data-page-node-id="ojxhzKTNOzoO4oc7J6y29U">
+      <button id="mprev" title="上一月" data-page-node-id="EdEV20jwuQEZqg0WrwNqbj">‹</button>
+      <span class="cur msel-wrap" id="mselWrap" data-page-node-id="gQNxXIItZYlVJD7MqRQSZN">
+        <button class="msel-btn" id="mselBtn" title="切换月份 / 管理月份" data-page-node-id="Dov7I7Q9QMRqNVpZ1c5wVD"></button>
+        <div class="msel-pop" id="mselPop" hidden data-page-node-id="j3WqKK2Lu1gHsX4vZLsgWO"></div>
       </span>
-      <button id="mnext" title="下一月">›</button>
-      <button id="btnToday" class="tbtn" title="回到本月并定位到今天">今</button>
+      <button id="mnext" title="下一月" data-page-node-id="IleuEOfp5HrrJu9pr3frmG">›</button>
+      <button id="btnToday" class="tbtn" title="回到本月并定位到今天" data-page-node-id="6C4oYRFHUWGZFG9CPBkpT2">今</button>
     </div>
-    <span class="spacer"></span>
-    <div class="tabs">
-      <button data-tab="list" class="on">明细</button>
-      <button data-tab="cal">日历</button>
-      <button data-tab="sum">汇总</button>
-      <button data-tab="set">设置</button>
+    <span class="spacer" data-page-node-id="T3FazPonma8Ob1GjIzBB4V"></span>
+    <div class="tabs" data-page-node-id="ANoaG3nw6kdynIjHOMsE0s">
+      <button data-tab="list" class="on" data-page-node-id="isnZAnHJJH0zQmn6SI7U9X">明细</button>
+      <button data-tab="cal" data-page-node-id="Y2khNjeQCgyJHUpbsmOGTW">日历</button>
+      <button data-tab="sum" data-page-node-id="9qOVK0ZGow7HK93W5hNbiA">汇总</button>
+      <button data-tab="set" data-page-node-id="pq3SwxC8ZmX6kzOUEenCEg">设置</button>
     </div>
-    <button id="btnRefresh" class="tbtn" title="刷新：从云端拉取最新数据并刷新视图（不会重新要求输入密码）">↻</button>
+    <button id="btnRefresh" class="tbtn" title="刷新：从云端拉取最新数据并刷新视图（不会重新要求输入密码）" data-page-node-id="jQx8TMm6AeLhGp3iUlv3tj">↻</button>
   </div>
 </div>
 
-<div class="wrap">
-  <div class="grid-kpi" id="kpi"></div>
-  <div id="alerts"></div>
-  <div id="body"></div>
-  <p style="margin-top:26px;text-align:center;font-size:12px;color:#a8afbf;line-height:1.8" class="no-print">加班助手PRO · 本地单文件版 · 构建 20260821（KPI 常驻 · 无需服务器）</p>
+<div class="wrap" data-page-node-id="XhoD1cPWmabuYPGLBtTASq">
+  <div class="grid-kpi" id="kpi" data-page-node-id="35vUgCc0X9OzccF56lxY3d"></div>
+  <div id="alerts" data-page-node-id="oIz2L7fy2CEuBGozQO4KCl"></div>
+  <div id="body" data-page-node-id="bpDIVUDD6zWGZSBRXEX0Hn"></div>
+  <p style="margin-top:26px;text-align:center;font-size:12px;color:#a8afbf;line-height:1.8" class="no-print" data-page-node-id="m467paNuEnmBGmI0qjvTxa">加班助手PRO · 本地单文件版 · 构建 20260821（KPI 常驻 · 无需服务器）</p>
 </div>
 
-<input type="file" id="imp" accept=".json" hidden>
+<input type="file" id="imp" accept=".json" hidden data-page-node-id="edA2tc0pL2cMEXtlgYh176">
 
-<div id="lockScreen">
-  <div class="lock-card">
-    <div class="lock-logo"><span class="mk">加</span></div>
-    <h2>加班助手PRO</h2>
-    <p class="lock-sub">请输入进入密码</p>
-    <input id="lockPass" type="password" placeholder="进入密码" autocomplete="off">
-    <div id="lockErr" class="lock-err"></div>
-    <button id="lockBtn" class="btn primary">进入</button>
+<div id="lockScreen" data-page-node-id="2YVAyh1lLDElML8vhqYWND">
+  <div class="lock-card" data-page-node-id="SgrJLRxNnFFyqLdvJhslgN">
+    <div class="lock-logo" data-page-node-id="63D1VxBOB8UJDQfcsvGpuq"><span class="mk" data-page-node-id="OTOEzx3vHfrOGKYfvE1ZRY">加</span></div>
+    <h2 data-page-node-id="0nHOUuiI0Wm85rm1GYBzFx">加班助手PRO</h2>
+    <p class="lock-sub" data-page-node-id="kFE78yngmNk1EXhpUdD67o">请输入进入密码</p>
+    <input id="lockPass" type="password" placeholder="进入密码" autocomplete="off" data-page-node-id="ggrmlmAW8buKE5MUvp6mpM">
+    <div id="lockErr" class="lock-err" data-page-node-id="ixioXUARWWsrFKZQD0gFoc"></div>
+    <button id="lockBtn" class="btn primary" data-page-node-id="DMEkHFjM3S3WcoGOdGy6Oh">进入</button>
   </div>
 </div>
 <script>const SEED = {"2026-01":{"days":{"1":{"start":"12:35","end":"16:10","reason":"书香新年布置","oa":"✅","hours":3.5,"meal":1.0},"6":{"start":"17:00","end":"18:30","reason":"门店布置+设计","oa":"✅","hours":1.5,"meal":1.0},"7":{"start":"17:00","end":"18:00","reason":"门店布置会议","oa":"✅","hours":1.0},"12":{"leaveReason":"玮玮生日，调休半天"},"13":{"leaveReason":"送小悠上学，调休半天"},"14":{"start":"17:00","end":"18:00","reason":"古籍物料设计","oa":"✅","hours":1.0},"15":{"start":"17:00","end":"18:00","reason":"古籍物料设计","leaveReason":"送小悠上学，调休半天","oa":"✅","hours":1.0},"16":{"start":"17:00","end":"18:00","reason":"古籍物料设计","oa":"✅","hours":1.0},"20":{"reason":"换休0.5天","leaveReason":"肠胃炎年假0.5天","annual":0.5},"21":{"leaveReason":"肠胃炎年假1天","annual":1.0},"22":{"start":"17:00","end":"18:00","reason":"古籍物料设计","oa":"✅","hours":1.0},"23":{"start":"17:00","end":"20:00","reason":"古籍物料设计","oa":"✅","hours":3.0,"meal":1.0},"26":{"start":"17:00","end":"18:30","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"27":{"start":"17:00","end":"18:30","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"29":{"start":"17:00","end":"18:30","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"30":{"start":"17:00","end":"18:00","reason":"古籍物料设计","oa":"✅","hours":1.0},"31":{"start":"13:30","end":"17:15","hours":3.5,"meal":1.0}},"carryMode":"manual","carryOutManual":{"work":8.0,"rest":0.0,"holi":0.0}},"2026-02":{"days":{"3":{"start":"17:00","end":"18:16","reason":"古籍物料设计","oa":"✅","hours":1.0},"9":{"leaveReason":"悠悠拔牙","leaveH":8.0},"26":{"start":"17:00","end":"18:30","reason":"古籍物料设计","hours":1.5,"meal":1.0},"28":{"start":"17:00","end":"19:00","reason":"古籍物料设计","hours":2.0,"meal":1.0}},"carryIn":{"work":8.0,"rest":0.0,"holi":0.0},"carryMode":"manual","carryOutManual":{"work":3.5,"rest":0.0,"holi":0.0}},"2026-03":{"days":{"4":{"start":"17:00","end":"18:16","reason":"古籍物料设计","oa":"✅","hours":1.0},"5":{"start":"17:00","end":"18:16","reason":"古籍物料设计","oa":"✅","hours":1.0},"10":{"start":"17:00","end":"18:42","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"16":{"annualReason":"福建","oa":"✅","leaveH":4.0,"annual":0.5},"17":{"annualReason":"福建","oa":"✅","annual":1.0},"18":{"annualReason":"福建","oa":"✅","annual":1.0},"19":{"start":"17:00","end":"18:30","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"23":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"25":{"leaveReason":"乐游生日","leaveH":4.0},"26":{"start":"17:00","end":"18:10","reason":"淘书乐物料设计","oa":"✅","hours":1.0},"27":{"start":"17:00","end":"18:10","reason":"古籍物料设计","hours":1.0},"30":{"start":"17:00","end":"20:06","oa":"✅","hours":3.0,"meal":1.0},"31":{"start":"17:00","end":"20:06","oa":"✅","hours":3.0,"meal":1.0}},"carryMode":"manual","carryOutManual":{"work":9.5,"rest":0.0,"holi":0.0}},"2026-04":{"days":{"1":{"start":"17:00","end":"18:30","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"2":{"start":"17:00","end":"19:00","reason":"文创设计","oa":"✅","hours":2.0,"meal":1.0},"3":{"start":"17:00","end":"18:30","reason":"文创设计","oa":"✅","hours":1.5,"meal":1.0},"8":{"start":"17:00","end":"20:02","reason":"淘书乐设计","oa":"✅","hours":3.0,"meal":1.0},"9":{"start":"17:00","end":"20:43","reason":"淘书乐设计","oa":"✅","hours":3.5,"meal":1.0},"10":{"start":"17:00","end":"18:10","reason":"淘书乐设计","oa":"✅","hours":1.0},"13":{"start":"17:00","end":"18:30","reason":"淘书乐设计","oa":"✅","hours":1.5,"meal":1.0},"14":{"start":"17:00","end":"19:10","reason":"淘书乐设计","oa":"✅","hours":2.0,"meal":1.0},"15":{"start":"17:00","end":"18:32","reason":"淘书乐设计","oa":"✅","hours":1.5,"meal":1.0},"16":{"start":"17:00","end":"20:02","reason":"淘书乐设计","oa":"✅","hours":3.0,"meal":1.0},"17":{"start":"17:00","end":"21:10","reason":"淘书乐设计","oa":"✅","hours":4.0,"meal":1.0},"20":{"start":"17:00","end":"19:31","reason":"淘书乐设计","oa":"✅","hours":2.5,"meal":1.0},"21":{"start":"17:00","end":"18:40","reason":"古籍活动设计","oa":"✅","hours":1.5,"meal":1.5},"23":{"start":"9:30","end":"20:00","reason":"淘书乐现场","hours":2.0},"24":{"start":"8:30","end":"20:00","reason":"淘书乐现场","hours":3.0},"27":{"leaveReason":"刘亦悠复诊","leaveH":8.0},"28":{"start":"17:00","end":"18:31","oa":"✅","hours":1.5,"meal":1.0},"29":{"start":"17:00","end":"18:00","hours":1.0},"30":{"start":"17:00","end":"18:31","oa":"✅","hours":1.5,"meal":1.0}},"carryMode":"manual","carryOutManual":{"work":25.0,"rest":0.0,"holi":0.0}},"2026-05":{"days":{"7":{"start":"17:00","end":"19:00","reason":"梅陇镇党群服务中心物料设计","oa":"✅","hours":2.0,"meal":1.0},"9":{"start":"17:00","end":"19:00","reason":"古籍设计","oa":"✅","hours":2.0,"meal":1.0},"11":{"start":"17:00","end":"18:10","reason":"补晚上加班3小时","oa":"✅","hours":4.0,"meal":1.0},"12":{"leaveReason":"迪士尼","leaveH":8.0},"13":{"leaveReason":"打疫苗","leaveH":8.0},"14":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"15":{"reason":"外出集团开会","oa":"✅"},"19":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"25":{"leaveReason":"接女儿","leaveH":4.0},"27":{"start":"17:00","end":"18:10","reason":"古籍物料设计","hours":1.0},"28":{"start":"17:00","end":"18:32","reason":"古籍物料设计","hours":1.5,"meal":1.0}},"carryMode":"manual","carryOutManual":{"work":12.5,"rest":0.0,"holi":0.0}},"2026-06":{"days":{"1":{"leaveReason":"动物园","leaveH":8.0},"2":{"start":"17:00","end":"19:10","reason":"古籍物料设计","oa":"✅","hours":2.0,"meal":1.0},"4":{"start":"17:00","end":"18:10","reason":"艺术物料设计","oa":"✅","hours":1.0},"8":{"start":"17:00","end":"18:36","reason":"古籍游园会设计","oa":"✅","hours":1.5,"meal":1.0},"9":{"start":"17:00","end":"18:36","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"10":{"start":"17:00","end":"18:40","reason":"艺术物料设计","oa":"✅","hours":1.5,"meal":1.0},"11":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"15":{"start":"17:00","end":"19:10","reason":"古籍物料设计","oa":"✅","hours":2.0,"meal":1.0},"16":{"oa":"✅","meal":1.0},"17":{"start":"17:00","end":"18:40","oa":"✅","hours":1.5,"meal":1.0},"18":{"start":"17:00","end":"19:10","reason":"艺术物料设计","oa":"✅","hours":2.0,"meal":1.0},"22":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"25":{"start":"17:00","end":"19:10","reason":"书香游园会物料设计","oa":"✅","hours":2.0,"meal":1.0},"26":{"leaveReason":"小悠毕业典礼","leaveH":8.0},"29":{"start":"17:00","end":"19:31","reason":"古籍物料设计","oa":"✅","hours":1.5,"meal":1.0},"30":{"start":"17:00","end":"22:10","reason":"古籍物料设计","oa":"✅","hours":4.0,"meal":1.0}},"carryMode":"manual","carryOutManual":{"work":15.0,"rest":0.0,"holi":0.0}},"2026-07":{"days":{"1":{"start":"17:00","end":"18:40","oa":"✅","hours":1.5,"meal":1.0},"2":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"3":{"leaveReason":"乌村","leaveH":8.0},"6":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"7":{"start":"17:00","end":"19:10","reason":"文创设计","oa":"✅","hours":2.0,"meal":1.0},"8":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"9":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"10":{"start":"外出","end":"外出","reason":"青浦监狱书展"},"13":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"15":{"leaveReason":"儿童医院检查","leaveH":8.0},"17":{"start":"17:00","end":"18:10","reason":"古籍物料设计","oa":"✅","hours":1.0},"28":{"start":"17:00","end":"20:10","reason":"书展物料设计","oa":"✅","hours":3.0,"meal":1.0},"29":{"start":"17:00","end":"19:10","reason":"书展物料设计","oa":"✅","hours":2.0,"meal":1.0},"30":{"start":"17:00","end":"18:48","reason":"古籍物料设计","oa":"✅","hours":1.0,"meal":1.0},"31":{"start":"17:00","end":"19:10","reason":"古籍物料设计","oa":"✅","hours":2.0,"meal":1.0}},"carryMode":"manual","carryOutManual":{"work":8.0,"rest":0.0,"holi":0.0}},"2026-08":{"days":{},"carryMode":"manual","carryOutManual":{"work":0.0,"rest":0.0,"holi":0.0}}};</script>
@@ -802,11 +840,10 @@ const DEF_SETTINGS = {
   roundStep: 0.5,      // 时长取整粒度（小时）
   roundMode: 'floor',  // floor | round | ceil
   breakMin: 0,         // 每次加班扣除休息（分钟）
-  carryMode: 'all',     // 默认结转策略：all=全部结转下月 / none=全部折现 / manual=自定义
+  carryMode: 'workOnly', // 默认结转策略：workOnly=仅结转工作日(双休/节假日默认折现) / all=全部结转(含双休节假日) / none=全部折现 / manual=自定义
   extraHoliday: '',    // 自定义节假日 MM-DD，逗号分隔
   extraWorkday: '',    // 自定义补班日
   annualTotal: 10,     // 年假额度（天）：剩余 = 额度 − 已用年假。当前数据已用 4 天，故剩余 6 天
-  leaveExpireMonths: 3, // 调休有效期（月）：从最早产生可调休的月份起算，N 个月内有效；0 = 不过期（仅用于顶部到期提醒）
   leaveExpireDays: 30, // 调休有效期（天）：加班/调休产生超过 N 天仍未换休，自动折现计入加班费；0 = 不启用
   passHash: ''         // 进入密码散列（ 空 = 不设置）。轻量访问保护，非加密级
 };
@@ -877,6 +914,8 @@ function load() {
   // 兜底：再次剔除任何早于起点的月份（含种子自身若被改动）
   Object.keys(base.months).forEach(k => { if (k < MIN_KEY) delete base.months[k]; });
   DB = base;
+  // 清理旧版「调休有效期（月）」设置（已在 UI 中移除，统一改为按产生日 leaveExpireDays 天计算）
+  delete DB.settings.leaveExpireMonths;
   // 一次性迁移：清空 2026-08 加班天数，保留 7 月结转与配置；仅执行一次，不影响后续正常录入
   if (DB.months['2026-08'] && !DB.settings._aug2026Cleared) {
     DB.months['2026-08'].days = {};
@@ -1072,51 +1111,71 @@ function compute(key, depth) {
   const gainTotal = order.reduce((s, t) => s + gain[t], 0);
   const availTotal = +(avail.work + avail.rest + avail.holi).toFixed(2);
   // --- 结转下月 ---
-  const mode = mo.carryMode || DB.settings.carryMode;
+  const mode = mo.carryMode || 'workOnly';   // 默认月：仅结转工作日（双休/节假日默认折现）；explicit 'all'=一键结转(含双休节假日)
   const carryOut = { work: 0, rest: 0, holi: 0 };
-  // 跨月核销口径：超 30 天未换休已自动转加班费(autoCash)的时长不可再结转（B 方案）
+  // 跨月核销口径：超有效期未换休已自动转加班费(expired)的时长不可再结转（B 方案）
   // 把已算好的上半部分结果传给 leaveLedger，避免双向递归，同时保证口径一致
   let autoCashByType = { work: 0, rest: 0, holi: 0 };
   let expiredByType = { work: 0, rest: 0, holi: 0 };
+  let L = null;
   try {
     const preC = { carryIn, carryInTotal, gain, gainTotal, leaveTotal, leaveShort, used, usedPrev, usedCur, avail, availTotal };
-    const L = leaveLedger(key, preC);
+    L = leaveLedger(key, preC);
     if (L && L.autoCashByType) autoCashByType = L.autoCashByType;
     if (L && L.expiredByType) expiredByType = L.expiredByType;
   } catch (e) {}
-  // 这两类时长已自动折现计入加班费，不可再作为结转上限：
-  //  - autoCash：距换休日 >30 天未被核销（核销窗口外）
+  // 这类时长已自动折现计入加班费，不可再作为结转上限：
   //  - expired ：产生日距基准日 > 调休有效期天数仍未换休（按天过期）
   const carryCap = {};
   order.forEach(t => { carryCap[t] = +Math.max(0, avail[t] - (autoCashByType[t] || 0) - (expiredByType[t] || 0)).toFixed(2); });
-  // 调休池过期（统计自 2026-07，按有效期 N 个月）：过期月之后不再结转，剩余全部折现计入加班费
-  const N = +DB.settings.leaveExpireMonths || 0;
-  let lvExpired = false, lvExpiredCash = 0;
-  if (N > 0) {
-    const exp = monthEnd(2026, 7, N), ey = exp.getFullYear(), em = exp.getMonth() + 1;
-    const [cy, cm] = key.split('-').map(Number);
-    if (cy > ey || (cy === ey && cm > em)) lvExpired = true;   // cur 在到期月之后即过期
+  // 结转下月 / 折现：严格跟随「调休状态」——仅统计已决定的去向；
+  // 待调休（carryMode 未设定或 workOnly 默认、且未逐日决策）两项都不计，要点「结转/折现」才计入结转/折现。
+  const curLeftByDay = {};
+  (L.curPool || []).forEach(e => { curLeftByDay[e.d] = e; });
+  order.forEach(t => { carryOut[t] = 0; });
+  const cashByDay = { work: 0, rest: 0, holi: 0 };
+  const cm = mo.carryOutManual || {};
+  const modeK = mo.carryMode;                 // undefined / 'workOnly' = 待调休（未决定）；all/none/manual = 已决定
+  const carryUsed = { work: 0, rest: 0, holi: 0 };
+  for (let d = 1; d <= n; d++) {
+    const r = mo.days[d]; if (!r) continue;
+    const h = hoursOf(key, d); if (h <= 0) continue;
+    const t = dayType(key, d);
+    const e = curLeftByDay[d];
+    const left = e ? e.left : h;
+    if (left <= 0.001) continue;
+    let st;                                    // 'carry' | 'cash' | null(待调休)
+    if (r.settle === 'cash') st = 'cash';
+    else if (r.settle === 'carry') st = 'carry';
+    else if (e && e.expired) st = 'cash';      // 超有效期自动折现
+    else if (modeK === undefined || modeK === 'workOnly') st = null;
+    else if (modeK === 'all') st = 'carry';
+    else if (modeK === 'none') st = 'cash';
+    else { // manual：按类型上限结转，超出部分折现
+      const cap = +cm[t] || 0, can = Math.max(0, cap - carryUsed[t]);
+      const cr = Math.min(left, can);
+      if (cr > 0) { carryOut[t] = +(carryOut[t] + cr).toFixed(2); carryUsed[t] += cr; }
+      const cs = +(left - cr).toFixed(2);
+      if (cs > 0) cashByDay[t] = +(cashByDay[t] + cs).toFixed(2);
+      continue;
+    }
+    if (st === 'carry') carryOut[t] = +(carryOut[t] + left).toFixed(2);
+    else if (st === 'cash') cashByDay[t] = +(cashByDay[t] + left).toFixed(2);
+    // st === null → 待调休：两项都不计入
   }
   order.forEach(t => {
-    let v = 0;
-    if (t === 'work' && !lvExpired) {   // 仅工作日时长作调休结转；过期后工作日也不再结转
-      if (mode === 'all') v = avail[t];
-      else if (mode === 'manual') v = Math.min(+((mo.carryOutManual || {})[t] || 0), avail[t]);
-    } else if ((t === 'rest' || t === 'holi') && mode === 'manual') {
-      // 双休/节假日默认折现，但允许在自定义中手动选择结转
-      v = Math.min(+((mo.carryOutManual || {})[t] || 0), avail[t]);
-    }
-    v = Math.min(v, carryCap[t]);        // autoCash 不可结转，强制封顶
+    let v = carryOut[t];
+    if (modeK === 'manual') v = Math.min(v, +cm[t] || 0);   // 手动模式仍受按类型上限约束
+    v = Math.min(v, carryCap[t]);                  // expired 不可结转，强制封顶
     carryOut[t] = +Math.max(0, v).toFixed(2);
   });
-  if (lvExpired) lvExpiredCash = +(avail.work).toFixed(2);   // 工作日层全部折现（含上月遗留的过期调休）
   // --- 折现 ---
   const R = rateOf(), cash = {}, amount = {};
   let otPay = 0;
   const autoCashTotal = +order.reduce((s, t) => s + (autoCashByType[t] || 0), 0).toFixed(2);
   const expiredTotal = +order.reduce((s, t) => s + (expiredByType[t] || 0), 0).toFixed(2);
   order.forEach(t => {
-    cash[t] = +(avail[t] - carryOut[t]).toFixed(2);
+    cash[t] = +(cashByDay[t] || 0).toFixed(2);
     amount[t] = +(cash[t] * R[t]).toFixed(2);
     otPay += amount[t];
   });
@@ -1130,7 +1189,7 @@ function compute(key, depth) {
     cash, cashTotal: +(cash.work + cash.rest + cash.holi).toFixed(2),
     autoCash: autoCashTotal, autoCashByType, expiredCash: expiredTotal, expiredByType,
     amount, otPay: +otPay.toFixed(2), mealCount, mealPay, otCnt,
-    total: +(otPay + mealPay).toFixed(2), otDays, annualUse, rates: R, mode, lvExpired, lvExpiredCash
+    total: +(otPay + mealPay).toFixed(2), otDays, annualUse, rates: R, mode, lvExpired: false, lvExpiredCash: 0
   };
 }
 
@@ -1157,7 +1216,7 @@ function openMonthSettle(key) {
   const el = document.createElement('div'); el.className = 'mask'; el.id = 'monthSettleMask';
   function build() {
     const c = compute(key), mo = M(key);
-    const mode = mo.carryMode || DB.settings.carryMode;
+    const mode = mo.carryMode || 'workOnly';
     const cm = mo.carryOutManual || {};
     const otRows = TYPES.map(t => `<tr>
         <td><span class="dot" style="background:${t.color}"></span> ${t.name}</td>
@@ -1173,7 +1232,6 @@ function openMonthSettle(key) {
         <span>本月换休 <b>${hf(c.leaveTotal)}h</b></span>
         <span>← 上月结转核销 <b>${hf(d.usedCarry)}h</b></span>
         <span>＋ 本月加班核销 <b>${hf(d.usedCur)}h</b></span>
-        ${d.autoCash > 0.001 ? `<span class="llg-cash">超30天(距换休)转加班费 <b>${hf(d.autoCash)}h</b></span>` : ''}
         ${d.expiredCash > 0.001 ? `<span class="llg-cash">超${Math.round(+DB.settings.leaveExpireDays || 0)}天(产生日)过期转加班费 <b>${hf(d.expiredCash)}h</b></span>` : ''}
         ${d.totalShort > 0.001 ? `<span class="llg-warn">未核销 ${hf(d.totalShort)}h（无30天内可用加班）</span>` : '<span style="color:#1a9d50">✓ 全部核销</span>'}
       </div>`;
@@ -1188,13 +1246,12 @@ function openMonthSettle(key) {
     const poolRow = e => {
       const used = e.used.length ? e.used.map(u => `${m}月${u.l.d}日换休 ${hf(u.take)}h`).join('、') : '';
       const state = e.expired ? `<span class="llg-cash">超${Math.round(+DB.settings.leaveExpireDays || 0)}天(产生日) · 剩余 ${hf(e.left)}h 自动转加班费</span>`
-        : (e.cash ? `<span class="llg-cash">超30天(距换休) · 剩余 ${hf(e.left)}h 自动转加班费</span>`
-        : (e.left > 0.001 ? `<span class="muted">剩余 ${hf(e.left)}h（仍可换休）</span>` : '<span style="color:#1a9d50">已全部核销</span>'));
+        : (e.left > 0.001 ? `<span class="muted">剩余 ${hf(e.left)}h（仍可换休）</span>` : '<span style="color:#1a9d50">已全部核销</span>');
       return `<div class="llg-pl">
         <span class="dt">${e.earlier ? '更早结转' : `${e.m}月${e.d}日`}</span>
         <span class="tp">${e.earlier ? '结转' : typeName(e.t)}</span>
         <span class="hh">${hf(e.h)}h</span>
-        <span class="ur">${used ? '→ ' + used : (e.cash ? '超30天未核销' : '未核销')}</span>
+        <span class="ur">${used ? '→ ' + used : '未核销'}</span>
         <span class="st">${state}</span>
       </div>`;
     };
@@ -1211,33 +1268,8 @@ function openMonthSettle(key) {
         </table>
       </div>
       <div class="otc-sec">
-        <div class="otc-tit">结转下月设置</div>
-        <div class="carry-ctrl" style="margin:0;background:transparent;border:none;padding:0">
-          <div class="seg seg-3" id="carrySeg2">
-            <button type="button" data-v="all" class="${mode === 'all' ? 'on' : ''}">全部结转</button>
-            <button type="button" data-v="none" class="${mode === 'none' ? 'on' : ''}">全部折现</button>
-            <button type="button" data-v="manual" class="${mode === 'manual' ? 'on' : ''}">自定义</button>
-          </div>
-          <div class="hint" style="margin-top:6px">全部结转＝仅结转未换休且在有效期内的工作日加班；周末／节假日默认折现，可在「自定义」中手动结转；超 30 天核销窗口或超 ${Math.round(+DB.settings.leaveExpireDays || 0)} 天产生日的加班自动折现计入加班费（不可结转）。</div>
-          <div class="carry-manual carry-grid3${mode === 'manual' ? '' : ' hidden'}" id="carryManualWrap2">
-            <div class="mrow">
-              <label>结转工作日时长</label>
-              <input id="carryManualInp2_work" type="number" min="0" max="${c.carryCap.work}" step="0.5" value="${hf(cm.work || 0)}">
-              <div class="hint">上限 ${hf(c.carryCap.work)} h（未换休、未逾期折现且在有效期内）</div>
-            </div>
-            <div class="mrow">
-              <label>结转双休日时长</label>
-              <input id="carryManualInp2_rest" type="number" min="0" max="${c.carryCap.rest}" step="0.5" value="${hf(cm.rest || 0)}">
-              <div class="hint">上限 ${hf(c.carryCap.rest)} h；默认折现，可手动结转</div>
-            </div>
-            <div class="mrow">
-              <label>结转节假日时长</label>
-              <input id="carryManualInp2_holi" type="number" min="0" max="${c.carryCap.holi}" step="0.5" value="${hf(cm.holi || 0)}">
-              <div class="hint">上限 ${hf(c.carryCap.holi)} h；默认折现，可手动结转</div>
-            </div>
-          </div>
-          <div class="carry-line">本月应发：加班费 <b>${money(c.otPay)}</b> + 餐补 <b>${money(c.mealPay)}</b> = <b>${money(c.total)}</b> · 结转下月 <b class="cf">${hf(c.carryOutTotal)} h</b>（不计入本月应发）</div>
-        </div>
+        <div class="otc-tit">本月应发</div>
+        <div class="carry-line" style="margin:0">加班费 <b>${money(c.otPay)}</b> + 餐补 <b>${money(c.mealPay)}</b> = <b>${money(c.total)}</b> · 结转下月 <b class="cf">${hf(c.carryOutTotal)} h</b>（不计入本月应发）</div>
       </div>
       </div>
       <div class="otc-col">
@@ -1410,6 +1442,7 @@ function leaveLedger(key, preC) {
   const curPool = [];
   for (let d = 1; d <= n; d++) {
     const r = mo.days[d]; if (!r) continue;
+    if (r.settle === 'cash') continue;   // 已指定折现：不参与调休配对/结转，直接折现计入本月加班费
     const h = hoursOf(key, d); if (h <= 0) continue;
     curPool.push({ y, m, d, h, t: dayType(key, d), reason: r.reason || '', used: [], left: h, earlier: false });
   }
@@ -1465,8 +1498,8 @@ function leaveLedger(key, preC) {
     l.short = r2.rem;
   });
   if (c.leaveShort > 0.001) warnings.push(`本月换休合计比可用加班时长多 ${hf(c.leaveShort)}h（引擎已标红提示）`);
-  // 调休有效期（按天）：加班/调休产生超过 N 天仍未换休核销的，强制折现计入加班费（不可结转）
-  // 以「加班产生日」为锚点，与用户何时换休无关；优先于下方「距换休日>30」窗口，避免重复统计
+  // 调休有效期（按产生日 + 有效期天数）：加班/调休产生超过 N 天仍未换休核销的，强制折现计入加班费（不可结转）
+  // 以「加班产生日」为锚点，与用户何时换休无关；统一口径，不再叠加「距换休日>30」的额外规则
   let expiredCash = 0; const expiredByType = { work: 0, rest: 0, holi: 0 };
   const EXP = +DB.settings.leaveExpireDays || 0;
   carryPool.concat(curPool).forEach(e => {
@@ -1475,18 +1508,12 @@ function leaveLedger(key, preC) {
       expiredByType[e.t] = +(expiredByType[e.t] + e.left).toFixed(2);
     }
   });
-  // 超 30 天仍未被消耗（距换休日>30 且该条未触发按天过期）的加班 → 自动记为加班费
-  let autoCash = 0; const autoCashByType = { work: 0, rest: 0, holi: 0 };
-  carryPool.concat(curPool).forEach(e => {
-    if (!e.expired && e.left > 0.001 && (ref - eDate(e)) / 86400000 > 30) {
-      e.cash = true; autoCash = +(autoCash + e.left).toFixed(2);
-      autoCashByType[e.t] = +(autoCashByType[e.t] + e.left).toFixed(2);
-    }
-  });
+  // 距换休日 >30 天的 autoCash 规则已移除，统一按产生日 EXP 天过期；autoCash 恒为 0 以保持返回结构兼容
+  const autoCash = 0; const autoCashByType = { work: 0, rest: 0, holi: 0 };
   const usedCarry = +carryPool.reduce((s, e) => s + (e.h - e.left), 0).toFixed(2);
   const usedCur = +curPool.reduce((s, e) => s + (e.h - e.left), 0).toFixed(2);
   const totalShort = +leaves.reduce((s, l) => s + l.short, 0).toFixed(2);
-  if (totalShort > c.leaveShort + 0.001) warnings.push(`按30天规则另有 ${hf(+(totalShort - c.leaveShort).toFixed(2))}h 换休找不到30天内的加班来源（对应加班已自动转加班费）`);
+  if (totalShort > c.leaveShort + 0.001) warnings.push(`另有 ${hf(+(totalShort - c.leaveShort).toFixed(2))}h 换休找不到可用加班来源（对应加班已自动转加班费）`);
   return { leaves, carryPool, curPool, usedCarry, usedCur, totalShort, autoCash, autoCashByType, expiredCash, expiredByType, warnings, c };
 }
 
@@ -1936,8 +1963,8 @@ function renderKPI() {
         : `<span class="muted">已用 ${hf(used)} / 可用 ${hf(budget)}</span>`;
       return { lb: '本月换休', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="15" height="14" rx="2"/><path d="M3.5 9.5h15"/><path d="M8 3.5v3"/><path d="M14 3.5v3"/><path d="M7.5 14l2 2 5-5"/></svg>', ac: '#12b76a', vl: hf(c.leaveTotal), u: '小时', df: df + bar, f: 'leave' };
     })(),
-    { lb: '结转下月', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11h13"/><path d="M13 6l4 5-4 5"/></svg>', ac: '#12b76a', vl: hf(c.carryOutTotal), u: '小时', df: `<span class="muted">${{ all: '全部结转', none: '全部折现', manual: '自定义' }[c.mode]}</span>`, f: 'carry' },
-    { lb: '折现时长', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5l10 12"/><path d="M16 5L6 17"/><path d="M5.5 11h11"/><path d="M5.5 14h11"/></svg>', ac: '#0ea5a4', vl: hf(c.cashTotal), u: '小时', df: `<span class="muted">${{ all: '全部结转', none: '全部折现', manual: '自定义' }[c.mode]}</span>`, f: 'cash' },
+    { lb: '结转下月', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11h13"/><path d="M13 6l4 5-4 5"/></svg>', ac: '#12b76a', vl: hf(c.carryOutTotal), u: '小时', df: `<span class="muted">${{ all: '全部结转', none: '全部折现', manual: '自定义' }[c.mode] || '待调休'}</span>`, f: 'carry' },
+    { lb: '折现时长', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5l10 12"/><path d="M16 5L6 17"/><path d="M5.5 11h11"/><path d="M5.5 14h11"/></svg>', ac: '#0ea5a4', vl: hf(c.cashTotal), u: '小时', df: `<span class="muted">${{ all: '全部结转', none: '全部折现', manual: '自定义' }[c.mode] || '待调休'}</span>`, f: 'cash' },
     { lb: '年假剩余', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="15" height="14" rx="2"/><path d="M3.5 9.5h15"/><path d="M8 3.5v3"/><path d="M14 3.5v3"/><rect x="8.5" y="12" width="5" height="3.5" rx="0.7" fill="currentColor"/></svg>', ac: '#7c3aed', vl: hf(annRemain), u: '天', df: `<span class="muted">额度 ${hf(annTotal)} 天</span>`, f: 'annual' },
     { lb: '餐补', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v3"/><path d="M9 4v3"/><path d="M5 7h4l-1 11h-2z" fill="currentColor" fill-opacity=".12"/><path d="M9 4l-1 3"/><rect x="11" y="7" width="9" height="11" rx="1.6"/><path d="M11 11h9"/></svg>', ac: '#f5a524', vl: money(c.mealPay).replace('¥', ''), u: '元', df: `<span class="lt">共 ${hf(c.mealCount)} 次</span>`, hl: 'blue', f: 'meal' },
     { lb: '加班费', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="16" height="11" rx="2"/><circle cx="15.5" cy="12.5" r="1.2" fill="currentColor"/><path d="M5 7l3-2h6l3 2"/></svg>', ac: '#ff7a18', vl: money(c.otPay).replace('¥', ''), u: '元', df: `<span class="lt">工 ${hf(c.gain.work)} 休 ${hf(c.gain.rest)} 节 ${hf(c.gain.holi)}</span>`, hl: 'orange', f: null, act: 'settle' }
@@ -1990,258 +2017,204 @@ function buildAlerts() {
   } else if (annTotal > 0 && annRemain <= 0) {
     out.push({ key: 'ann_done', cls: 'info', ic: '🗓', html: `年假额度（${hf(annTotal)} 天）已用尽。` });
   }
-  // 调休到期（估算：统计自 2026年7月，按有效期 N 个月推算）
-  const N = +DB.settings.leaveExpireMonths || 0;
-  const avail = c.availTotal;
-  if (N > 0 && avail > 0.001) {
-    const originKey = '2026-07';
-    const [oy, om] = originKey.split('-').map(Number);
-    const exp = monthEnd(oy, om, N);
-    const daysLeft = Math.round((exp - today0) / 86400000);
-    const originLbl = `${oy}年${om}月`;
-    const expLbl = `${exp.getFullYear()}-${pad(exp.getMonth() + 1)}-${pad(exp.getDate())}`;
-    if (daysLeft <= 30) {
-      out.push({ key: 'lv_warn_' + Math.round(avail), cls: 'lv', ic: '', html: `可调休约 <b>${hf(avail)}h</b> 将于 <b>${expLbl}</b> 到期（按 ${N} 个月有效期估算，还剩 ${daysLeft} 天），建议尽快使用。` });
+  // 调休到期提醒（按产生日 + leaveExpireDays 天有效期）：存在未调休加班且产生日距今 ≤ EXP 天时提醒
+  const EXP = +DB.settings.leaveExpireDays || 0;
+  if (EXP > 0) {
+    let nearestDays = Infinity, atRiskHours = 0;
+    try {
+      const L = leaveLedger(cur);
+      const pool = (L.carryPool || []).concat(L.curPool || []);
+      const eDate = e => new Date(e.y, e.m - 1, e.d || 1);
+      const [cy, cm] = cur.split('-').map(Number);
+      pool.forEach(e => {
+        if (e.expired || e.left <= 0.001) return;
+        // 已明确折现（按天标记 或 本月结算策略判定为折现）的加班不计入“可调休”预警
+        if (e.y === cy && e.m === cm && daySettleState(cur, e.d) === 'cash') return;
+        const daysPast = Math.floor((today0 - eDate(e)) / 86400000);
+        if (daysPast < EXP) {
+          atRiskHours = +(atRiskHours + e.left).toFixed(2);
+          const left = EXP - daysPast;
+          if (left < nearestDays) nearestDays = left;
+        }
+      });
+    } catch (e) {}
+    if (atRiskHours > 0.001 && nearestDays !== Infinity) {
+      out.push({ key: 'lv_warn_' + Math.round(atRiskHours), cls: 'lv', ic: '', html: `可调休约 <b>${hf(atRiskHours)}h</b> 将于 <b>${nearestDays} 天</b> 后到期（按产生日 ${EXP} 天有效期），建议尽快使用。` });
     }
   }
   return out;
 }
 
-let lvExpanded = false; // 调休预警展开状态（不持久化，刷新即收起）
 
 function renderAlerts() {
   const el = $('#alerts'); if (!el) return;
   const read = DB.settings.alertRead || [];
   const list = buildAlerts().filter(a => a.key.startsWith('lv_warn_') || !read.includes(a.key)); // 可调休提醒不做「已读」隐藏，始终显示
-  el.innerHTML = list.map(a => {
-    const isLv = a.key.startsWith('lv_warn_');
-    const roleAttr = isLv ? ` role="button" tabindex="0" aria-expanded="${lvExpanded ? 'true' : 'false'}"` : '';
-    const clickAttr = isLv ? ` onclick="toggleLvDetail()"` : '';
-    const clsExtra = isLv ? (lvExpanded ? ' clickable expanded' : ' clickable') : '';
-    const caret = isLv ? '<span class="caret">▾</span>' : '';
-    const hint = isLv ? `<span class="hint">点击展开明细</span>` : '';
-    const titleAttr = isLv ? ' title="点击查看调休来源明细"' : '';
-    return `<div class="alert ${a.cls}${clsExtra}"${clickAttr}${roleAttr}${titleAttr}>
+  // 调休预警明细已整合进明细表格「调休状态」列，顶部横幅仅作提醒，不再展开面板
+  el.innerHTML = list.map(a => `<div class="alert ${a.cls}">
       ${a.ic ? `<span class="ai">${a.ic}</span>` : ''}
       <div>${a.html}</div>
-      ${hint}
-      ${caret}
-      ${isLv ? '' : `<button class="alert-x" onclick="event.stopPropagation();dismissAlert('${a.key}')" title="已读，不再提示">✓</button>`}
-    </div>`;
-  }).join('');
-  if (lvExpanded) {
-    const wrap = document.createElement('div');
-    wrap.id = 'lvDetail';
-    wrap.innerHTML = buildLvDetail();
-    el.appendChild(wrap);
-  }
+      ${a.key.startsWith('lv_warn_') ? '' : `<button class="alert-x" onclick="event.stopPropagation();dismissAlert('${a.key}')" title="已读，不再提示">✓</button>`}
+    </div>`).join('');
 }
 function dismissAlert(k) {
   const read = DB.settings.alertRead = DB.settings.alertRead || [];
   if (!read.includes(k)) read.push(k);
-  // 调休预警被关掉时，连带收起详情面板，避免详情孤儿漂浮
-  if (k.startsWith('lv_warn_')) lvExpanded = false;
   save(false);
   renderAlerts();
 }
-function toggleLvDetail() {
-  lvExpanded = !lvExpanded;
-  renderAlerts();
+
+/* 单日加班的实际结转/折现去向：'cash'=已/将折现、'carry'=已/将结转下月、null=仍可调休(未决定且未到期)。
+   已显式决策（一键结转/折现 或 结算面板 manual）才给出明确去向；未显式决策的默认月：未到期按「待调休」展示，
+   已到期（超调休有效期）自动判为「已折现」。口径与 compute() 逐日结转循环一致。 */
+let _effLcache = { key: null, L: null };
+function daySettleState(key, d) {
+  const mo = M(key), r = mo.days[d] || {};
+  if (r.settle === 'cash') return 'cash';
+  if (r.settle === 'carry') return 'carry';
+  const h = hoursOf(key, d);
+  if (h <= 0) return null;
+  const t = dayType(key, d);
+  let left = h, expired = false;
+  try {
+    const _expKey = key + '|' + (+DB.settings.leaveExpireDays || 0);   // 缓存键含有效期天数：改「调休有效期」后失效重算
+    if (_effLcache.key !== _expKey) _effLcache = { key: _expKey, L: leaveLedger(key) };
+    const e = (_effLcache.L.curPool || []).find(x => x.d === d && x.y === +key.split('-')[0] && x.m === +key.split('-')[1]);
+    if (e) { left = e.left; expired = !!e.expired; }
+  } catch (e2) {}
+  if (left <= 0.001) return null;                       // 已全部核销，无剩余需结转/折现
+  if (expired) return 'cash';                           // 超有效期未核销 → 自动折现计入加班费（已折现）
+  // 未显式决策：carryMode 未设定 或 沿用系统默认 workOnly（仅工作日结转、双休/节假日默认折现）均视为「未决定」，
+  // 未到期按「待调休」展示，不提前决定去向；已到期已在上面判为「已折现」。
+  // 只有用户显式点过「一键结转/折现」(all/none) 或逐日(settle)选了结转/折现，或设为 manual，才给出明确去向。
+  if (mo.carryMode === undefined || mo.carryMode === 'workOnly') return null;
+  const mode = mo.carryMode;
+  if (t === 'work') return mode === 'none' ? 'cash' : 'carry';   // 工作日：none 才折现，否则结转
+  if (mode === 'all') return 'carry';                   // 一键结转 / 全部结转：双休节假日也结转
+  if (mode === 'none') return 'cash';                   // 全部折现
+  if (mode === 'manual') return (+((mo.carryOutManual || {})[t]) || 0) > 0 ? 'carry' : 'cash';
+  return 'cash';
 }
-/* 调休预警展开明细：列出每个月的加班日 + 换休日，方便知道 21h 是从哪天累计来的 */
-function buildLvDetail() {
+
+function lvStateMap() {
+  // 整合自原「调休预警明细」：跨 上月+本月 计算每一条加班日的核销/结转/到期状态
   const c = compute(cur);
-  const N = +DB.settings.leaveExpireMonths || 0;
-  if (N <= 0) return '';
-  const originKey = '2026-07';
-  const [oy, om] = originKey.split('-').map(Number);
-  const [cy, cm] = cur.split('-').map(Number);
-  const exp = monthEnd(oy, om, N);
-  const expLbl = `${exp.getFullYear()}-${pad(exp.getMonth() + 1)}-${pad(exp.getDate())}`;
+  const EXP = +DB.settings.leaveExpireDays || 0;
   const now = new Date();
   const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  // 遍历从 origin → 当前月的所有月份
   const months = [];
-  for (let y = oy, m = om; y < cy || (y === cy && m <= cm); ) {
-    months.push(y + '-' + pad(m));
-    m++; if (m > 12) { m = 1; y++; }
-  }
-  // 跨月收集「被换休核销的加班日」：doneMap[mk][d] = {used,total,byLeaves,fromCarry,expired}
-  //   byLeaves  = 本加班日被哪些换休日消耗了 [{ leaveKey, leaveD, take }]
-  //   fromCarry = 该 OT 来源是上月结转池（true）还是当月加班池（false）
-  //   expired   = 被自动折现（expiredCash / cash），也算"已核销"语义
-  // 同步收集 restSrcMap[mk][d] = [{y,m,d,take,manual}] —— 换休日从哪些加班日拉过来
-  const doneMap = {};
-  const restSrcMap = {};
+  const pk = prevKey(cur);
+  if (DB.months[pk]) months.push(pk);
+  months.push(cur);
+  const doneMap = {}, restSrcMap = {};
   const markDone = (mk, d, used, total, byLeaves, fromCarry, expired) => {
     if (!doneMap[mk]) doneMap[mk] = {};
     const prev = doneMap[mk][d];
     if (!prev) doneMap[mk][d] = { used: +used, total: +total, byLeaves: (byLeaves || []).slice(), fromCarry: !!fromCarry, expired: !!expired };
-    else {
-      prev.used = +(prev.used + used).toFixed(2);
-      prev.total = +(prev.total + total).toFixed(2);
-      (byLeaves || []).forEach(x => prev.byLeaves.push(x));
-      prev.fromCarry = prev.fromCarry || !!fromCarry;
-      prev.expired = prev.expired || !!expired;
-    }
+    else { prev.used = +(prev.used + used).toFixed(2); prev.total = +(prev.total + total).toFixed(2); (byLeaves || []).forEach(x => prev.byLeaves.push(x)); prev.fromCarry = prev.fromCarry || !!fromCarry; prev.expired = prev.expired || !!expired; }
   };
-  const addRestSrc = (mk, d, src) => {
-    if (!restSrcMap[mk]) restSrcMap[mk] = {};
-    if (!restSrcMap[mk][d]) restSrcMap[mk][d] = [];
-    restSrcMap[mk][d].push(src);
-  };
+  const addRestSrc = (mk, d, src) => { if (!restSrcMap[mk]) restSrcMap[mk] = {}; if (!restSrcMap[mk][d]) restSrcMap[mk][d] = []; restSrcMap[mk][d].push(src); };
   months.forEach(k => {
     let lg = null;
     try { lg = leaveLedger(k); } catch (e) { lg = null; }
     if (!lg) return;
-    // 当月加班池：left < h → 被当月换休 / 过期 / 自动 cash
     (lg.curPool || []).forEach(e => {
       if (e.left > e.h - 0.001) return;
       const used = +(e.h - e.left).toFixed(2);
       const byLeaves = (e.used || []).map(u => ({ leaveKey: k, leaveD: u.l.d, take: +u.take }));
-      markDone(k, e.d, used, e.h, byLeaves, false, !!(e.expired || e.cash));
+      markDone(k, e.d, used, e.h, byLeaves, false, !!e.expired);
     });
-    // 结转池：left 归零 → 上月结转到本月的加班被本月换休消耗/过期/cash（来源月 = e.y/e.m）
     (lg.carryPool || []).forEach(e => {
       const mk = e.y + '-' + pad(e.m);
-      if (e.left > e.h - 0.001) {
-        // carry 池中未被消费的余额 → 标 fromCarry = true、used = 0（供 renderer 显示"已结转"）
-        markDone(mk, e.d, 0, e.h, [], true, false);
-        return;
-      }
+      if (e.left > e.h - 0.001) { markDone(mk, e.d, 0, e.h, [], true, false); return; }
       const used = +(e.h - e.left).toFixed(2);
       const byLeaves = (e.used || []).map(u => ({ leaveKey: k, leaveD: u.l.d, take: +u.take }));
-      markDone(mk, e.d, used, e.h, byLeaves, true, !!(e.expired || e.cash));
+      markDone(mk, e.d, used, e.h, byLeaves, true, !!e.expired);
     });
-    // 换休行的加班来源：l.pairs（l=换休日，e=加班日）
     (lg.leaves || []).forEach(l => {
       if (!l.pairs || !l.pairs.length) return;
-      l.pairs.forEach(p => {
-        addRestSrc(k, l.d, { y: p.e.y, m: p.e.m, d: p.e.d, take: +p.take, manual: !!p.manual, earlier: !!p.e.earlier });
-      });
+      l.pairs.forEach(p => { addRestSrc(k, l.d, { y: p.e.y, m: p.e.m, d: p.e.d, take: +p.take, manual: !!p.manual, earlier: !!p.e.earlier }); });
     });
   });
-  const blocks = months.map(k => {
-    const n = daysIn(k);
-    const days = (M(k) || {}).days || {};
-    const rows = []; let gainSum = 0, leaveSum = 0;
-    const [ky, km] = k.split('-').map(Number);
-    const dm = doneMap[k] || {};
-    const rsm = restSrcMap[k] || {};
-    for (let d = 1; d <= n; d++) {
-      const rowDate = new Date(ky, km - 1, d); rowDate.setHours(0, 0, 0, 0);
-      if ((today0 - rowDate) / 86400000 > 30) continue;   // 距今天 30 天外的行不显示
-      const r = days[d]; if (!r) continue;
-      const h = hoursOf(k, d);
-      const lv = +r.leaveH || 0;
-      if (h > 0) {
-        const info = dm[d];
-        const used = info ? info.used : 0;           // 已被换休核销的部分
-        const fromCarry = !!(info && info.fromCarry); // 来源是否上月结转池
-        const isExpired = !!(info && info.expired);   // expired / cash 折现
-        const fullyDone = info && used >= h - 0.001;  // 全额核销
-        const partial = info && used > 0.001 && used < h - 0.001; // 部分核销
-        // 加班日唯一标识（用于跨行点击跳转）：ot-{mk}-{d}
-        const byLeaves = info ? info.byLeaves : [];
-        // 状态分类：carry 池已消费 / carry 池活余额 / cur 池已消费 / cur 池活
-        const tag = fromCarry
-          ? (fullyDone ? 'carryDone' : (partial ? 'carryPartial' : 'carryLive'))
-          : (fullyDone ? 'done' : (partial ? 'partial' : 'live'));
-        rows.push({ d, kind: 'ot', h, rsn: r.reason || '', tag, used, byLeaves, isExpired, otId: `ot-${k}-${d}` });
-        gainSum += h;
-      }
-      else if (lv > 0) {
-        const sources = rsm[d] || [];
-        // 换休日唯一标识：lv-{mk}-{d}
-        rows.push({ d, kind: 'lv', h: lv, rsn: r.leaveReason || r.reason || '', sources, lvId: `lv-${k}-${d}` });
-        leaveSum += lv;
-      }
-    }
-    rows.sort((a, b) => a.d - b.d);
-    return { k, rows, gainSum, leaveSum };
-  });
-  const html = blocks.map(b => {
-    const [y, m] = b.k.split('-').map(Number);
-    let sub = `加班 ${hf(b.gainSum)}h`;
-    if (b.leaveSum > 0) sub += ` · 换休 ${hf(b.leaveSum)}h`;
-    const inner = !b.rows.length
-      ? `<div class="lv-row empty">（本月暂无加班 / 换休记录）</div>`
-      : b.rows.map(row => {
-        const wd = WD[new Date(y, m - 1, row.d).getDay()];
-        const tag = row.kind === 'ot' ? '加班' : '换休';
-        const doneCls = row.kind === 'ot' && row.tag !== 'live' ? ' ' + row.tag : '';
-        let doneTag = '';
-        // 加班行：四种角标文案 + chips
-        if (row.kind === 'ot' && row.tag === 'done') doneTag = '<span class="donetag">已核销</span>';
-        else if (row.kind === 'ot' && row.tag === 'partial') doneTag = `<span class="donetag">已核销 ${hf(row.used)}/${hf(row.h)}h</span>`;
-        else if (row.kind === 'ot' && row.tag === 'carryDone') doneTag = `<span class="donetag">已结转核销${row.isExpired ? '（自动折现）' : ''}</span>`;
-        else if (row.kind === 'ot' && row.tag === 'carryPartial') doneTag = `<span class="donetag">已结转核销 ${hf(row.used)}/${hf(row.h)}h</span>`;
-        else if (row.kind === 'ot' && row.tag === 'carryLive') doneTag = '<span class="donetag">已结转</span>';
-        let linkTag = '';
-        if (row.kind === 'ot' && row.byLeaves && row.byLeaves.length) {
-          // 同一天可能被多笔换休共同消费，按 leaveKey+leaveD 合并显示
-          const grouped = {};
-          row.byLeaves.forEach(b2 => {
-            const key = b2.leaveKey + '|' + b2.leaveD;
-            grouped[key] = (grouped[key] || 0) + b2.take;
-          });
-          const chips = Object.keys(grouped).map(key => {
-            const [lk, ld] = key.split('|');
-            const [ly, lm] = lk.split('-').map(Number);
-            return `<span class="lv-link lv" onclick="lvLinkJump('lv-${lk}-${ld}', this)" title="点击跳到 ${lm}/${pad(+ld)} 换休行">→ ${lm}/${pad(+ld)} 换 ${hf(grouped[key])}h</span>`;
-          }).join('');
-          linkTag = `<span class="lv-links">${chips}</span>`;
-        }
-        else if (row.kind === 'lv' && row.sources && row.sources.length) {
-          // 换休行：「从哪些加班拉过来」链接 chips
-          const chips = row.sources.map(s => {
-            const lbl = s.earlier ? '更早结转' : `${s.m}/${pad(s.d)}`;
-            const targetOt = s.earlier ? '' : `ot-${s.y}-${pad(s.m)}-${s.d}`;
-            const cls = s.manual ? 'lv-link man' : 'lv-link';
-            const tip = s.earlier ? '更早月份的结转池（无具体日期）' : `点击跳到 ${lbl} 加班行`;
-            const onclk = s.earlier ? '' : `onclick="lvLinkJump('${targetOt}', this)"`;
-            return `<span class="${cls}" ${onclk} title="${tip}">← ${lbl} 加 ${hf(s.take)}h</span>`;
-          }).join('');
-          linkTag = `<span class="lv-links">${chips}</span>`;
-        }
-        const idAttr = row.otId ? ` id="${row.otId}"` : (row.lvId ? ` id="${row.lvId}"` : '');
-        return `<div class="lv-row ${row.kind}${doneCls}"${idAttr}>
-          <span class="d">${m}/${pad(row.d)}</span>
-          <span class="w">周${wd}</span>
-          <span class="h">${tag} ${hf(row.h)}h</span>
-          <span class="rsn">${esc(row.rsn || (row.kind === 'ot' ? '（未填事由）' : '调休'))}</span>${doneTag}${linkTag}
-        </div>`;
-      }).join('');
-    return `<div class="lv-month">
-      <div class="lv-month-hd"><span class="dot"></span>${y}年${m}月<span class="sub">${sub}</span></div>
-      <div class="lv-list">${inner}</div>
-    </div>`;
-  }).join('');
-  return `<div class="lv-detail">
-    <div class="lv-detail-hd">
-      <b>📋 可调休 ${hf(c.availTotal)}h 来源明细</b>
-      <span class="meta">将于 ${expLbl} 到期 · 按 FIFO 消耗</span>
-    </div>
-    ${html}
-    <div class="lv-ft">💡 剩余 ${hf(c.availTotal)}h 由 ${oy}年${om}月 起的加班累计扣除换休后跨月结转形成；系统按时间从远到近使用，先到期先消耗。</div>
-  </div>`;
+  return { doneMap, restSrcMap, EXP, today0 };
 }
 
-/* 「来源明细」面板：加班 ↔ 换休 链接 chip 跳转：滚到目标行 + 短暂闪烁高亮 */
-function lvLinkJump(targetId, src) {
-  const tgt = document.getElementById(targetId);
-  if (!tgt) return;
-  tgt.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  document.querySelectorAll('.lv-row.lv-flash').forEach(el => { el.classList.remove('lv-flash'); void el.offsetWidth; });
-  void tgt.offsetWidth;
-  tgt.classList.add('lv-flash');
-  setTimeout(() => tgt.classList.remove('lv-flash'), 1500);
-  if (src && src.closest) {
-    const pop = src.closest('.lsel-pop');
-    if (pop) pop.hidden = true;
+/* 明细表格「调休状态」列徽章：整合自原调休预警明细的每行状态；点击可触发结算/快捷记调休 */
+function otStatBadge(tag, h, used, near, nearDays, isExpired, y, m, d, EXP) {
+  const genDate = m + '/' + pad(d);
+  let expLbl = '—';
+  if (EXP > 0) { const ed = new Date(y, m - 1, d); ed.setHours(0, 0, 0, 0); ed.setDate(ed.getDate() + EXP); expLbl = ed.getFullYear() + '-' + pad(ed.getMonth() + 1) + '-' + pad(ed.getDate()); }
+  let txt, cls, title, act = '';
+  if (tag === 'done') { txt = '已核销'; cls = 'done'; title = '产生日 ' + genDate + '（' + hf(h) + 'h）已全部核销，已抵扣调休'; act = 'panel'; }
+  else if (tag === 'partial') { txt = '已核销 ' + hf(used) + '/' + hf(h) + 'h'; cls = 'done'; title = '产生日 ' + genDate + '（' + hf(h) + 'h）已核销 ' + hf(used) + 'h，剩 ' + hf(+(h - used).toFixed(2)) + 'h 未调休'; act = 'panel'; }
+  else if (tag === 'carryDone') { txt = '已结转核销' + (isExpired ? '（折现）' : ''); cls = 'carrdone'; title = '来源上月结转（' + hf(h) + 'h）' + (isExpired ? '已超期自动折现' : '已全部核销'); act = 'panel'; }
+  else if (tag === 'carryPartial') { txt = '已结转核销 ' + hf(used) + '/' + hf(h) + 'h'; cls = 'carrdone'; title = '来源上月结转（' + hf(h) + 'h）已核销 ' + hf(used) + 'h'; act = 'panel'; }
+  else if (tag === 'carryLive') { txt = '已结转'; cls = 'carrlive'; title = '来源上月结转（' + hf(h) + 'h）尚未调休，可继续抵扣调休。点击直接记调休以结算此笔加班'; act = 'settle'; }
+  else if (tag === 'leave') { txt = '调休'; cls = 'leave'; title = '当日为调休日（消耗对应加班时长），点击查看核销配对'; act = 'panel'; }
+  else if (tag === 'fcash') { txt = '已折现'; cls = 'cashed'; title = '已指定折现（立即转加班费），不参与结转/调休。点击可改回结转到下月'; act = 'menu'; }
+  else if (tag === 'fcarry') { txt = '将结转'; cls = 'carrlive'; title = '已指定结转到下月。点击可改为折现或恢复默认'; act = 'menu'; }
+  else if (near) { txt = '剩 ' + nearDays + ' 天到期'; cls = 'near'; title = '产生日 ' + genDate + '（' + hf(h) + 'h）未调休，将于 ' + expLbl + ' 到期（剩 ' + nearDays + ' 天），超期自动转加班费。点击选择「结转到下月 / 折现」'; act = 'menu'; }
+  else { txt = '待调休'; cls = 'live'; title = '产生日 ' + genDate + '（' + hf(h) + 'h）未调休，有效期至 ' + expLbl + '。点击选择「结转到下月 / 折现」'; act = 'menu'; }
+  if (!act) return '<span class="otstat ' + cls + '" title="' + title + '">' + txt + '</span>';
+  const attr = ' data-d="' + d + '" data-act="' + act + '" onclick="onOtStatClick(this)" role="button" tabindex="0" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();onOtStatClick(this)}"';
+  return '<span class="otstat ' + cls + ' clickable"' + attr + ' title="' + title + '">' + txt + '</span>';
+}
+
+/* 调休状态列点击分发：未核销行 → 弹「结转到下月/折现」小菜单；已结转行 → 快捷记调休；已结算/调休日 → 打开当月结算面板 */
+function onOtStatClick(el) {
+  const d = el.dataset.d, act = el.dataset.act;
+  if (!d) return;
+  if (act === 'menu') {
+    showSettleMenu(el, d);
+  } else if (act === 'settle') {
+    const row = document.querySelector('tr[data-d="' + d + '"]');
+    if (row) {
+      const circles = row.querySelector('.lsel-circles');   // 仅工作日行有可点的调休录入框
+      if (circles) { row.scrollIntoView({ block: 'center' }); circles.click(); return; }
+    }
+    toast('该日为双休/节假日加班，无调休录入框，已打开当月结算面板（请在任意工作日记调休以结算）');
+    openMonthSettle(cur);
+  } else if (act === 'panel') {
+    openMonthSettle(cur);
   }
 }
 
+/* 调休状态列「待调休/剩N天/已折现/将结转」点击：弹出小菜单，选择按天结转或折现 */
+function showSettleMenu(el, d) {
+  const mo = M(cur), r = mo.days[d] || (mo.days[d] = {});
+  let pop = document.getElementById('settleMenu');
+  if (pop) pop.remove();
+  pop = document.createElement('div');
+  pop.id = 'settleMenu';
+  pop.className = 'settle-menu';
+  const curSettle = r.settle || '';
+  const opt = (val, label, on, hint) => `<button type="button" class="sm-opt${on ? ' on' : ''}" data-v="${val}"><b>${label}</b>${hint ? '<span>' + hint + '</span>' : ''}</button>`;
+  pop.innerHTML = `<div class="sm-hd">${curSettle ? '调休处理（已选：' + (curSettle === 'cash' ? '折现' : '结转下月') + '）' : '选择该笔加班的处理方式'}</div>`
+    + opt('carry', '结转到下月', curSettle === 'carry', '保留到下月继续抵扣调休')
+    + opt('cash', '折现', curSettle === 'cash', '立即转本月加班费')
+    + opt('', '恢复默认', !curSettle, '按当月结转规则处理')
+    + '<button type="button" class="sm-cancel">取消</button>';
+  document.body.appendChild(pop);
+  const rb = el.getBoundingClientRect();
+  const pw = pop.offsetWidth, ph = pop.offsetHeight, gap = 6;
+  let top = rb.bottom + gap, left = rb.left + rb.width / 2 - pw / 2;
+  if (top + ph > window.innerHeight - 6) top = Math.max(6, rb.top - ph - gap);
+  left = Math.max(6, Math.min(window.innerWidth - pw - 6, left));
+  pop.style.top = top + 'px'; pop.style.left = left + 'px';
+  const close = () => { pop.remove(); document.removeEventListener('click', outside, true); document.removeEventListener('keydown', onKey); };
+  const outside = e => { if (!pop.contains(e.target) && e.target !== el) close(); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  pop.addEventListener('click', e => {
+    const b = e.target.closest('.sm-opt, .sm-cancel'); if (!b) return;
+    if (b.classList.contains('sm-cancel')) { close(); return; }
+    const v = b.dataset.v;
+    if (v) r.settle = v; else delete r.settle;
+    save(); close(); renderKPI(); renderBody(); renderAlerts();
+    toast(v === 'cash' ? '已设为折现（立即转本月加班费）' : (v === 'carry' ? '已设为结转到下月' : '已恢复按当月结转规则'));
+  });
+  document.addEventListener('click', outside, true);
+  document.addEventListener('keydown', onKey);
+}
 function renderBody() {
   renderAlerts();  // 实时刷新调休/年假预警条（任何数据变更后立即重算）
   const f = { cal: viewCal, list: viewList, sum: viewSum, set: viewSet }[tab];
@@ -2320,9 +2293,9 @@ function panel(c) {
         ${row('<span class="op">−</span> 本月换休', `<span class="${c.leaveTotal ? '' : 'zero'}">${hf(c.leaveTotal)} h</span>`)}
         ${row('<span class="op">＝</span> 可支配时长', `<b>${hf(c.availTotal)} h</b>`)}
         ${row('<span class="op">−</span> 结转下月', `<span id="carryOutVal" class="${c.carryOutTotal ? '' : 'zero'}">${hf(c.carryOutTotal)} h</span>`)}
-        <div class="flow-row tot"><div class="k">本月折现时长</div><div class="v" id="cashChainVal">${hf((c.autoCash + c.expiredCash))} h</div></div>
+        <div class="flow-row tot"><div class="k">本月折现时长</div><div class="v" id="cashChainVal">${hf(c.expiredCash)} h</div></div>
         ${c.leaveShort > 0 ? `<div style="margin-top:10px;font-size:12px;color:#c0393d;background:#fef2f2;padding:8px 10px;border-radius:8px">⚠️ 换休比可用加班时长多 ${hf(c.leaveShort)} 小时，请核对。</div>` : ''}
-        ${c.lvExpired && c.lvExpiredCash > 0 ? `<div style="margin-top:10px;font-size:12px;color:#c0393b;background:#fef2f2;padding:8px 10px;border-radius:8px">⌛ 调休已过期，未休完的 <b>${hf(c.lvExpiredCash)}h</b> 已自动折现计入本月加班费。</div>` : ''}
+        ${c.expiredCash > 0.001 ? `<div style="margin-top:10px;font-size:12px;color:#c0393b;background:#fef2f2;padding:8px 10px;border-radius:8px">⌛ 超 ${Math.round(+DB.settings.leaveExpireDays || 0)} 天未换休的加班 <b>${hf(c.expiredCash)}h</b> 已自动折现计入本月加班费。</div>` : ''}
         ${(() => { const bs = leaveBreakdown(cur); return bs ? `<div style="margin-top:10px;font-size:12px;color:#5b6478;background:#f6f8fc;border:1px dashed #d7deea;padding:8px 10px;border-radius:8px;cursor:pointer" onclick="openMonthSettle('${cur}')" role="button" tabindex="0" title="点击打开本月加班结算（加班费 / 结转下月 / 换休核销）"><b>调休对应：</b>${bs}<span style="color:var(--brand);margin-left:6px;white-space:nowrap">查看核销 ▸</span></div>` : ''; })()}
       </div>
     </div>
@@ -2353,6 +2326,7 @@ function otCard(c) {
 /* ------------------------- 明细视图 ------------------------- */
 function viewList() {
   const n = daysIn(cur), mo = M(cur);
+  const lvSM = lvStateMap();   // 整合自原调休预警明细：本月每行加班日的核销/结转/到期状态
   // 上月结转视图：cur 已跳到「上一月」，反推该月哪些加班日实际构成了「下月结转来源」
   // 口径与 compute 内部 prevRemain 归属一致：按 工作日→双休日→节假日 类型顺序，同类型内按日期降序（FIFO 下剩余的是较晚加班）
   let carryInShow = null;   // d → 该日加班时长中被结转给下月的部分
@@ -2434,7 +2408,50 @@ function viewList() {
     <td class="center leave-col gap-r">${restPicker(r.leaveH, r.annual, r.outing, isWork)}</td>
       <td class="center"><span class="rcell"><input class="cellin lr-${(+r.outing > 0) ? 'ot' : ((+r.annual > 0) ? 'an' : ((+r.leaveH > 0) ? 'lv' : ''))}" data-f="leaveReason" value="${esc(r.leaveReason)}" placeholder="事由" style="min-width:110px;text-align:center"><span class="ca ca-copy" title="复制事由">⧉</span><span class="ca ca-clr" title="清除事由">×</span></span></td>
       ${mealCell}
-      <td class="center"><button class="oa-btn ${r.oa ? 'on' : ''}" data-f="oa">${r.oa ? '✅' : '○'}</button></td>
+      ${(() => {
+        const h = hoursOf(cur, d);
+        const dm = lvSM.doneMap[cur] || {};
+        const info = dm[d];
+        let st;
+        if (carryInView) {
+          st = otStatBadge('carryLive', h, 0, false, 0, false, y, m, d, lvSM.EXP);
+        } else if (r.settle === 'cash') {
+          st = otStatBadge('fcash', h, 0, false, 0, false, y, m, d, lvSM.EXP);
+        } else if (r.settle === 'carry') {
+          st = otStatBadge('fcarry', h, 0, false, 0, false, y, m, d, lvSM.EXP);
+      } else if (h > 0) {
+        const used = info ? info.used : 0;
+        const fromCarry = !!(info && info.fromCarry);
+        const isExpired = !!(info && info.expired);
+        const fullyDone = info && used >= h - 0.001;
+        const partial = info && used > 0.001 && used < h - 0.001;
+        let tag, near = false, nearDays = 0;
+        if (fullyDone) {
+          tag = fromCarry ? 'carryDone' : 'done';
+        } else {
+          // 仍有剩余未核销：按本月结转策略判定剩余工时的实际去向（结转 / 折现）
+          const eff = fromCarry ? null : daySettleState(cur, d);   // 'cash' | 'carry' | null(仍可调休)
+          if (eff === 'cash') {
+            tag = 'fcash';
+          } else if (eff === 'carry') {
+            tag = partial ? 'partial' : 'fcarry';
+          } else {
+            tag = fromCarry ? (partial ? 'carryPartial' : 'carryLive') : (partial ? 'partial' : 'live');
+            if (lvSM.EXP > 0 && (tag === 'live' || tag === 'carryLive')) {
+              const rowDate = new Date(y, m - 1, d); rowDate.setHours(0, 0, 0, 0);
+              const dp = (lvSM.today0 - rowDate) / 86400000;
+              if (dp >= lvSM.EXP - 7 && dp < lvSM.EXP) { near = true; nearDays = Math.max(1, Math.ceil(lvSM.EXP - dp)); }
+            }
+          }
+        }
+        st = otStatBadge(tag, h, used, near, nearDays, isExpired, y, m, d, lvSM.EXP);
+      } else if ((+r.leaveH || 0) > 0) {
+          st = otStatBadge('leave', 0, 0, false, 0, false, y, m, d, lvSM.EXP);
+        } else {
+          st = '<span class="otstat none">—</span>';
+        }
+        return `<td class="center otstat-cell">${st}</td>`;
+      })()}
     </tr>`;
   }
   if (carryInView) {
@@ -2452,18 +2469,70 @@ function viewList() {
       <button class="btn sm" onclick="exitCarryInView()" title="返回当前月份">← 返回 ${nk.replace('-', ' 年 ')} 月</button>
     </div>`;
   } else {
+    const cm0 = M(cur), curCarryMode = cm0.carryMode || 'workOnly';
+    const carryActive = !!(cm0._prevCarry && curCarryMode === 'all');
+    const cashActive = !!(cm0._prevCarry && curCarryMode === 'none');
     head = `<div class="card-h"><h3>${cur.replace('-', ' 年 ')} 月明细</h3>
       <span class="spacer"></span>
       <button class="btn sm ot-settle" onclick="openMonthSettle('${cur}')" title="本月加班结算：加班费 / 结转下月 / 换休核销">结算</button>
+      <button class="btn sm carry-btn${carryActive ? ' active' : ''}" onclick="oneClickCarry('${cur}')" title="一键将本月未单独标记的加班结转到下月（再次点击可取消，恢复一键前设置）">结转</button>
+      <button class="btn sm cash-btn${cashActive ? ' active' : ''}" onclick="oneClickCash('${cur}')" title="一键将本月未单独标记的加班折算为加班费（再次点击可取消，恢复一键前设置）">折现</button>
     </div>`;
   }
   return `<div class="card">
     ${head}
     <div class="dt-wrap"><table class="dt">
-      <thead><tr><th class="center" style="min-width:104px">日期</th><th class="center" style="min-width:66px">开始</th><th class="center" style="min-width:66px">结束</th><th class="center gap-r" style="min-width:70px">时长</th><th class="center" style="min-width:150px">事由</th><th class="center leave-col gap-r" style="min-width:110px"><span style="color:#12b76a">换休</span>·<span style="color:#7c3aed">年假</span>·<span style="color:#a9744f">外出</span></th><th class="center" style="min-width:80px">事由</th><th class="center" style="min-width:66px">餐补</th><th class="center" style="min-width:56px">OA</th></tr></thead>
+      <thead><tr><th class="center" style="min-width:104px">日期</th><th class="center" style="min-width:66px">开始</th><th class="center" style="min-width:66px">结束</th><th class="center gap-r" style="min-width:70px">加班</th><th class="center" style="min-width:150px">事由</th><th class="center leave-col gap-r" style="min-width:110px"><span style="color:#12b76a">换休</span>·<span style="color:#7c3aed">年假</span>·<span style="color:#a9744f">外出</span></th><th class="center" style="min-width:80px">事由</th><th class="center" style="min-width:66px">餐补</th><th class="center" style="min-width:88px">调休状态</th></tr></thead>
       <tbody id="dtb">${rows}</tbody>
     </table></div>
   </div>`;
+}
+
+/* 一键结转 / 一键折现：仅对未单独标记「结转 / 折现」的日期做批量操作（已单独标记的天保持不变；需二次确认）。
+   再次点击同一按钮 = 取消，恢复到一键前的结转设置（carryMode + 自定义上限）。用 mo._prevCarry 记录一键前快照。 */
+function oneClickCarry(key) {
+  const mo = M(key), cur = mo.carryMode || 'workOnly';
+  if (mo._prevCarry && cur === 'all') { oneClickCancel(key, 'all', '取消一键结转', '取消结转'); return; }
+  applyOneClick(key, 'all', '一键结转下月', '一键结转',
+    `将「${key.replace('-', ' 年 ')} 月」中未单独设置「结转 / 折现」的加班统一结转到下月。已单独标记的天保持不变。确认继续？`,
+    c => '已一键结转下月：' + hf(c.carryOutTotal) + ' h');
+}
+function oneClickCash(key) {
+  const mo = M(key), cur = mo.carryMode || 'workOnly';
+  if (mo._prevCarry && cur === 'none') { oneClickCancel(key, 'none', '取消一键折现', '取消折现'); return; }
+  applyOneClick(key, 'none', '一键折现', '一键折现',
+    `将「${key.replace('-', ' 年 ')} 月」中未单独设置「结转 / 折现」的加班折算为本月加班费。已单独标记的天保持不变。确认继续？`,
+    c => '已一键折现：' + hf(c.cashTotal) + ' h（¥' + fx(c.otPay) + '）');
+}
+function applyOneClick(key, target, title, okText, msg, okToast) {
+  const mo = M(key);
+  mo._prevCarry = { mode: mo.carryMode || 'workOnly', wasDefault: mo.carryMode === undefined, manual: mo.carryOutManual ? { ...mo.carryOutManual } : undefined };
+  confirmDialog({
+    title, okText, msg,
+    onOk: () => {
+      mo.carryMode = target;
+      delete mo.carryOutManual;
+      save(); renderKPI(); renderBody(); renderAlerts();
+      toast(okToast(compute(key)));
+    }
+  });
+}
+function oneClickCancel(key, target, title, okText) {
+  const mo = M(key);
+  const prev = mo._prevCarry || { mode: 'manual', manual: undefined };
+  const prevLbl = prev.mode === 'manual' ? '自定义' : (prev.mode === 'all' ? '全部结转' : (prev.mode === 'workOnly' ? '默认（仅结转工作日）' : '全部折现'));
+  confirmDialog({
+    title, okText,
+    msg: `将取消「${key.replace('-', ' 年 ')} 月」的一键${target === 'all' ? '结转' : '折现'}，恢复为「${prevLbl}」。确认继续？`,
+    onOk: () => {
+      if (prev.wasDefault) delete mo.carryMode;   // 原为本月默认策略 → 还原为未显式设定（沿用默认，状态回到“待调休”）
+      else { mo.carryMode = prev.mode; if (prev.mode === 'manual' && prev.manual) mo.carryOutManual = prev.manual; else delete mo.carryOutManual; }
+      delete mo._prevCarry;
+      save(); renderKPI(); renderBody(); renderAlerts();
+      const c = compute(key);
+      toast('已取消：结转 ' + hf(c.carryOutTotal) + ' h / 折现 ' + hf(c.cashTotal) + ' h');
+    }
+  });
 }
 
 function bindList() {
@@ -2501,8 +2570,18 @@ function bindList() {
     const mt = e.target.closest('.meal-toggle');
     if (mt) {
       const d = mt.closest('tr').dataset.d, days = M(cur).days, r = days[d] || (days[d] = {});
-      if (+r.meal > 0) delete r.meal; else r.meal = 1;   // 双休日/节假日餐补：点击记 1，再次点击取消
-      save(); renderKPI(); renderBody();
+      const adding = !(+r.meal > 0);   // 双休日/节假日餐补：点击记 1，再次点击取消
+      confirmDialog({
+        title: '餐补确认',
+        msg: adding
+          ? `确定记录 ${cur.replace('-', ' 年 ')} 月 ${d} 日 1 次餐补（¥${fx(DB.settings.mealRate)}）吗？`
+          : `确定取消 ${cur.replace('-', ' 年 ')} 月 ${d} 日 餐补吗？`,
+        okText: adding ? '记餐补' : '取消餐补',
+        onOk: () => {
+          if (adding) r.meal = 1; else delete r.meal;
+          save(); renderKPI(); renderBody();
+        }
+      });
       return;
     }
     const clr = e.target.closest('.hcell-clr');
@@ -2697,11 +2776,10 @@ function viewSet() {
     <div class="card">
       <div class="card-h"><h3>调休 / 年假提醒</h3><span class="sub">到期预警（估算，供参考）</span></div>
       <div class="st-grid">
-        ${F('leaveExpireMonths', '调休有效期（月）', '从最早产生可调休的月份起 N 个月内有效；0 = 不提醒到期', 'type="number" step="1" min="0"')}
         ${F('leaveExpireDays', '调休有效期（天）', '加班/调休产生超过 N 天仍未换休，自动折现计入加班费；0 = 不启用', 'type="number" step="1" min="0"')}
       </div>
       <div style="padding:0 18px 18px;font-size:12px;color:var(--tx-3);line-height:1.7">
-        调休额度按月汇总存储，系统按「最早产生可调休的月份 + 有效期」估算到期日，并在顶部横幅提醒将到期 / 已过期部分。年假临近年底清零时也会提醒。
+        调休按「加班产生日 + 有效期」到期：超过该天数仍未换休的加班自动折现计入加班费（不可结转）。顶部横幅与明细面板按此口径提醒将到期的未调休加班，并在还剩 7 天时高亮。年假临近年底清零时也会提醒。
       </div>
     </div>
     <div class="card">
@@ -2864,10 +2942,12 @@ function clearDay() { delete M(cur).days[editing]; save(); closeDay(); render();
 // 仅刷新依赖数值，保留手动输入框焦点（结转弹窗 openOtCarry 复用）
 function partialCarryRefresh() {
   renderKPI();
+  renderBody();      // 同步刷新明细「调休状态」列，使其与结转策略/KPI 一致
+  renderAlerts();    // 同步刷新「可调休预警」横幅
   const c = compute(cur), d = leaveLedger(cur);
   const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
   set('carryOutVal', hf(c.carryOutTotal) + ' h');
-  set('cashChainVal', hf((c.autoCash + c.expiredCash)) + ' h');
+  set('cashChainVal', hf(c.expiredCash) + ' h');
   set('cash-work', hf(c.cash.work) + ' h');
   set('cash-rest', hf(c.cash.rest) + ' h');
   set('cash-holi', hf(c.cash.holi) + ' h');
@@ -2975,13 +3055,13 @@ function exportLedgerText(key) {
   } else {
     L.push('  （本月换休均来自上月结转，无本月加班配对）');
   }
-  // 超窗口/超有效期自动转加班费（未参与换休配对）的加班，单独提示
-  const autoCashPool = d.carryPool.concat(d.curPool).filter(e => e.cash || e.expired);
+  // 超有效期自动转加班费（未参与换休配对）的加班，单独提示
+  const autoCashPool = d.carryPool.concat(d.curPool).filter(e => e.expired);
   if (autoCashPool.length) {
     const expN = Math.round(+DB.settings.leaveExpireDays || 0);
     autoCashPool.forEach(e => {
       if (e.y === y && e.m === m)
-        L.push(`  ※ ${m}月${e.d}日 加班剩余 ${hf(e.left)}h（${e.expired ? ('超' + expN + '天(产生日)') : '超30天(距换休)'}已自动转加班费）`);
+        L.push(`  ※ ${m}月${e.d}日 加班剩余 ${hf(e.left)}h（超${expN}天(产生日)已自动转加班费）`);
     });
   }
   let unmatched = d.leaves.filter(l => l.short > 0.001);
