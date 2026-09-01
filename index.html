@@ -627,6 +627,9 @@ table.dt th.left, table.dt td.left{text-align:left}
 .otc-sec.jmp-next:hover{box-shadow:0 0 0 2px var(--brand);border-radius:10px}
 .jmp-go{margin-left:auto;font-size:12px;font-weight:500;color:var(--brand);background:var(--brand-soft,rgba(153,60,29,.08));padding:2px 9px;border-radius:999px;white-space:nowrap}
 .otc-sec.jmp-next:hover .jmp-go{background:var(--brand);color:#fff}
+.flow-row.jmp-next2{cursor:pointer;transition:box-shadow .15s}
+.flow-row.jmp-next2:hover{box-shadow:0 0 0 2px var(--brand);border-radius:8px}
+.flow-row.jmp-next2:hover .jmp-go{background:var(--brand);color:#fff}
 .modal-h{padding:20px 22px 4px;display:flex;align-items:flex-start;gap:12px}
 .modal-h h3{font-size:17px;font-weight:660;letter-spacing:-.2px}
 .modal-h p{font-size:13px;color:var(--tx-3);margin-top:3px}
@@ -2427,7 +2430,7 @@ function panel(c) {
         ${row('<span class="op">−</span> 本月换休', `<span class="${c.leaveTotal ? '' : 'zero'}">${hf(c.leaveTotal)} h</span>`)}
         ${row('<span class="op">＝</span> 可支配时长', `<b>${hf(c.availTotal)} h</b>`)}
         ${row('<span class="op">−</span> 结转下月', `<span id="carryOutVal" class="${c.carryOutTotal ? '' : 'zero'}">${hf(c.carryOutTotal)} h</span>`)}
-        ${row('<span class="op">↘</span> 计入 ' + nextKey(cur).replace('-', ' 年 ') + ' 月', `<span class="${c.carryOutPhysTotal ? '' : 'zero'}">${hf(c.carryOutPhysTotal)} h</span>`)}
+        <div class="flow-row jmp-next2" onclick="gotoNextMonth('${cur}')" title="点击查看 ${nextKey(cur).replace('-', ' 年 ')} 月（已按本月决策继承）" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();gotoNextMonth('${cur}')}"><div class="k"><span class="op">↘</span> 计入 ${nextKey(cur).replace('-', ' 年 ')} 月</div><div class="v ${c.carryOutPhysTotal ? '' : 'zero'}">${hf(c.carryOutPhysTotal)} h${c.carryOutPhysTotal > 0.001 ? ' <span class="jmp-go">查看 ›</span>' : ''}</div></div>
         <div class="flow-row tot"><div class="k">本月折现时长</div><div class="v" id="cashChainVal">${hf(c.expiredCash)} h</div></div>
         ${c.leaveShort > 0 ? `<div style="margin-top:10px;font-size:12px;color:#c0393d;background:#fef2f2;padding:8px 10px;border-radius:8px">⚠️ 换休比可用加班时长多 ${hf(c.leaveShort)} 小时，请核对。</div>` : ''}
         ${c.expiredCash > 0.001 ? `<div style="margin-top:10px;font-size:12px;color:#c0393b;background:#fef2f2;padding:8px 10px;border-radius:8px">⌛ 超 ${Math.round(+DB.settings.leaveExpireDays || 0)} 天未换休的加班 <b>${hf(c.expiredCash)}h</b> 已自动折现计入本月加班费。</div>` : ''}
