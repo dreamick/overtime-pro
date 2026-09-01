@@ -2662,24 +2662,29 @@ function oneClickCarry(key) {
   const mo = M(key), cur = mo.carryMode || 'workOnly';
   if (mo._prevCarry && cur === 'all') { oneClickCancel(key, 'all', '取消一键结转', '取消结转'); return; }
   applyOneClick(key, 'all', '一键结转下月', '一键结转',
-    `将「${key.replace('-', ' 年 ')} 月」中未单独设置「结转 / 折现」的加班统一结转到下月。已单独标记的天保持不变。确认继续？`,
+    `将「${key.replace('-', ' 年 ')} 月」整月统一结转到下月，并清除本月的逐日手工标记（已单独标记「折现」的日期也会一并结转）。确认继续？`,
     c => '已一键结转下月：' + hf(c.carryOutTotal) + ' h');
 }
 function oneClickCash(key) {
   const mo = M(key), cur = mo.carryMode || 'workOnly';
   if (mo._prevCarry && cur === 'none') { oneClickCancel(key, 'none', '取消一键折现', '取消折现'); return; }
   applyOneClick(key, 'none', '一键折现', '一键折现',
-    `将「${key.replace('-', ' 年 ')} 月」中未单独设置「结转 / 折现」的加班折算为本月加班费。已单独标记的天保持不变。确认继续？`,
+    `将「${key.replace('-', ' 年 ')} 月」整月统一折算为本月加班费，并清除本月的逐日手工标记（已单独标记「结转」的日期也会一并折现）。确认继续？`,
     c => '已一键折现：' + hf(c.cashTotal) + ' h（¥' + fx(c.otPay) + '）');
 }
 function applyOneClick(key, target, title, okText, msg, okToast) {
   const mo = M(key);
-  mo._prevCarry = { mode: mo.carryMode || 'workOnly', wasDefault: mo.carryMode === undefined, manual: mo.carryOutManual ? { ...mo.carryOutManual } : undefined };
+  // 快照逐日 settle 标记：一键=整月统一决策，会清除逐日手工标记；取消一键时还原，保证可逆
+  const settles = {};
+  Object.keys(mo.days || {}).forEach(dd => { const s = mo.days[dd] && mo.days[dd].settle; if (s) settles[dd] = s; });
+  mo._prevCarry = { mode: mo.carryMode || 'workOnly', wasDefault: mo.carryMode === undefined, manual: mo.carryOutManual ? { ...mo.carryOutManual } : undefined, settles };
   confirmDialog({
     title, okText, msg,
     onOk: () => {
       mo.carryMode = target;
       delete mo.carryOutManual;
+      // 整月统一按一键决策：清除所有逐日手工标记，已标记的天也一并按本决策处理（覆盖手工调整）
+      Object.keys(mo.days || {}).forEach(dd => { if (mo.days[dd]) delete mo.days[dd].settle; });
       save(); renderKPI(); renderBody(); renderAlerts();
       toast(okToast(compute(key)));
     }
@@ -2687,17 +2692,17 @@ function applyOneClick(key, target, title, okText, msg, okToast) {
 }
 function oneClickCancel(key, target, title, okText) {
   const mo = M(key);
-  const prev = mo._prevCarry || { mode: 'manual', manual: undefined };
+  const prev = mo._prevCarry || { mode: 'manual', manual: undefined, settles: undefined };
   const prevLbl = prev.mode === 'manual' ? '自定义' : (prev.mode === 'all' ? '全部结转' : (prev.mode === 'workOnly' ? '默认（仅结转工作日）' : '全部折现'));
   confirmDialog({
     title, okText,
-    msg: `将取消「${key.replace('-', ' 年 ')} 月」的一键${target === 'all' ? '结转' : '折现'}，恢复为「待调休（未决定）」。确认继续？`,
+    msg: `将取消「${key.replace('-', ' 年 ')} 月」的一键${target === 'all' ? '结转' : '折现'}，恢复为「待调休（未决定）」${prev.settles && Object.keys(prev.settles).length ? '，并还原取消前已清除的逐日手工标记' : ''}。确认继续？`,
     onOk: () => {
-      // 取消一键 = 撤销批量决策，统一回到「待调休（未决定）」；不再恢复被污染的快照（all/none/manual 都清掉）。
-      // 逐日 settle 标记不受此影响；如需自定义上限，请在结算面板重新设置，而非通过取消一键恢复。
+      // 取消一键 = 撤销批量决策，统一回到「待调休（未决定）」；还原被清除的逐日 settle 标记，保证一键操作可逆。
       delete mo.carryMode;
       delete mo.carryOutManual;
       delete mo._prevCarry;
+      if (prev.settles) Object.keys(prev.settles).forEach(dd => { const r = mo.days[dd]; if (r) r.settle = prev.settles[dd]; });
       save(); renderKPI(); renderBody(); renderAlerts();
       const c = compute(key);
       toast('已取消：结转 ' + hf(c.carryOutTotal) + ' h / 折现 ' + hf(c.cashTotal) + ' h');
