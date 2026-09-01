@@ -1011,7 +1011,12 @@ function bindSync() {
   applySyncMode();
 }
 function save(push) {
-  store.setItem(KEY, JSON.stringify(DB));
+  // 待调休（carryMode=undefined）经 JSON.stringify 会整字段丢失，重载后 load() 会回落到 SEED 的 'manual'，
+  // 导致「待调休」选择无法持久化、并反向污染下月继承基准。统一在落盘时写成 'workOnly'（与 undefined
+  // 在全部判定上等价：均表示「未决定 / 待调休」），确保刷新后仍为待调休。
+  const snap = JSON.parse(JSON.stringify(DB));
+  Object.values(snap.months || {}).forEach(m => { if (m && m.carryMode === undefined) m.carryMode = 'workOnly'; });
+  store.setItem(KEY, JSON.stringify(snap));
   if (push !== false && SYNC.auto && SYNC.token && SYNC.gist && !SYNC.downloadOnly) schedulePush();
 }
 function monthKeys() { return Object.keys(DB.months).sort(); }
@@ -1019,6 +1024,29 @@ function M(k) { return DB.months[k] || (DB.months[k] = { days: {} }); }
 function prevKey(k) { const [y, m] = k.split('-').map(Number); return m === 1 ? mk(y - 1, 12) : mk(y, m - 1); }
 function nextKey(k) { const [y, m] = k.split('-').map(Number); return m === 12 ? mk(y + 1, 1) : mk(y, m + 1); }
 function daysIn(k) { const [y, m] = k.split('-').map(Number); return new Date(y, m, 0).getDate(); }
+
+/* 月份是否已「封板」：月末已过 → 该月不会再产生新的换休录入，其未核销余额可安全结转给下一月。
+   与 leaveLedger 的 ref 判定同源。 */
+function isSealed(k) {
+  const n = daysIn(k), p = k.split('-').map(Number);
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const e = new Date(p[0], p[1] - 1, n); e.setHours(0, 0, 0, 0);
+  return t > e;
+}
+/* 把「物理结转给下月」的时长从本月可换休额度中扣除（防同一笔工时被换休两次）。
+   归属顺序与 leaveLedger 的 prevRemain 一致：类型序 工作日→双休日→节假日，同类型内日期降序。 */
+function applyPhysCarry(pool, phys) {
+  const tO = { work: 0, rest: 1, holi: 2 };
+  const left = { work: phys.work || 0, rest: phys.rest || 0, holi: phys.holi || 0 };
+  pool.slice().filter(e => !e.expired).sort((a, b) => tO[a.t] - tO[b.t] || b.d - a.d).forEach(e => {
+    const take = +Math.min(e.left, left[e.t] || 0).toFixed(2);
+    if (take <= 0.001) return;
+    if (e.leftPre === undefined) e.leftPre = e.left;   // 保留扣减前值，供 compute 的 day loop 使用
+    e.carried = +((e.carried || 0) + take).toFixed(2);
+    e.left = +(e.left - take).toFixed(2);
+    left[e.t] = +((left[e.t] || 0) - take).toFixed(2);
+  });
+}
 
 /* ======================= 日期类型判定 ======================= */
 function dayType(key, d) {
@@ -1095,7 +1123,11 @@ function compute(key, depth) {
   else if (depth < 36) {
     const pk = prevKey(key);
     // 统计起点前的月份不参与结转（「从 7 月开始计算」，之前不用理会）
-    if (pk >= MIN_KEY && DB.months[pk]) carryIn = compute(pk, depth + 1).carryOut;
+    if (pk >= MIN_KEY && DB.months[pk]) {
+      // 物理继承额优先：待调休月的 carryOut 为 0（未决定），但其剩余工时必须流到下月，不能蒸发
+      const pc = compute(pk, depth + 1);
+      carryIn = Object.assign({ work: 0, rest: 0, holi: 0 }, pc.carryOutPhys || pc.carryOut);
+    }
   }
   // --- 换休按 FIFO 消耗：先上月结转，再本月新增；同层按 工作日→双休日→节假日 ---
   const order = ['work', 'rest', 'holi'];
@@ -1117,12 +1149,14 @@ function compute(key, depth) {
   // 把已算好的上半部分结果传给 leaveLedger，避免双向递归，同时保证口径一致
   let autoCashByType = { work: 0, rest: 0, holi: 0 };
   let expiredByType = { work: 0, rest: 0, holi: 0 };
+  let expiredCarryByType = { work: 0, rest: 0, holi: 0 };   // 上月结转池里过期的部分：本月无加班日承载，需单独补入加班费
   let L = null;
   try {
     const preC = { carryIn, carryInTotal, gain, gainTotal, leaveTotal, leaveShort, used, usedPrev, usedCur, avail, availTotal };
     L = leaveLedger(key, preC);
     if (L && L.autoCashByType) autoCashByType = L.autoCashByType;
     if (L && L.expiredByType) expiredByType = L.expiredByType;
+    if (L && L.expiredCarryByType) expiredCarryByType = L.expiredCarryByType;
   } catch (e) {}
   // 这类时长已自动折现计入加班费，不可再作为结转上限：
   //  - expired ：产生日距基准日 > 调休有效期天数仍未换休（按天过期）
@@ -1142,7 +1176,7 @@ function compute(key, depth) {
     const h = hoursOf(key, d); if (h <= 0) continue;
     const t = dayType(key, d);
     const e = curLeftByDay[d];
-    const left = e ? e.left : h;
+    const left = e ? (e.leftPre !== undefined ? e.leftPre : e.left) : h;   // leftPre = 物理结转扣减前快照
     if (left <= 0.001) continue;
     let st;                                    // 'carry' | 'cash' | null(待调休)
     if (r.settle === 'cash') st = 'cash';
@@ -1163,19 +1197,45 @@ function compute(key, depth) {
     else if (st === 'cash') cashByDay[t] = +(cashByDay[t] + left).toFixed(2);
     // st === null → 待调休：两项都不计入
   }
+  // 上月结转来的余额若没有本月同类型加班日承载（或承载不足），此前会静默蒸发：
+  // 既不计入结转也不计入折现。这里按本月策略为这部分余额补出口。
+  // 仅对 all / none 生效；manual 的逐日循环已把每个 left 全部分配完，补会重复计入。
+  if (modeK !== 'manual') {
+    order.forEach(t => {
+      const restCap = +Math.max(0, carryCap[t] - carryOut[t]).toFixed(2);
+      if (restCap <= 0.001) return;
+      if (modeK === 'all') carryOut[t] = +(carryOut[t] + restCap).toFixed(2);
+      else if (modeK === 'none') cashByDay[t] = +(cashByDay[t] + restCap).toFixed(2);
+      // 待调休（undefined / workOnly）：决策口径仍为 0，物理额由下面的 carryOutPhys 处理
+    });
+  }
   order.forEach(t => {
     let v = carryOut[t];
     if (modeK === 'manual') v = Math.min(v, +cm[t] || 0);   // 手动模式仍受按类型上限约束
     v = Math.min(v, carryCap[t]);                  // expired 不可结转，强制封顶
     carryOut[t] = +Math.max(0, v).toFixed(2);
   });
+  // --- 物理继承额（下月 carryIn 实际取值），与「决策口径」carryOut 分离 ---
+  //   carryOut     ：本月 KPI「结转下月」展示用；待调休时为 0（保留「未决定」语义）
+  //   carryOutPhys ：真正流到下月的额度，保证工时不蒸发
+  // 取值规则：
+  //   已决策月（all / none / manual / 逐日 settle）→ 与 carryOut 完全一致（历史数据零变化的关键）
+  //   待调休月（undefined / workOnly）→ 已封板时 = 月末剩余未过期余额 carryCap；未封板时 = 0
+  //     （未封板时不提前结转，否则本月与下月同时可调休 = 同一笔工时被换休两次）
+  let carryOutPhys = { work: 0, rest: 0, holi: 0 };
+  const decidedK = !(modeK === undefined || modeK === 'workOnly');
+  if (decidedK) carryOutPhys = { work: carryOut.work, rest: carryOut.rest, holi: carryOut.holi };
+  else if (isSealed(key)) carryOutPhys = { work: carryCap.work, rest: carryCap.rest, holi: carryCap.holi };
+  const carryOutPhysTotal = +(carryOutPhys.work + carryOutPhys.rest + carryOutPhys.holi).toFixed(2);
   // --- 折现 ---
   const R = rateOf(), cash = {}, amount = {};
   let otPay = 0;
   const autoCashTotal = +order.reduce((s, t) => s + (autoCashByType[t] || 0), 0).toFixed(2);
   const expiredTotal = +order.reduce((s, t) => s + (expiredByType[t] || 0), 0).toFixed(2);
   order.forEach(t => {
-    cash[t] = +(cashByDay[t] || 0).toFixed(2);
+    // 过期折现入账：cashByDay 只含本月加班日的折现；上月结转池里过期的部分由 expiredCarryByType 补入，
+    // 否则这部分工时会「既没结转、也没付钱」地凭空蒸发（面板文案却写着已计入加班费）。
+    cash[t] = +((cashByDay[t] || 0) + (expiredCarryByType[t] || 0)).toFixed(2);
     amount[t] = +(cash[t] * R[t]).toFixed(2);
     otPay += amount[t];
   });
@@ -1186,6 +1246,7 @@ function compute(key, depth) {
     leaveTotal, leaveShort, used, usedPrev, usedCur, avail,
     availTotal,
     carryCap, carryOut, carryOutTotal: +(carryOut.work + carryOut.rest + carryOut.holi).toFixed(2),
+    carryOutPhys, carryOutPhysTotal,
     cash, cashTotal: +(cash.work + cash.rest + cash.holi).toFixed(2),
     autoCash: autoCashTotal, autoCashByType, expiredCash: expiredTotal, expiredByType,
     amount, otPay: +otPay.toFixed(2), mealCount, mealPay, otCnt,
@@ -1463,6 +1524,14 @@ function leaveLedger(key, preC) {
     return { parts, rem };
   };
   const warnings = [];
+  // 换休核销可重跑：物理结转扣减后需用新池重算（否则本月换休仍会消耗已结转给下月的工时 → 重复核销）
+  const resetPools = () => {
+    carryPool.concat(curPool).forEach(e => { e.left = +Math.max(0, e.h - (e.carried || 0)).toFixed(2); e.used = []; });
+    leaves.forEach(l => { l.pairs = []; l.short = 0; });
+    warnings.length = 0;
+  };
+  const runAlloc = () => {
+    resetPools();
   // 1) 手动指定「当月某日」的换休：优先核销指定加班日（须在换休日 30 天内）
   leaves.filter(l => l.manual).forEach(l => {
     const sd = +String(l.src).slice(1);
@@ -1498,23 +1567,49 @@ function leaveLedger(key, preC) {
     l.short = r2.rem;
   });
   if (c.leaveShort > 0.001) warnings.push(`本月换休合计比可用加班时长多 ${hf(c.leaveShort)}h（引擎已标红提示）`);
+  };
+  runAlloc();
   // 调休有效期（按产生日 + 有效期天数）：加班/调休产生超过 N 天仍未换休核销的，强制折现计入加班费（不可结转）
   // 以「加班产生日」为锚点，与用户何时换休无关；统一口径，不再叠加「距换休日>30」的额外规则
   let expiredCash = 0; const expiredByType = { work: 0, rest: 0, holi: 0 };
+  // 拆分过期归属：
+  //  curPool 的过期 → compute 的 day loop 会按 e.expired 判 'cash' 计入 cashByDay，已正常到账；
+  //  carryPool 的过期 → 属上月结转来的余额，本月没有对应加班日承载，day loop 遍历不到，
+  //                     此前从未计入加班费（面板却声称"已自动折现计入本月加班费"）→ 静默蒸发。
+  //  故单独统计 expiredCarryByType，在 compute 里补入本月加班费。
+  const expiredCarryByType = { work: 0, rest: 0, holi: 0 };
+  const expiredCurByType = { work: 0, rest: 0, holi: 0 };
   const EXP = +DB.settings.leaveExpireDays || 0;
-  carryPool.concat(curPool).forEach(e => {
+  const markExpired = (pool, byType) => pool.forEach(e => {
     if (EXP > 0 && e.left > 0.001 && (ref - eDate(e)) / 86400000 > EXP) {
       e.expired = true; expiredCash = +(expiredCash + e.left).toFixed(2);
       expiredByType[e.t] = +(expiredByType[e.t] + e.left).toFixed(2);
+      byType[e.t] = +(byType[e.t] + e.left).toFixed(2);
     }
   });
+  markExpired(carryPool, expiredCarryByType);
+  markExpired(curPool, expiredCurByType);
+  // === 物理结转扣减（防重复核销）===
+  // 本月结转给下一月的时长，本月自身不可再用于换休：否则同一笔工时会同时出现在本月 curPool
+  // 与下一月 carryPool，被换休两次。扣减量必须与 compute 的 carryOutPhys 取值规则严格一致：
+  //   已决策月（all/none/manual）→ 不扣减（其 carryOut 由 day loop 决定，此处复算会与 compute 分歧；
+  //                                且属既有问题，本次不动，避免历史月结果跳变）
+  //   待调休月（undefined/workOnly）→ 已封板时 = max(0, avail[t]-expiredByType[t])（与 carryCap 同一公式）
+  // 位置必须在 expired 判定之后：expiredByType 要用核销后的 left，提前会改变历史月结果。
+  const moK = M(key).carryMode;
+  if (isSealed(key) && (moK === undefined || moK === 'workOnly') && c.avail) {
+    const physOut = { work: 0, rest: 0, holi: 0 };
+    order.forEach(t => { physOut[t] = +Math.max(0, (c.avail[t] || 0) - (expiredByType[t] || 0)).toFixed(2); });
+    if (physOut.work + physOut.rest + physOut.holi > 0.001) { applyPhysCarry(curPool, physOut); runAlloc(); }
+  }
   // 距换休日 >30 天的 autoCash 规则已移除，统一按产生日 EXP 天过期；autoCash 恒为 0 以保持返回结构兼容
   const autoCash = 0; const autoCashByType = { work: 0, rest: 0, holi: 0 };
-  const usedCarry = +carryPool.reduce((s, e) => s + (e.h - e.left), 0).toFixed(2);
-  const usedCur = +curPool.reduce((s, e) => s + (e.h - e.left), 0).toFixed(2);
+  // carried 是「结转给下月」，不是换休核销，需从已核销量中扣除，避免虚报
+  const usedCarry = +carryPool.reduce((s, e) => s + (e.h - e.left - (e.carried || 0)), 0).toFixed(2);
+  const usedCur = +curPool.reduce((s, e) => s + (e.h - e.left - (e.carried || 0)), 0).toFixed(2);
   const totalShort = +leaves.reduce((s, l) => s + l.short, 0).toFixed(2);
   if (totalShort > c.leaveShort + 0.001) warnings.push(`另有 ${hf(+(totalShort - c.leaveShort).toFixed(2))}h 换休找不到可用加班来源（对应加班已自动转加班费）`);
-  return { leaves, carryPool, curPool, usedCarry, usedCur, totalShort, autoCash, autoCashByType, expiredCash, expiredByType, warnings, c };
+  return { leaves, carryPool, curPool, usedCarry, usedCur, totalShort, autoCash, autoCashByType, expiredCash, expiredByType, expiredCarryByType, expiredCurByType, warnings, c };
 }
 
 /* 换休核销台账弹窗：首页「调休对应」框 / 明细页「核销」按钮 → 弹出一一对应明细 */
@@ -1923,7 +2018,9 @@ function renderTop() {
   if (btn) btn.textContent = cur.replace('-', ' 年 ') + ' 月';
   if (pop) {
     const lastK = ks[ks.length - 1];
-    const canNew = !DB.months[nextKey(cur)];
+    const nk = nextKey(cur), nmo = DB.months[nk];
+    const isShell = nmo && !Object.keys(nmo.days || {}).length && nmo.carryMode === undefined && nmo.carryIn === undefined; // M() 静默建的空壳月，不算真实月份
+    const canNew = !nmo || isShell;
     let h = '';
     ks.forEach(k => {
       const isCur = k === cur;
@@ -1991,7 +2088,7 @@ function leaveOriginMonth(key) {
     const pk = prevKey(k);
     if (!DB.months[pk]) break;
     const c = compute(pk);
-    if (c.carryOutTotal <= 0.001 && c.gainTotal <= 0.001) break; // 上月未向下传递额度 → 当前月为起点
+    if (c.carryOutPhysTotal <= 0.001 && c.gainTotal <= 0.001) break; // 上月未向下传递额度 → 当前月为起点（用物理继承额，待调休但已封板月仍算有传递）
     k = pk;
   }
   return k;
@@ -2107,11 +2204,11 @@ function lvStateMap() {
   if (DB.months[pk]) months.push(pk);
   months.push(cur);
   const doneMap = {}, restSrcMap = {};
-  const markDone = (mk, d, used, total, byLeaves, fromCarry, expired) => {
+  const markDone = (mk, d, used, total, byLeaves, fromCarry, expired, carried) => {
     if (!doneMap[mk]) doneMap[mk] = {};
     const prev = doneMap[mk][d];
-    if (!prev) doneMap[mk][d] = { used: +used, total: +total, byLeaves: (byLeaves || []).slice(), fromCarry: !!fromCarry, expired: !!expired };
-    else { prev.used = +(prev.used + used).toFixed(2); prev.total = +(prev.total + total).toFixed(2); (byLeaves || []).forEach(x => prev.byLeaves.push(x)); prev.fromCarry = prev.fromCarry || !!fromCarry; prev.expired = prev.expired || !!expired; }
+    if (!prev) doneMap[mk][d] = { used: +used, total: +total, byLeaves: (byLeaves || []).slice(), fromCarry: !!fromCarry, expired: !!expired, carried: +(carried || 0) };
+    else { prev.used = +(prev.used + used).toFixed(2); prev.total = +(prev.total + total).toFixed(2); (byLeaves || []).forEach(x => prev.byLeaves.push(x)); prev.fromCarry = prev.fromCarry || !!fromCarry; prev.expired = prev.expired || !!expired; prev.carried = +(prev.carried + (carried || 0)).toFixed(2); }
   };
   const addRestSrc = (mk, d, src) => { if (!restSrcMap[mk]) restSrcMap[mk] = {}; if (!restSrcMap[mk][d]) restSrcMap[mk][d] = []; restSrcMap[mk][d].push(src); };
   months.forEach(k => {
@@ -2119,6 +2216,9 @@ function lvStateMap() {
     try { lg = leaveLedger(k); } catch (e) { lg = null; }
     if (!lg) return;
     (lg.curPool || []).forEach(e => {
+      // 已物理结转给下一月：left 被扣减但并非换休核销，必须单独标记，否则会被误判为「已核销」
+      const carried = +(e.carried || 0);
+      if (carried > 0.001) { markDone(k, e.d, 0, e.h, [], false, false, carried); return; }
       if (e.left > e.h - 0.001) return;
       const used = +(e.h - e.left).toFixed(2);
       const byLeaves = (e.used || []).map(u => ({ leaveKey: k, leaveD: u.l.d, take: +u.take }));
@@ -2145,7 +2245,8 @@ function otStatBadge(tag, h, used, near, nearDays, isExpired, y, m, d, EXP) {
   let expLbl = '—';
   if (EXP > 0) { const ed = new Date(y, m - 1, d); ed.setHours(0, 0, 0, 0); ed.setDate(ed.getDate() + EXP); expLbl = ed.getFullYear() + '-' + pad(ed.getMonth() + 1) + '-' + pad(ed.getDate()); }
   let txt, cls, title, act = '';
-  if (tag === 'done') { txt = '已核销'; cls = 'done'; title = '产生日 ' + genDate + '（' + hf(h) + 'h）已全部核销，已抵扣调休'; act = 'panel'; }
+  if (tag === 'carriedOut') { txt = '已结转下月'; cls = 'carrlive'; title = '产生日 ' + genDate + '（' + hf(h) + 'h）未核销部分已自动结转至下一月继续抵扣调休，本月不可再换休。点击可改为折现'; act = 'menu'; }
+  else if (tag === 'done') { txt = '已核销'; cls = 'done'; title = '产生日 ' + genDate + '（' + hf(h) + 'h）已全部核销，已抵扣调休'; act = 'panel'; }
   else if (tag === 'partial') { txt = '已核销 ' + hf(used) + '/' + hf(h) + 'h'; cls = 'done'; title = '产生日 ' + genDate + '（' + hf(h) + 'h）已核销 ' + hf(used) + 'h，剩 ' + hf(+(h - used).toFixed(2)) + 'h 未调休'; act = 'panel'; }
   else if (tag === 'carryDone') { txt = '已结转核销' + (isExpired ? '（折现）' : ''); cls = 'carrdone'; title = '来源上月结转（' + hf(h) + 'h）' + (isExpired ? '已超期自动折现' : '已全部核销'); act = 'panel'; }
   else if (tag === 'carryPartial') { txt = '已结转核销 ' + hf(used) + '/' + hf(h) + 'h'; cls = 'carrdone'; title = '来源上月结转（' + hf(h) + 'h）已核销 ' + hf(used) + 'h'; act = 'panel'; }
@@ -2426,7 +2527,8 @@ function viewList() {
         const fullyDone = info && used >= h - 0.001;
         const partial = info && used > 0.001 && used < h - 0.001;
         let tag, near = false, nearDays = 0;
-        if (fullyDone) {
+        if (info && (info.carried || 0) > 0.001) tag = 'carriedOut';   // 已物理结转给下一月（优先于「已核销」判定）
+        else if (fullyDone) {
           tag = fromCarry ? 'carryDone' : 'done';
         } else {
           // 仍有剩余未核销：按本月结转策略判定剩余工时的实际去向（结转 / 折现）
@@ -2961,12 +3063,34 @@ function partialCarryRefresh() {
 
 /* ------------------------- 新建月份 ------------------------- */
 function newMonth() {
-  const k = nextKey(cur);
-  if (DB.months[k]) { cur = k; render(); return; }
-  const c = compute(cur);
-  DB.months[k] = { days: {} };
+  const k = nextKey(cur), from = cur, pm = M(from), c0 = compute(from);
+  // M() 会静默建空月（1018 行），空壳月也会出现在月份下拉里且挡住「新建下月」；这里识别并复用
+  const ex = DB.months[k];
+  const shell = ex && !Object.keys(ex.days || {}).length && ex.carryMode === undefined && ex.carryIn === undefined;
+  if (ex && !shell) { cur = k; render(); return; }
+
+  DB.months[k] = { days: {} };            // 先建空月，才能算出新月的可结转上限（它依赖 carryIn）
+  const cap = compute(k).carryCap;        // 新月上限 = 继承来的余额（本月尚无加班）
+  const pmMode = pm.carryMode;
+  if (pmMode === 'manual') {
+    // 自定义上限照抄上月绝对值无意义（与上月数据绑定），按新月可结转上限重新生成，
+    // 沿用 1303 行「切到 manual 时默认填满上限」的既有约定；上限为 0 时不设，避免新月被预设成「全部折现」
+    if (cap.work + cap.rest + cap.holi > 0.001) { M(k).carryMode = 'manual'; M(k).carryOutManual = { work: cap.work, rest: cap.rest, holi: cap.holi }; }
+  } else if (pmMode === 'all') {
+    M(k).carryMode = 'all';               // 一键结转：照抄
+  }
+  // 上月为 none（一键折现）→ 新月回落「待调休」，不继承折现，保护余额可继续调休
+  // 上月为 undefined / workOnly（待调休）→ 新月同样不预设策略，保持「待调休」
+
   save(); cur = k; render();
-  toast(`已新建 ${k}，自动继承结转 ${hf(c.carryOutTotal)} 小时`);
+  const got = compute(k).carryInTotal, nm = M(k);
+  const modeLbl = { all: '全部结转', none: '全部折现', manual: '自定义上限' }[nm.carryMode] || '待调休';
+  let msg = `已新建 ${k}，结转策略沿用上月「${modeLbl}」`;
+  if (got > 0.001) msg += `，已继承可调休余额 ${hf(got)} 小时`;
+  else if (!isSealed(from)) msg += `；上月 ${from} 尚未结束，剩余余额将在月末自动继承`;
+  else if (c0.availTotal > 0.001) msg += `；上月剩余 ${hf(c0.availTotal)}h 未结转（已折现或已过期）`;
+  else msg += '；上月无未休余额';
+  toast(msg);
 }
 
 /* ------------------------- 导入导出 ------------------------- */
