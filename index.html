@@ -1199,6 +1199,11 @@ function compute(key, depth) {
   (L.curPool || []).forEach(e => { curLeftByDay[e.d] = e; });
   order.forEach(t => { carryOut[t] = 0; });
   const cashByDay = { work: 0, rest: 0, holi: 0 };
+  // 封板月「待调休（未折现、未到期）」天数自动结转的物理额，仅并入 carryOutPhys（KPI/继承用），
+  // 不计入决策口径 carryOut（保留「未决定」语义，避免改动历史已决策月份的展示）。
+  const carryOutAuto = { work: 0, rest: 0, holi: 0 };
+  // 封板月「上月结转余额」未核销部分的自动结转物理额（同样仅并入 carryOutPhys）。
+  const carryInAutoCarry = { work: 0, rest: 0, holi: 0 };
   const cm = mo.carryOutManual || {};
   const modeK = mo.carryMode;                 // undefined / 'workOnly' = 待调休（未决定）；all/none/manual = 已决定
   const carryUsed = { work: 0, rest: 0, holi: 0 };
@@ -1226,7 +1231,9 @@ function compute(key, depth) {
     }
     if (st === 'carry') carryOut[t] = +(carryOut[t] + left).toFixed(2);
     else if (st === 'cash') cashByDay[t] = +(cashByDay[t] + left).toFixed(2);
-    // st === null → 待调休：两项都不计入
+    // st === null → 待调休（未决定且未到期）：封板月自动结转到下月（未点折现、未到期 → 不蒸发）；
+    //   非封板月不结转（避免本月与下月同时可调休同一笔工时）。承接物理额到 carryOutAuto，不污染决策口径 carryOut。
+    else if (isSealed(key)) carryOutAuto[t] = +(carryOutAuto[t] + left).toFixed(2);
   }
   // 上月结转来的余额若没有本月同类型加班日承载（或承载不足），此前会静默蒸发：
   // 既不计入结转也不计入折现。这里按本月策略为这部分余额补出口。
@@ -1240,7 +1247,8 @@ function compute(key, depth) {
       if (ciRemain <= 0.001) return;
       if (modeK === 'all') carryOut[t] = +(carryOut[t] + ciRemain).toFixed(2);
       else if (modeK === 'none') cashByDay[t] = +(cashByDay[t] + ciRemain).toFixed(2);
-      // 待调休（undefined / workOnly）：决策口径仍为 0，物理额由下面的 carryOutPhys 处理
+      // 待调休（undefined / workOnly）封板月：上月结转余额未核销部分自动结转下月（未点折现、未到期）
+      else if ((modeK === undefined || modeK === 'workOnly') && isSealed(key)) carryInAutoCarry[t] = +(carryInAutoCarry[t] + ciRemain).toFixed(2);
     });
   }
   order.forEach(t => {
@@ -1261,7 +1269,15 @@ function compute(key, depth) {
   // 下月立即继承。否则非封板月份里逐日设定的结转/折现会被 carryOutPhys=0 丢弃（待调休语义误杀已决策的天）。
   const anySettle = Object.values(mo.days || {}).some(r => r && (r.settle === 'cash' || r.settle === 'carry'));
   const decidedK = !(modeK === undefined || modeK === 'workOnly') || anySettle;
-  if (decidedK) carryOutPhys = { work: carryOut.work, rest: carryOut.rest, holi: carryOut.holi };
+  if (decidedK) {
+    // 已决策月（含「逐日 settle 混合」月）：决策口径 carryOut 之外，封板月的「待调休未折现未到期」天数
+    // 与「上月结转余额」未核销部分也自动结转，保证工时不蒸发（这正是「上月手动未点折现的未到期加班自动结转到下月」）。
+    carryOutPhys = {
+      work: +(carryOut.work + carryOutAuto.work + carryInAutoCarry.work).toFixed(2),
+      rest: +(carryOut.rest + carryOutAuto.rest + carryInAutoCarry.rest).toFixed(2),
+      holi: +(carryOut.holi + carryOutAuto.holi + carryInAutoCarry.holi).toFixed(2)
+    };
+  }
   else if (isSealed(key)) carryOutPhys = { work: carryCap.work, rest: carryCap.rest, holi: carryCap.holi };
   const carryOutPhysTotal = +(carryOutPhys.work + carryOutPhys.rest + carryOutPhys.holi).toFixed(2);
   // --- 折现 ---
@@ -2870,7 +2886,7 @@ function viewSum() {
       <td class="${c.gain.holi ? '' : 'zero'}">${hf(c.gain.holi)}</td>
       <td class="${c.leaveTotal ? '' : 'zero'}">${hf(c.leaveTotal)}</td>
       <td class="${c.annualUse ? '' : 'zero'}" style="color:#7c3aed;font-weight:600">${hf(c.annualUse)}</td>
-      <td class="${c.carryOutTotal ? '' : 'zero'}">${hf(c.carryOutTotal)}</td>
+      <td class="${c.carryOutPhysTotal ? '' : 'zero'}">${hf(c.carryOutPhysTotal)}</td>
       <td class="${c.cashTotal ? '' : 'zero'}">${hf(c.cashTotal)}</td>
       <td class="${c.otPay ? 'num-pos' : 'zero'}">${fx(c.otPay)}</td>
       <td class="${c.mealPay ? 'num-pos' : 'zero'}">${fx(c.mealPay)}</td>
@@ -3133,7 +3149,7 @@ function partialCarryRefresh() {
   renderAlerts();    // 同步刷新「可调休预警」横幅
   const c = compute(cur), d = leaveLedger(cur);
   const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
-  set('carryOutVal', hf(c.carryOutTotal) + ' h');
+  set('carryOutVal', hf(c.carryOutPhysTotal) + ' h');
   set('cashChainVal', hf(c.expiredCash) + ' h');
   set('cash-work', hf(c.cash.work) + ' h');
   set('cash-rest', hf(c.cash.rest) + ' h');
@@ -3206,7 +3222,7 @@ function exportCSV() {
   const c = compute(cur);
   L.push('');
   L.push(['汇总', '上月结转', '本月加班', '本月换休', '可支配', '结转下月', '折现时长', '加班费', '餐补', '合计'].join(','));
-  L.push(['', c.carryInTotal, c.gainTotal, c.leaveTotal, c.availTotal, c.carryOutTotal, c.cashTotal, c.otPay, c.mealPay, c.total].join(','));
+  L.push(['', c.carryInTotal, c.gainTotal, c.leaveTotal, c.availTotal, c.carryOutPhysTotal, c.cashTotal, c.otPay, c.mealPay, c.total].join(','));
   dl(`加班明细_${cur}.csv`, '\ufeff' + L.join('\n'), 'text/csv');
   toast('已导出 ' + cur + ' 明细');
 }
@@ -3215,7 +3231,7 @@ function exportAllCSV() {
   monthKeys().forEach(k => {
     const c = compute(k);
     L.push([k, c.carryInTotal, c.gain.work, c.gain.rest, c.gain.holi, c.gainTotal, c.leaveTotal, c.availTotal,
-      c.carryOutTotal, c.cashTotal, c.otPay, c.mealCount, c.mealPay, c.total].join(','));
+      c.carryOutPhysTotal, c.cashTotal, c.otPay, c.mealCount, c.mealPay, c.total].join(','));
   });
   dl('加班汇总_全部月份.csv', '\ufeff' + L.join('\n'), 'text/csv');
   toast('已导出全部月份汇总');
@@ -3346,9 +3362,9 @@ function exportLedgerText(key) {
       });
     });
     L.push(`  本月结转下月合计：${hf(carryTotal)}h`);
-  } else if (c.carryOutTotal > 0.001) {
-    L.push(`  （结转 ${hf(c.carryOutTotal)}h：部分来自上月/更早结转余额，未精确到本月日期）`);
-    carryTotal = c.carryOutTotal;
+  } else if (c.carryOutPhysTotal > 0.001) {
+    L.push(`  （结转 ${hf(c.carryOutPhysTotal)}h：部分来自上月/更早结转余额，未精确到本月日期）`);
+    carryTotal = c.carryOutPhysTotal;
   } else {
     L.push('  （本月无结转下月时长）');
   }
@@ -3380,7 +3396,7 @@ function exportLedgerText(key) {
   L.push('汇总校验');
   L.push(`  本月新增加班：${hf(c.gainTotal)}h`);
   L.push(`  本月换休：${hf(c.leaveTotal)}h（其中核销上月结转 ${hf(d.usedCarry)}h、核销本月加班 ${hf(d.usedCur)}h）`);
-  L.push(`  结转下月：${hf(c.carryOutTotal)}h`);
+  L.push(`  结转下月：${hf(c.carryOutPhysTotal)}h`);
   L.push(`  未结转算加班费：${hf(c.cashTotal)}h · ¥${fx(c.otPay)}`);
   L.push(`  餐补：${hf(c.mealCount)} 次 · ¥${fx(c.mealPay)}`);
   L.push('  口径说明：段一/二为核销口径（仅30天内配对），段三/四为结算口径（计算引擎），两套口径下被换休消耗的本月加班量可能不同，属正常差异。');
@@ -3468,8 +3484,8 @@ function exportScreenshot() {
   if (c.gainTotal > 0) {
     any = true;
     L.push('加班费');
-    if (c.carryOutTotal > 0) {
-      L.push(`  其中结转到下月（不计入本月加班费）：${hf(c.carryOutTotal)}h（工作日）`);
+    if (c.carryOutPhysTotal > 0) {
+      L.push(`  其中结转到下月（不计入本月加班费）：${hf(c.carryOutPhysTotal)}h（含双休/节假日）`);
     }
     L.push(`本月折现/算加班费：${hf(c.cashTotal)}h，约 ¥${c.otPay}`);
     L.push('');
