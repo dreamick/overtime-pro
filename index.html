@@ -1293,11 +1293,14 @@ function openMonthSettle(key) {
     const nxPrev = DB.months[nkPrev] ? compute(nkPrev) : null;
     const inheritTotal = nxPrev ? nxPrev.carryInTotal : c.carryOutPhysTotal;
     const inheritBreak = nxPrev ? nxPrev.carryIn : c.carryOutPhys;
+    // 决策对照：若将本月待结转的时长改为折现，本月多拿的加班费（下月则不再继承）
+    const altCash = +((c.carryOutPhys.work * (c.rates.work || 0)) + (c.carryOutPhys.rest * (c.rates.rest || 0)) + (c.carryOutPhys.holi * (c.rates.holi || 0))).toFixed(2);
     const nxPreviewHTML = `
       <div class="otc-sec jmp-next" onclick="gotoNextMonth('${key}')" title="点击查看 ${nkPrev.replace('-', ' 年 ')} 月（已按本月决策继承）" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();gotoNextMonth('${key}')}">
         <div class="otc-tit">下月继承预览 · ${nkPrev.replace('-', ' 年 ')} 月<span class="jmp-go">查看下月 ›</span></div>
         <div class="carry-line" style="margin:0 0 8px">本月将结转至下月 <b class="cf">${hf(c.carryOutPhysTotal)} h</b>
           <span class="muted">（工 ${hf(c.carryOutPhys.work)} · 休 ${hf(c.carryOutPhys.rest)} · 节 ${hf(c.carryOutPhys.holi)}）</span></div>
+        ${c.carryOutPhysTotal > 0.001 ? `<div class="hint" style="margin-top:6px">💡 若把这笔 ${hf(c.carryOutPhysTotal)}h 改为折现，下月「上月结转」将减为 0h，本月加班费约 <b>+${money(altCash)}</b>（折现即落袋，下月不可再调休）。</div>` : ''}
         ${nxPrev
           ? `<div style="font-size:13px;line-height:1.9">
                <div><span class="muted">下月「上月结转」</span>：<b>${hf(inheritTotal)} h</b> <span class="muted">（工 ${hf(inheritBreak.work)} 休 ${hf(inheritBreak.rest)} 节 ${hf(inheritBreak.holi)}）</span></div>
