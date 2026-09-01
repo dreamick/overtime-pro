@@ -938,11 +938,6 @@ function load() {
   DB = base;
   // 清理旧版「调休有效期（月）」设置（已在 UI 中移除，统一改为按产生日 leaveExpireDays 天计算）
   delete DB.settings.leaveExpireMonths;
-  // 一次性迁移：清空 2026-08 加班天数，保留 7 月结转与配置；仅执行一次，不影响后续正常录入
-  if (DB.months['2026-08'] && !DB.settings._aug2026Cleared) {
-    DB.months['2026-08'].days = {};
-    DB.settings._aug2026Cleared = true;
-  }
   // 一次性修复：早期 SEED 把 2026-08 默认设为 manual + 全 0 上限，导致封板后无法自动结转。
   // 若用户未在 8 月设置过有效自定义上限，则把它规范回 workOnly（待调休/默认结转）。
   if (DB.months['2026-08'] && !DB.settings._aug2026ManualFixed) {
@@ -954,6 +949,9 @@ function load() {
     }
     DB.settings._aug2026ManualFixed = true;
   }
+  // carryIn 应由计算引擎实时从上月继承，不应持久化在月份对象上。
+  // 旧版导出/异常状态可能遗留全 0 的 carryIn，会阻断后续自动继承，故统一清理。
+  Object.values(DB.months || {}).forEach(m => { delete m.carryIn; });
   const ks = monthKeys();
   const now = new Date(), nowK = mk(now.getFullYear(), now.getMonth() + 1);
   cur = ks.includes(nowK) ? nowK : (ks[ks.length - 1] || nowK);
@@ -1405,7 +1403,7 @@ function openMonthSettle(key) {
       </div>
       <div class="otc-sec">
         <div class="otc-tit">本月应发</div>
-        <div class="carry-line" style="margin:0">加班费 <b>${money(c.otPay)}</b> + 餐补 <b>${money(c.mealPay)}</b> = <b>${money(c.total)}</b> · 结转下月 <b class="cf">${hf(c.carryOutTotal)} h</b>（不计入本月应发）</div>
+        <div class="carry-line" style="margin:0">加班费 <b>${money(c.otPay)}</b> + 餐补 <b>${money(c.mealPay)}</b> = <b>${money(c.total)}</b> · 结转下月 <b class="cf">${hf(c.carryOutPhysTotal)} h</b>（不计入本月应发）</div>
       </div>
       ${nxPreviewHTML}
       </div>
@@ -2136,7 +2134,7 @@ function renderKPI() {
         : `<span class="muted">已用 ${hf(used)} / 可用 ${hf(budget)}</span>`;
       return { lb: '本月换休', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="15" height="14" rx="2"/><path d="M3.5 9.5h15"/><path d="M8 3.5v3"/><path d="M14 3.5v3"/><path d="M7.5 14l2 2 5-5"/></svg>', ac: '#12b76a', vl: hf(c.leaveTotal), u: '小时', df: df + bar, f: 'leave' };
     })(),
-    { lb: '结转下月', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11h13"/><path d="M13 6l4 5-4 5"/></svg>', ac: '#12b76a', vl: hf(c.carryOutTotal), u: '小时', df: `<span class="muted">${{ all: '全部结转', none: '全部折现', manual: '自定义' }[c.mode] || '待调休'}</span>`, f: 'carry' },
+    { lb: '结转下月', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11h13"/><path d="M13 6l4 5-4 5"/></svg>', ac: '#12b76a', vl: hf(c.carryOutPhysTotal), u: '小时', df: `<span class="muted">${{ all: '全部结转', none: '全部折现', manual: '自定义上限' }[c.mode] || (c.carryOutPhysTotal > 0.001 && isSealed(kpiKey) ? '已自动结转' : '待调休')}</span>`, f: 'carry' },
     { lb: '折现时长', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5l10 12"/><path d="M16 5L6 17"/><path d="M5.5 11h11"/><path d="M5.5 14h11"/></svg>', ac: '#0ea5a4', vl: hf(c.cashTotal), u: '小时', df: `<span class="muted">${{ all: '全部结转', none: '全部折现', manual: '自定义' }[c.mode] || '待调休'}</span>`, f: 'cash' },
     { lb: '年假剩余', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="15" height="14" rx="2"/><path d="M3.5 9.5h15"/><path d="M8 3.5v3"/><path d="M14 3.5v3"/><rect x="8.5" y="12" width="5" height="3.5" rx="0.7" fill="currentColor"/></svg>', ac: '#7c3aed', vl: hf(annRemain), u: '天', df: `<span class="muted">额度 ${hf(annTotal)} 天</span>`, f: 'annual' },
     { lb: '餐补', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v3"/><path d="M9 4v3"/><path d="M5 7h4l-1 11h-2z" fill="currentColor" fill-opacity=".12"/><path d="M9 4l-1 3"/><rect x="11" y="7" width="9" height="11" rx="1.6"/><path d="M11 11h9"/></svg>', ac: '#f5a524', vl: money(c.mealPay).replace('¥', ''), u: '元', df: `<span class="lt">共 ${hf(c.mealCount)} 次</span>`, hl: 'blue', f: 'meal' },
@@ -2470,7 +2468,7 @@ function panel(c) {
         ${row('<span class="op">＋</span> 本月加班', `<span class="${c.gainTotal ? '' : 'zero'}">${hf(c.gainTotal)} h</span>`)}
         ${row('<span class="op">−</span> 本月换休', `<span class="${c.leaveTotal ? '' : 'zero'}">${hf(c.leaveTotal)} h</span>`)}
         ${row('<span class="op">＝</span> 可支配时长', `<b>${hf(c.availTotal)} h</b>`)}
-        ${row('<span class="op">−</span> 结转下月', `<span id="carryOutVal" class="${c.carryOutTotal ? '' : 'zero'}">${hf(c.carryOutTotal)} h</span>`)}
+        ${row('<span class="op">−</span> 结转下月', `<span id="carryOutVal" class="${c.carryOutPhysTotal ? '' : 'zero'}">${hf(c.carryOutPhysTotal)} h</span>`)}
         <div class="flow-row jmp-next2" onclick="gotoNextMonth('${cur}')" title="点击查看 ${nextKey(cur).replace('-', ' 年 ')} 月（已按本月决策继承）" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();gotoNextMonth('${cur}')}"><div class="k"><span class="op">↘</span> 计入 ${nextKey(cur).replace('-', ' 年 ')} 月</div><div class="v ${c.carryOutPhysTotal ? '' : 'zero'}">${hf(c.carryOutPhysTotal)} h${c.carryOutPhysTotal > 0.001 ? ' <span class="jmp-go">查看 ›</span>' : ''}</div></div>
         <div class="flow-row tot"><div class="k">本月折现时长</div><div class="v" id="cashChainVal">${hf(c.expiredCash)} h</div></div>
         ${c.leaveShort > 0 ? `<div style="margin-top:10px;font-size:12px;color:#c0393d;background:#fef2f2;padding:8px 10px;border-radius:8px">⚠️ 换休比可用加班时长多 ${hf(c.leaveShort)} 小时，请核对。</div>` : ''}
@@ -2539,7 +2537,8 @@ function viewList() {
     order.forEach(t => {
       const uPrev = Math.min(need, cc.carryIn[t]); need -= uPrev;   // 换休先消耗上月结转
       const uCur = Math.min(need, cc.gain[t]); need -= uCur;        // 再消耗本月新增
-      carried[t] = +Math.min(cc.carryOut[t], Math.max(0, cc.gain[t] - uCur)).toFixed(2);
+      // 用物理继承额（实际流到下月的额度）来归属结转来源，避免已封板的 workOnly 月决策口径为 0 时筛选为空
+      carried[t] = +Math.min(cc.carryOutPhys[t], Math.max(0, cc.gain[t] - uCur)).toFixed(2);
     });
     carryShow = {};
     order.forEach(t => {
