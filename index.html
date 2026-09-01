@@ -638,6 +638,12 @@ table.dt th.left, table.dt td.left{text-align:left}
 .chain-node .cn-row{font-size:11px;color:var(--tx-3,#6b7385);display:flex;justify-content:space-between;gap:6px;line-height:1.7}
 .chain-node .cn-row b{color:var(--tx,#1a2233)}
 .chain-arrow{display:flex;align-items:center;color:var(--tx-3,#6b7385);font-size:16px;font-weight:700}
+.chain-node.clk{cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
+.chain-node.clk:hover{border-color:var(--brand,#993C1D);box-shadow:0 0 0 1px var(--brand,#993C1D);background:#eef2f8}
+.chain-node.clk:focus{outline:none;border-color:var(--brand,#993C1D);box-shadow:0 0 0 2px var(--brand,#993C1D)}
+.chain-node .cn-cur{font-size:10px;font-weight:600;color:#fff;background:var(--brand,#993C1D);border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:middle}
+.chain-node .cn-go{font-size:10px;color:var(--brand,#993C1D);font-weight:600;margin-top:5px;opacity:0;transition:opacity .15s}
+.chain-node.clk:hover .cn-go,.chain-node.clk:focus .cn-go{opacity:1}
 .modal-h{padding:20px 22px 4px;display:flex;align-items:flex-start;gap:12px}
 .modal-h h3{font-size:17px;font-weight:660;letter-spacing:-.2px}
 .modal-h p{font-size:13px;color:var(--tx-3);margin-top:3px}
@@ -1309,10 +1315,14 @@ function openMonthSettle(key) {
     // 加班继承链：上月→本月→下月，直观展示工时逐月流向（实时跟随本月决策）
     const pk = prevKey(key), pk2 = prevKey(pk), nk = nextKey(key);
     const chainKeys = [pk2, pk, key].filter(k => k >= MIN_KEY);
-    const chainNode = kk => { const cc = compute(kk), isCur = kk === key; return `<div class="chain-node${isCur ? ' cur' : ''}"><div class="cn-m">${kk.replace('-', ' 年 ')} 月</div><div class="cn-row"><span>上月结转</span><b>${hf(cc.carryInTotal)}h</b></div><div class="cn-row"><span>结转下月</span><b class="cf">${hf(cc.carryOutPhysTotal)}h</b></div></div>`; };
+    const chainNode = kk => {
+      const cc = compute(kk), isCur = kk === key;
+      const clickAttr = isCur ? '' : ` data-act="chain" onclick="chainJump('${kk}')" role="button" tabindex="0" title="查看 ${kk.replace('-', ' 年 ')} 月结算" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();chainJump('${kk}')}"`;
+      return `<div class="chain-node${isCur ? ' cur' : ''}${isCur ? '' : ' clk'}"${clickAttr}><div class="cn-m">${kk.replace('-', ' 年 ')} 月${isCur ? ' <span class="cn-cur">当前</span>' : ''}</div><div class="cn-row"><span>上月结转</span><b>${hf(cc.carryInTotal)}h</b></div><div class="cn-row"><span>结转下月</span><b class="cf">${hf(cc.carryOutPhysTotal)}h</b></div>${isCur ? '' : '<div class="cn-go">查看 ›</div>'}</div>`;
+    };
     const chainHTML = chainKeys.map(chainNode).join('<div class="chain-arrow">→</div>')
       + `<div class="chain-arrow">→</div>`
-      + `<div class="chain-node nxt"><div class="cn-m">${nk.replace('-', ' 年 ')} 月</div><div class="cn-row"><span>将继承</span><b class="cf">${hf(c.carryOutPhysTotal)}h</b></div><div class="cn-row muted">按本月决策</div></div>`;
+      + `<div class="chain-node nxt clk" data-act="chain" onclick="gotoNextMonth('${key}')" role="button" tabindex="0" title="前往 ${nk.replace('-', ' 年 ')} 月（已按本月决策继承）" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();gotoNextMonth('${key}')}"><div class="cn-m">${nk.replace('-', ' 年 ')} 月</div><div class="cn-row"><span>将继承</span><b class="cf">${hf(c.carryOutPhysTotal)}h</b></div><div class="cn-row muted">按本月决策</div><div class="cn-go">前往 ›</div></div>`;
     const nxPreviewHTML = `
       <div class="otc-sec jmp-next" onclick="gotoNextMonth('${key}')" title="点击查看 ${nkPrev.replace('-', ' 年 ')} 月（已按本月决策继承）" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();gotoNextMonth('${key}')}">
         <div class="otc-tit">下月继承预览 · ${nkPrev.replace('-', ' 年 ')} 月<span class="jmp-go">查看下月 ›</span></div>
@@ -3152,6 +3162,11 @@ function newMonth() {
 function gotoNextMonth(key) {
   closeModal('monthSettleMask');
   cur = key; newMonth();
+}
+/* 继承链节点点击：非当前月→重开该月结算面板（可一直往前追溯任一月份） */
+function chainJump(targetKey) {
+  closeModal('monthSettleMask');
+  openMonthSettle(targetKey);
 }
 
 /* ------------------------- 导入导出 ------------------------- */
