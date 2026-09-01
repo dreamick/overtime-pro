@@ -630,6 +630,14 @@ table.dt th.left, table.dt td.left{text-align:left}
 .flow-row.jmp-next2{cursor:pointer;transition:box-shadow .15s}
 .flow-row.jmp-next2:hover{box-shadow:0 0 0 2px var(--brand);border-radius:8px}
 .flow-row.jmp-next2:hover .jmp-go{background:var(--brand);color:#fff}
+.chain{display:flex;align-items:stretch;gap:6px;flex-wrap:wrap;margin-top:2px}
+.chain-node{flex:1;min-width:92px;background:#f6f8fc;border:1px solid #e6eaf2;border-radius:10px;padding:9px 10px}
+.chain-node.cur{border-color:var(--brand,#993C1D);box-shadow:0 0 0 1px var(--brand,#993C1D)}
+.chain-node.nxt{background:rgba(153,60,29,.06)}
+.chain-node .cn-m{font-size:12px;font-weight:600;color:var(--tx,#1a2233);margin-bottom:5px}
+.chain-node .cn-row{font-size:11px;color:var(--tx-3,#6b7385);display:flex;justify-content:space-between;gap:6px;line-height:1.7}
+.chain-node .cn-row b{color:var(--tx,#1a2233)}
+.chain-arrow{display:flex;align-items:center;color:var(--tx-3,#6b7385);font-size:16px;font-weight:700}
 .modal-h{padding:20px 22px 4px;display:flex;align-items:flex-start;gap:12px}
 .modal-h h3{font-size:17px;font-weight:660;letter-spacing:-.2px}
 .modal-h p{font-size:13px;color:var(--tx-3);margin-top:3px}
@@ -1298,6 +1306,13 @@ function openMonthSettle(key) {
     const inheritBreak = nxPrev ? nxPrev.carryIn : c.carryOutPhys;
     // 决策对照：若将本月待结转的时长改为折现，本月多拿的加班费（下月则不再继承）
     const altCash = +((c.carryOutPhys.work * (c.rates.work || 0)) + (c.carryOutPhys.rest * (c.rates.rest || 0)) + (c.carryOutPhys.holi * (c.rates.holi || 0))).toFixed(2);
+    // 加班继承链：上月→本月→下月，直观展示工时逐月流向（实时跟随本月决策）
+    const pk = prevKey(key), pk2 = prevKey(pk), nk = nextKey(key);
+    const chainKeys = [pk2, pk, key].filter(k => k >= MIN_KEY);
+    const chainNode = kk => { const cc = compute(kk), isCur = kk === key; return `<div class="chain-node${isCur ? ' cur' : ''}"><div class="cn-m">${kk.replace('-', ' 年 ')} 月</div><div class="cn-row"><span>上月结转</span><b>${hf(cc.carryInTotal)}h</b></div><div class="cn-row"><span>结转下月</span><b class="cf">${hf(cc.carryOutPhysTotal)}h</b></div></div>`; };
+    const chainHTML = chainKeys.map(chainNode).join('<div class="chain-arrow">→</div>')
+      + `<div class="chain-arrow">→</div>`
+      + `<div class="chain-node nxt"><div class="cn-m">${nk.replace('-', ' 年 ')} 月</div><div class="cn-row"><span>将继承</span><b class="cf">${hf(c.carryOutPhysTotal)}h</b></div><div class="cn-row muted">按本月决策</div></div>`;
     const nxPreviewHTML = `
       <div class="otc-sec jmp-next" onclick="gotoNextMonth('${key}')" title="点击查看 ${nkPrev.replace('-', ' 年 ')} 月（已按本月决策继承）" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();gotoNextMonth('${key}')}">
         <div class="otc-tit">下月继承预览 · ${nkPrev.replace('-', ' 年 ')} 月<span class="jmp-go">查看下月 ›</span></div>
@@ -1353,6 +1368,10 @@ function openMonthSettle(key) {
     };
     return `<div class="otc-cols">
       <div class="otc-col">
+      <div class="otc-sec chain-sec">
+        <div class="otc-tit">加班继承链 · 工时逐月流向</div>
+        <div class="chain">${chainHTML}</div>
+      </div>
       <div class="otc-sec">
         <div class="otc-tit">加班费明细</div>
         <table class="tb" style="width:100%">
