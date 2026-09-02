@@ -917,6 +917,9 @@ const TYPES = [
   { k: 'holi', name: '节假日', color: '#e5484d', cls: 'h' }
 ];
 const WD = ['日', '一', '二', '三', '四', '五', '六'];
+const ORDER = ['work', 'rest', 'holi'];                 // 调休/结转 FIFO 类型顺序
+const TYPE_ORD = { work: 0, rest: 1, holi: 2 };         // 类型排序权重
+function annualUsedAll() { let s = 0; Object.keys(DB.months).forEach(k => { const ds = (DB.months[k] || {}).days || {}; Object.keys(ds).forEach(d => { s += +((ds[d] || {}).annual) || 0; }); }); return s; }   // 全部月份已用年假合计
 const KEY = 'overtime.v1';
 
 /* 安全存储：当 localStorage 不可用（如直接双击用 file:// 打开、隐私/无痕模式、或浏览器禁用第三方存储）时，
@@ -1104,7 +1107,7 @@ function isSealed(k) {
 /* 把「物理结转给下月」的时长从本月可换休额度中扣除（防同一笔工时被换休两次）。
    归属顺序与 leaveLedger 的 prevRemain 一致：类型序 工作日→双休日→节假日，同类型内日期降序。 */
 function applyPhysCarry(pool, phys) {
-  const tO = { work: 0, rest: 1, holi: 2 };
+  const tO = TYPE_ORD;
   const left = { work: phys.work || 0, rest: phys.rest || 0, holi: phys.holi || 0 };
   pool.slice().filter(e => !e.expired).sort((a, b) => tO[a.t] - tO[b.t] || b.d - a.d).forEach(e => {
     const take = +Math.min(e.left, left[e.t] || 0).toFixed(2);
@@ -1198,7 +1201,7 @@ function compute(key, depth) {
     }
   }
   // --- 换休按 FIFO 消耗：先上月结转，再本月新增；同层按 工作日→双休日→节假日 ---
-  const order = ['work', 'rest', 'holi'];
+  const order = ORDER;
   const carryInTotal = +(carryIn.work + carryIn.rest + carryIn.holi).toFixed(2);
   const usedPrev = { work: 0, rest: 0, holi: 0 }, usedCur = { work: 0, rest: 0, holi: 0 };
   let need = leaveTotal;
@@ -1628,11 +1631,11 @@ function closeModal(id) {
    年假（r.annual）不参与核销（独立额度）。 */
 function leaveLedger(key, preC) {
   const [y, m] = key.split('-').map(Number);
-  const order = ['work', 'rest', 'holi'];
+  const order = ORDER;
   const c = preC || compute(key);
   const fromPre = !!preC;
   const n = daysIn(key), mo = M(key);
-  const tOrd = { work: 0, rest: 1, holi: 2 };
+  const tOrd = TYPE_ORD;
   /* 30 天核销规则 */
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const mEnd = new Date(y, m - 1, n);                       // 本月最后一天
@@ -2276,8 +2279,7 @@ function renderKPI() {
   const kpiKey = carryInView ? nextKey(cur) : cur;
   const c = compute(kpiKey), p = DB.months[prevKey(kpiKey)] ? compute(prevKey(kpiKey)) : null;
   // 年假：额度 − 全部月份已用
-  let annUsed = 0;
-  Object.keys(DB.months).forEach(k => { const ds = (DB.months[k] || {}).days || {}; Object.keys(ds).forEach(d => { annUsed += +((ds[d] || {}).annual) || 0; }); });
+  const annUsed = annualUsedAll();
   const annTotal = +DB.settings.annualTotal || 0, annRemain = Math.max(0, annTotal - annUsed);
   const dl = (a, b) => { if (!p) return ''; const d = a - b; if (Math.abs(d) < .01) return '<span class="muted">与上月持平</span>'; return `<b style="color:${d > 0 ? '#e5484d' : '#12b76a'}">${d > 0 ? '↑' : '↓'}${hf(Math.abs(d))}</b> 较上月`; };
   const box = [
@@ -2323,24 +2325,6 @@ function renderKPI() {
 }
 
 /* ---------- 调休 / 年假到期预警 ---------- */
-// 最早产生「仍可用可调休额度」的月份（沿结转链向前追溯）
-function leaveOriginMonth(key) {
-  let k = key;
-  while (true) {
-    const pk = prevKey(k);
-    if (!DB.months[pk]) break;
-    const c = compute(pk);
-    if (c.carryOutPhysTotal <= 0.001 && c.gainTotal <= 0.001) break; // 上月未向下传递额度 → 当前月为起点（用物理继承额，待调休但已封板月仍算有传递）
-    k = pk;
-  }
-  return k;
-}
-// 某月 +add 个月后的月底日期
-function monthEnd(y, m, add) {
-  let mm = m + add, yy = y;
-  while (mm > 12) { mm -= 12; yy++; }
-  return new Date(yy, mm - 1, daysIn(yy + '-' + pad(mm)));
-}
 function buildAlerts() {
   const out = [];
   const c = compute(cur);
@@ -2348,8 +2332,7 @@ function buildAlerts() {
   const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   // 年假
   const annTotal = +DB.settings.annualTotal || 0;
-  let annUsed = 0;
-  Object.keys(DB.months).forEach(k => { const ds = (DB.months[k] || {}).days || {}; Object.keys(ds).forEach(d => { annUsed += +((ds[d] || {}).annual) || 0; }); });
+  const annUsed = annualUsedAll();
   const annRemain = Math.max(0, annTotal - annUsed);
   if (annRemain > 0 && (now.getMonth() + 1) >= 11) {
     out.push({ key: 'ann_warn_' + Math.round(annRemain), cls: 'an', ic: '🗓', html: `<b>年假剩余 ${hf(annRemain)} 天</b>，将于 <b>12 月 31 日</b> 清零（按自然年），请尽快安排使用。` });
@@ -2783,7 +2766,7 @@ function viewList() {
     const nk = nextKey(cur);
     const nx = DB.months[nk] ? compute(nk) : null;
     if (nx && nx.carryInTotal > 0.001) {
-      const order = ['work', 'rest', 'holi'];
+      const order = ORDER;
       const capByT = { work: nx.carryIn.work, rest: nx.carryIn.rest, holi: nx.carryIn.holi };
       carryInShow = {};
       order.forEach(t => {
@@ -2803,7 +2786,7 @@ function viewList() {
   let carryShow = null;   // d → 该日加班时长中结转下月的部分
   if (listFilter === 'carry') {
     const cc = compute(cur);
-    const order = ['work', 'rest', 'holi'];
+    const order = ORDER;
     let need = cc.leaveTotal;
     const carried = {};
     order.forEach(t => {
@@ -3516,10 +3499,6 @@ function newMonth() {
   toast(msg);
 }
 /* 从结算面板一键跳转到下月：下月已存在则直接前往，不存在则按继承逻辑新建（复用 newMonth 的物理继承） */
-function gotoNextMonth(key) {
-  closeModal('monthSettleMask');
-  cur = key; newMonth();
-}
 /* 继承链节点点击：非当前月→重开该月结算面板（可一直往前追溯任一月份） */
 function chainJump(targetKey) {
   closeModal('monthSettleMask');
@@ -3637,7 +3616,7 @@ function exportLedgerText(key) {
     (gainByDay[d0] = gainByDay[d0] || {})[t] = +h.toFixed(2);
   }
   // 1) 减去本月被换休消耗的部分 usedCur（本月内先产生先消耗 → 从 d=1 正序）
-  const order = ['work', 'rest', 'holi'];
+  const order = ORDER;
   order.forEach(t => {
     let need = c.usedCur[t];
     for (let d0 = 1; d0 <= n && need > 0.001; d0++) {
@@ -3731,136 +3710,6 @@ function exportLedgerText(key) {
 }
 
 /* 导出当月汇总为 TXT 文本（含换休一一对应 / 结转下月明细） */
-function exportScreenshot() {
-  const [y, m] = cur.split('-').map(Number);
-  const mo = M(cur), n = daysIn(cur), c = compute(cur);
-  const pad2 = v => String(v).padStart(2, '0');
-  const now = new Date();
-  const ts = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
-
-  const L = [];
-  L.push('加班助手PRO · 当月汇总导出');
-  L.push(`${y} 年 ${m} 月`);
-  L.push(`导出时间：${ts}`);
-  L.push('');
-
-  let any = false;
-
-  // 换休：按来源分组；上月结转做「换休日期/时长 ↔ 上月加班日期/时长」一一对应
-  const carryLeaves = [], curLeaves = [], unspLeaves = [];
-  for (let d = 1; d <= n; d++) {
-    const r = mo.days[d]; if (!r || !r.leaveH) continue;
-    const item = { d, h: +r.leaveH, reason: r.leaveReason || '' };
-    if (r.leaveSrc === 'carry') carryLeaves.push(item);
-    else if (r.leaveSrc && String(r.leaveSrc).startsWith('D')) { item.srcDay = +String(r.leaveSrc).slice(1); curLeaves.push(item); }
-    else unspLeaves.push(item);
-  }
-  if (carryLeaves.length || curLeaves.length || unspLeaves.length) {
-    any = true;
-    L.push(`换休（${m}月）`);
-    if (carryLeaves.length) {
-      // 上月加班来源（按日期顺序，仅工作日，结转池）
-      const pk = prevKey(cur);
-      const prevOt = [];
-      if (DB.months[pk]) {
-        const [py, pm0] = pk.split('-').map(Number);
-        const pn = daysIn(pk);
-        for (let d = 1; d <= pn; d++) {
-          const r = M(pk).days[d]; if (!r) continue;
-          if (dayType(pk, d) !== 'work') continue;
-          const h = hoursOf(pk, d); if (!h) continue;
-          prevOt.push({ d, h, y: py, m: pm0 });
-        }
-      }
-      // FIFO 配对：换休条目的时长，按序从上月加班里逐笔扣减，得到一一对应
-      let pi = 0, pleft = prevOt.length ? prevOt[0].h : 0;
-      carryLeaves.forEach(lv => {
-        let rem = lv.h, parts = [];
-        while (rem > 0.001 && pi < prevOt.length) {
-          const take = Math.min(rem, pleft);
-          parts.push(`${prevOt[pi].y}年${prevOt[pi].m}月${prevOt[pi].d}日 ${hf(take)}h加班`);
-          rem = +(rem - take).toFixed(2);
-          pleft = +(pleft - take).toFixed(2);
-          if (pleft <= 0.001) { pi++; if (pi < prevOt.length) pleft = prevOt[pi].h; }
-        }
-        let line = `  ${m}月${lv.d}日 换休 ${hf(lv.h)}h`;
-        if (lv.reason) line += `（事由：${lv.reason}）`;
-        line += ` → 上月结转：${parts.join(' + ') || '（无对应来源记录）'}`;
-        L.push(line);
-      });
-    }
-    curLeaves.forEach(lv => {
-      let line = `  ${m}月${lv.d}日 换休 ${hf(lv.h)}h`;
-      if (lv.reason) line += `（事由：${lv.reason}）`;
-      line += ` → 对应 ${m}月${lv.srcDay}日加班`;
-      L.push(line);
-    });
-    unspLeaves.forEach(lv => {
-      let line = `  ${m}月${lv.d}日 换休 ${hf(lv.h)}h`;
-      if (lv.reason) line += `（事由：${lv.reason}）`;
-      L.push(line);
-    });
-    L.push(`本月换休共计 ${hf(c.leaveTotal)}h`);
-    L.push('');
-  }
-
-  // 加班费：仅输出汇总（单日明细已省略）
-  if (c.gainTotal > 0) {
-    any = true;
-    L.push('加班费');
-    if (c.carryOutPhysTotal > 0) {
-      L.push(`  其中结转到下月（不计入本月加班费）：${hf(c.carryOutPhysTotal)}h（含双休/节假日）`);
-    }
-    L.push(`本月折现/算加班费：${hf(c.cashTotal)}h，约 ¥${c.otPay}`);
-    L.push('');
-  }
-
-  // 年假
-  const annualLines = [];
-  let annMonth = 0;
-  for (let d = 1; d <= n; d++) {
-    const r = mo.days[d]; if (!r || !r.annual) continue;
-    annMonth += +r.annual;
-    let line = `${m}月${d}日 ${hf(+r.annual)}天`;
-    if (r.leaveReason) line += ` · ${r.leaveReason}`;
-    annualLines.push(line);
-  }
-  if (annualLines.length) {
-    const annTotal = +DB.settings.annualTotal || 0;
-    let annUsed = 0;
-    Object.keys(DB.months).forEach(k => {
-      Object.values((DB.months[k] || {}).days || {}).forEach(rr => annUsed += +(rr.annual || 0));
-    });
-    any = true;
-    L.push('年假');
-    annualLines.forEach(l => L.push('  ' + l));
-    L.push(`本月年假共计 ${hf(annMonth)}天 · 额度 ${hf(annTotal)} 剩余 ${hf(Math.max(0, annTotal - annUsed))} 天`);
-    L.push('');
-  }
-
-  // 外出
-  const outingLines = [];
-  let outingMonth = 0;
-  for (let d = 1; d <= n; d++) {
-    const r = mo.days[d]; if (!r || !r.outing) continue;
-    outingMonth += +r.outing;
-    let line = `${m}月${d}日 外出`;
-    if (r.leaveReason) line += ` · ${r.leaveReason}`;
-    outingLines.push(line);
-  }
-  if (outingLines.length) {
-    any = true;
-    L.push('外出');
-    outingLines.forEach(l => L.push('  ' + l));
-    L.push(`本月外出共计 ${hf(outingMonth)}天`);
-    L.push('');
-  }
-
-  if (!any) { toast('当月无数据可导出'); return; }
-
-  dl(`加班汇总_${cur}.txt`, '﻿' + L.join('\n'), 'text/plain;charset=utf-8');
-  toast('文本已导出');
-}
 
 function importJSON(file) {
   const fr = new FileReader();
