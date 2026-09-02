@@ -624,14 +624,26 @@ table.dt th.left, table.dt td.left{text-align:left}
 @media (max-width:820px){.otc-cols{grid-template-columns:1fr;gap:0}.carry-modal .otc-col + .otc-col{max-height:none;overflow:visible}}
 .otc-tit{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:8px;display:flex;align-items:center;gap:7px}
 .otc-tit::before{content:'';width:3px;height:13px;background:var(--brand);border-radius:2px;display:inline-block}
-/* 下月继承预览：可点击跳转，实时核对继承结果 */
-.otc-sec.jmp-next{cursor:pointer;transition:box-shadow .15s,border-color .15s}
-.otc-sec.jmp-next:hover{box-shadow:0 0 0 2px var(--brand);border-radius:10px}
+/* 下月继承预览：可点击跳转，实时核对继承结果；去掉大外框，只保留 subtle 背景与按钮反馈 */
+.otc-sec.jmp-next{cursor:pointer;transition:background .15s}
+.otc-sec.jmp-next:hover{background:rgba(153,60,29,.03)}
 .jmp-go{margin-left:auto;font-size:12px;font-weight:500;color:var(--brand);background:var(--brand-soft,rgba(153,60,29,.08));padding:2px 9px;border-radius:999px;white-space:nowrap}
 .otc-sec.jmp-next:hover .jmp-go{background:var(--brand);color:#fff}
-.flow-row.jmp-next2{cursor:pointer;transition:box-shadow .15s}
-.flow-row.jmp-next2:hover{box-shadow:0 0 0 2px var(--brand);border-radius:8px}
+.flow-row.jmp-next2{cursor:pointer;transition:background .15s}
+.flow-row.jmp-next2:hover{background:rgba(153,60,29,.03)}
 .flow-row.jmp-next2:hover .jmp-go{background:var(--brand);color:#fff}
+/* 加班费明细：按日/按来源行，用类型色做淡底区分 */
+.tb-otpay{border-collapse:separate;border-spacing:0 4px}
+.tb-otpay th{font-size:12px;font-weight:500;color:var(--tx-3);padding:6px 8px}
+.tb-otpay td{padding:8px;border-top:none;border-bottom:none;vertical-align:middle}
+.otpay-row td:first-child{border-radius:8px 0 0 8px}
+.otpay-row td:last-child{border-radius:0 8px 8px 0}
+.otpay-w{background:rgba(59,107,255,.07)}
+.otpay-r{background:rgba(245,165,36,.10)}
+.otpay-h{background:rgba(229,72,77,.08)}
+.otpay-meal{background:rgba(16,185,129,.08)}
+.otpay-meal td:first-child{border-radius:8px 0 0 8px}
+.otpay-meal td:last-child{border-radius:0 8px 8px 0}
 .chain{display:flex;align-items:stretch;gap:6px;flex-wrap:wrap;margin-top:2px}
 .chain-node{flex:1;min-width:92px;background:#f6f8fc;border:1px solid #e6eaf2;border-radius:10px;padding:9px 10px}
 .chain-node.cur{border-color:var(--brand,#993C1D);box-shadow:0 0 0 1px var(--brand,#993C1D)}
@@ -1206,6 +1218,7 @@ function compute(key, depth) {
   //   kind: 'manual' 手动点折现 | 'expired' 超有效期自动折现 | 'decision' 整月策略折现 | 'overflow' 自定义上限外折现
   const cashDays = {};
   let carryBalCash = 0;   // 上月结转余额在本月折现的部分：本月无对应加班日承载，无法归属到具体日
+  const carryBalCashByType = { work: 0, rest: 0, holi: 0 };   // 按类型分解，供加班费明细展示
   // 封板月「待调休（未折现、未到期）」天数自动结转的物理额，仅并入 carryOutPhys（KPI/继承用），
   // 不计入决策口径 carryOut（保留「未决定」语义，避免改动历史已决策月份的展示）。
   const carryOutAuto = { work: 0, rest: 0, holi: 0 };
@@ -1259,7 +1272,7 @@ function compute(key, depth) {
       const ciRemain = +Math.max(0, (carryIn[t] || 0) - (usedPrev[t] || 0) - (expiredCarryByType[t] || 0) - (autoCashByType[t] || 0)).toFixed(2);
       if (ciRemain <= 0.001) return;
       if (modeK === 'all') carryOut[t] = +(carryOut[t] + ciRemain).toFixed(2);
-      else if (modeK === 'none') { cashByDay[t] = +(cashByDay[t] + ciRemain).toFixed(2); carryBalCash = +(carryBalCash + ciRemain).toFixed(2); }
+      else if (modeK === 'none') { cashByDay[t] = +(cashByDay[t] + ciRemain).toFixed(2); carryBalCash = +(carryBalCash + ciRemain).toFixed(2); carryBalCashByType[t] = +(carryBalCashByType[t] + ciRemain).toFixed(2); }
       // 待调休（undefined / workOnly）封板月：上月结转余额未核销部分自动结转下月（未点折现、未到期）
       else if ((modeK === undefined || modeK === 'workOnly') && isSealed(key)) carryInAutoCarry[t] = +(carryInAutoCarry[t] + ciRemain).toFixed(2);
     });
@@ -1321,6 +1334,7 @@ function compute(key, depth) {
     cashDays, cashDayTotal: +Object.values(cashDays).reduce((s, x) => s + (x.h || 0), 0).toFixed(2),
     cashOther: {
       carryBalance: carryBalCash,
+      carryBalCashByType,
       expiredCarry: +order.reduce((s, t) => s + (expiredCarryByType[t] || 0), 0).toFixed(2)
     },
     autoCash: autoCashTotal, autoCashByType, expiredCash: expiredTotal, expiredByType,
@@ -1396,13 +1410,9 @@ function openMonthSettle(key) {
       </div>`;
     const mode = mo.carryMode || 'workOnly';
     const cm = mo.carryOutManual || {};
-    const otRows = TYPES.map(t => `<tr>
-        <td><span class="dot" style="background:${t.color}"></span> ${t.name}</td>
-        <td class="${c.cash[t.k] ? '' : 'zero'}">${hf(c.cash[t.k])} h</td>
-        <td class="muted">${fx(c.rates[t.k])} 元/h</td>
-        <td class="${c.amount[t.k] ? 'num-pos' : 'zero'}">${fx(c.amount[t.k])} 元</td></tr>`).join('');
     const [y, m] = key.split('-').map(Number);
     const d = leaveLedger(key);
+    const otRows = buildOvertimePayRows(c, key, d);
     const wd = dd => WD[new Date(y, m - 1, dd).getDay()];
     const srcLbl = e => e.earlier ? '更早月份结转' : `${e.m}月${e.d}日`;
     const typeName = t => t === 'work' ? '工作日' : (t === 'rest' ? '双休日' : '节假日');
@@ -1441,12 +1451,12 @@ function openMonthSettle(key) {
       </div>
       <div class="otc-sec">
         <div class="otc-tit">加班费明细</div>
-        <table class="tb" style="width:100%">
-          <thead><tr><th>类型</th><th>折现时长</th><th>单价</th><th>金额</th></tr></thead>
+        <table class="tb tb-otpay" style="width:100%">
+          <thead><tr><th style="text-align:left">日期</th><th style="text-align:left">类型</th><th style="text-align:right">加班时长</th><th style="text-align:right">折现时长</th><th style="text-align:right">单价</th><th style="text-align:right">金额</th></tr></thead>
           <tbody>${otRows}
-            <tr><td>🍚 餐补</td><td class="${c.mealCount ? '' : 'zero'}">${hf(c.mealCount)} 次</td><td class="muted">${fx(DB.settings.mealRate)}</td><td class="${c.mealPay ? 'num-pos' : 'zero'}">${fx(c.mealPay)}</td></tr>
+            <tr class="otpay-meal"><td>—</td><td>🍚 餐补</td><td class="zero">—</td><td class="${c.mealCount ? '' : 'zero'}">${hf(c.mealCount)} 次</td><td class="muted">${fx(DB.settings.mealRate)}</td><td class="${c.mealPay ? 'num-pos' : 'zero'}">${fx(c.mealPay)} 元</td></tr>
           </tbody>
-          <tfoot><tr><td>合计</td><td>—</td><td>—</td><td style="color:var(--brand);font-size:14px;line-height:1.5">加班费 ${fx(c.otPay)}<br>餐补 ${fx(c.mealPay)}<br><b style="font-size:15px">${fx(c.total)} 元</b></td></tr></tfoot>
+          <tfoot><tr><td colspan="3">合计</td><td colspan="3" style="text-align:right;color:var(--brand);font-size:14px;line-height:1.5">加班费 ${fx(c.otPay)}<br>餐补 ${fx(c.mealPay)}<br><b style="font-size:15px">${fx(c.total)} 元</b></td></tr></tfoot>
         </table>
       </div>
       <div class="otc-sec">
@@ -1514,14 +1524,50 @@ function openMonthSettle(key) {
   el._onEsc = onEsc;  // 便于 closeModal 解绑，避免重复叠加
 }
 
+/* 构造「加班费明细」按日明细行（复用于结算面板与 KPI 弹窗）
+   列：日期 | 类型 | 加班时长 | 折现时长 | 单价 | 金额
+   包含：本月加班日折现(cashDays)、上月结转余额折现、上月结转池过期折现 */
+function buildOvertimePayRows(c, key, lg) {
+  const [y, m] = key.split('-').map(Number);
+  const d = lg || leaveLedger(key);
+  const rows = [];
+  // 1. 本月具体加班日的折现
+  Object.keys(c.cashDays).map(Number).sort((a, b) => a - b).forEach(dd => {
+    const x = c.cashDays[dd];
+    const T = TYPES.find(t => t.k === x.t);
+    const h = hoursOf(key, dd);
+    rows.push({
+      date: `${m}月${dd}日 周${WD[new Date(y, m - 1, dd).getDay()]}`,
+      tname: T.name, cls: T.cls, color: T.color,
+      workH: h, cashH: x.h, rate: c.rates[x.t],
+      amount: +(x.h * c.rates[x.t]).toFixed(2)
+    });
+  });
+  // 2. 上月结转余额折现（本月无对应加班日承载）
+  TYPES.forEach(T => {
+    const h = (c.cashOther.carryBalCashByType || {})[T.k] || 0;
+    if (h > 0.001) rows.push({ date: '上月结转余额', tname: '上月结转余额', cls: T.cls, color: T.color, workH: null, cashH: h, rate: c.rates[T.k], amount: +(h * c.rates[T.k]).toFixed(2) });
+  });
+  // 3. 上月结转池过期折现（更早月份流入，本月无对应加班日）
+  TYPES.forEach(T => {
+    const h = (d.expiredCarryByType || {})[T.k] || 0;
+    if (h > 0.001) rows.push({ date: '更早月份结转池', tname: '结转池过期', cls: T.cls, color: T.color, workH: null, cashH: h, rate: c.rates[T.k], amount: +(h * c.rates[T.k]).toFixed(2) });
+  });
+  if (!rows.length) return `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--tx-3)">本月无加班费</td></tr>`;
+  return rows.map(r => `<tr class="otpay-row otpay-${r.cls}">
+    <td>${r.date}</td>
+    <td><span class="dot" style="background:${r.color}"></span> ${r.tname}</td>
+    <td class="${r.workH ? '' : 'zero'}">${r.workH !== null ? hf(r.workH) + ' h' : '—'}</td>
+    <td>${hf(r.cashH)} h</td>
+    <td class="muted">${fx(r.rate)} 元/h</td>
+    <td class="${r.amount ? 'num-pos' : 'zero'}">${fx(r.amount)} 元</td>
+  </tr>`).join('');
+}
+
 /* 加班费 KPI 点击 → 仅弹出「加班费明细」面板（各类加班折现时长与金额），不展开结转下月设置 / 换休核销台账 */
 function openOvertimePayDetail(key) {
   const c = compute(key);
-  const otRows = TYPES.map(t => `<tr>
-      <td><span class="dot" style="background:${t.color}"></span> ${t.name}</td>
-      <td class="${c.cash[t.k] ? '' : 'zero'}">${hf(c.cash[t.k])} h</td>
-      <td class="muted">${fx(c.rates[t.k])} 元/h</td>
-      <td class="${c.amount[t.k] ? 'num-pos' : 'zero'}">${fx(c.amount[t.k])} 元</td></tr>`).join('');
+  const otRows = buildOvertimePayRows(c, key);
   const el = document.createElement('div'); el.className = 'mask'; el.id = 'otPayMask';
   el.innerHTML = `<div class="modal carry-modal" onclick="event.stopPropagation()" style="width:560px;max-width:calc(100vw - 32px)">
     <div class="modal-h"><div><h3>${key.replace('-', ' 年 ')} 月 · 加班费明细</h3><p>各类加班折现时长与金额</p></div>
@@ -1529,12 +1575,12 @@ function openOvertimePayDetail(key) {
     <div class="modal-b">
       <div class="otc-sec">
         <div class="otc-tit">加班费明细</div>
-        <table class="tb" style="width:100%">
-          <thead><tr><th>类型</th><th>折现时长</th><th>单价</th><th>金额</th></tr></thead>
+        <table class="tb tb-otpay" style="width:100%">
+          <thead><tr><th style="text-align:left">日期</th><th style="text-align:left">类型</th><th style="text-align:right">加班时长</th><th style="text-align:right">折现时长</th><th style="text-align:right">单价</th><th style="text-align:right">金额</th></tr></thead>
           <tbody>${otRows}
-            <tr><td>🍚 餐补</td><td class="${c.mealCount ? '' : 'zero'}">${hf(c.mealCount)} 次</td><td class="muted">${fx(DB.settings.mealRate)}</td><td class="${c.mealPay ? 'num-pos' : 'zero'}">${fx(c.mealPay)}</td></tr>
+            <tr class="otpay-meal"><td>—</td><td>🍚 餐补</td><td class="zero">—</td><td class="${c.mealCount ? '' : 'zero'}">${hf(c.mealCount)} 次</td><td class="muted">${fx(DB.settings.mealRate)}</td><td class="${c.mealPay ? 'num-pos' : 'zero'}">${fx(c.mealPay)} 元</td></tr>
           </tbody>
-          <tfoot><tr><td>合计</td><td>—</td><td>—</td><td style="color:var(--brand);font-size:14px;line-height:1.5">加班费 ${fx(c.otPay)}<br>餐补 ${fx(c.mealPay)}<br><b style="font-size:15px">${fx(c.total)} 元</b></td></tr></tfoot>
+          <tfoot><tr><td colspan="3">合计</td><td colspan="3" style="text-align:right;color:var(--brand);font-size:14px;line-height:1.5">加班费 ${fx(c.otPay)}<br>餐补 ${fx(c.mealPay)}<br><b style="font-size:15px">${fx(c.total)} 元</b></td></tr></tfoot>
         </table>
       </div>
     </div>
