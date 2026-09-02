@@ -311,8 +311,8 @@ button{cursor:pointer;background:none;border:none}
 @keyframes popin{from{opacity:0}to{opacity:1}}
 .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
 
-/* 日历视图：单栏锁定为主面板宽度（与明细/汇总/预警面板一致）；窄屏本就单列，桌面端不再分两栏 */
-.cols{display:grid;grid-template-columns:1fr;gap:16px;align-items:start;max-width:var(--panel-w);margin-inline:auto}
+/* 日历视图：保留原两栏布局（左侧日历卡 + 右侧时长结转链面板）；整体宽度锁定为主面板宽度，与明细/汇总/预警面板一致 */
+.cols{display:grid;grid-template-columns:1fr 380px;gap:16px;align-items:start;max-width:var(--panel-w);margin-inline:auto}
 
 /* ---------- calendar ---------- */
 .cal{padding:6px 14px 14px}
