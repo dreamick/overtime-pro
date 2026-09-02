@@ -800,7 +800,13 @@ body.locked .wrap{display:none}
 .tbtn:hover{background:var(--line-2);color:var(--tx)}
 .tbtn:active{transform:scale(.94)}
 .tbtn.on{background:var(--brand);color:#fff;border-color:var(--brand)}
-#btnSet{font-size:22px}
+.tgrp{display:inline-flex;align-items:center;gap:0}
+.gear{display:inline-flex;align-items:center;justify-content:center;line-height:1;width:1em;height:1em;font-size:22px}
+/* 设置弹出面板 */
+.set-pop{position:fixed;z-index:60;width:384px;max-width:calc(100vw - 24px);max-height:calc(100vh - 78px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 48px rgba(20,30,60,.20);padding:14px;animation:popin .16s}
+.set-pop-hd{display:flex;align-items:center;justify-content:space-between;margin:2px 2px 12px}
+.set-pop-hd b{font-size:15px;color:var(--tx)}
+.set-pop .card{box-shadow:none}
 @keyframes popin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 </style>
 </head>
@@ -824,8 +830,10 @@ body.locked .wrap{display:none}
       <button data-tab="cal" data-page-node-id="Y2khNjeQCgyJHUpbsmOGTW">日历</button>
       <button data-tab="sum" data-page-node-id="9qOVK0ZGow7HK93W5hNbiA">汇总</button>
     </div>
-    <button data-tab="set" id="btnSet" class="tbtn" title="设置" data-page-node-id="pq3SwxC8ZmX6kzOUEenCEg">⚙</button>
-    <button id="btnRefresh" class="tbtn" title="刷新：从云端拉取最新数据并刷新视图（不会重新要求输入密码）" data-page-node-id="jQx8TMm6AeLhGp3iUlv3tj">↻</button>
+    <span class="tgrp" data-page-node-id="qTgrpSet">
+      <button id="btnSet" class="tbtn" title="设置" data-page-node-id="pq3SwxC8ZmX6kzOUEenCEg"><span class="gear">⚙</span></button>
+      <button id="btnRefresh" class="tbtn" title="刷新：从云端拉取最新数据并刷新视图（不会重新要求输入密码）" data-page-node-id="jQx8TMm6AeLhGp3iUlv3tj">↻</button>
+    </span>
   </div>
 </div>
 
@@ -3275,13 +3283,13 @@ function viewSet() {
     </div>
   </div>`;
 }
-function bindSet() {
-  document.querySelectorAll('[data-s]').forEach(el => el.addEventListener('change', () => {
+function bindSetIn(root) {
+  root.querySelectorAll('[data-s]').forEach(el => el.addEventListener('change', () => {
     const k = el.dataset.s;
     DB.settings[k] = (el.type === 'number') ? (+el.value || 0) : el.value;
     save(); render(); toast('已保存');
   }));
-  const sp = $('#setPass'), sb = $('#btnSetPass');
+  const sp = root.querySelector('#setPass'), sb = root.querySelector('#btnSetPass');
   if (sp && sb && !sb._bound) {
     sb._bound = true;
     sb.onclick = () => {
@@ -3294,6 +3302,42 @@ function bindSet() {
     };
   }
   bindSync();
+}
+function bindSet() { bindSetIn(document); }
+
+/* 设置内容改为点击齿轮弹出的浮层面板（不再切换整页 tab） */
+function openSetPop() {
+  if ($('#setPop')) { closeSetPop(); return; }   // 再次点击齿轮 → 收起
+  const el = document.createElement('div');
+  el.id = 'setPop';
+  el.className = 'set-pop no-print';
+  el.innerHTML = `<div class="set-pop-hd"><b>设置</b><button class="btn ghost sm" id="setPopClose" title="关闭">✕</button></div>${viewSet()}`;
+  document.body.appendChild(el);
+  const place = () => {
+    const r = $('#btnSet').getBoundingClientRect();
+    el.style.top = (r.bottom + 8) + 'px';
+    el.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
+  };
+  place();
+  bindSetIn(el);
+  $('#setPopClose').onclick = closeSetPop;
+  $('#btnSet').classList.add('on');
+  const onDoc = e => {
+    if (el.contains(e.target)) return;
+    if ($('#btnSet').contains(e.target)) return;   // 点击齿轮本身不收起（由 onclick 负责切换）
+    closeSetPop();
+  };
+  const onKey = e => { if (e.key === 'Escape') closeSetPop(); };
+  setTimeout(() => { document.addEventListener('click', onDoc, true); document.addEventListener('keydown', onKey); }, 0);
+  el._clean = () => { document.removeEventListener('click', onDoc, true); document.removeEventListener('keydown', onKey); window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); };
+  window.addEventListener('resize', place);
+  window.addEventListener('scroll', place, true);
+}
+function closeSetPop() {
+  const el = $('#setPop'); if (!el) return;
+  if (el._clean) el._clean();
+  el.remove();
+  $('#btnSet').classList.remove('on');
 }
 
 /* ------------------------- 日期编辑弹窗 ------------------------- */
@@ -3936,6 +3980,7 @@ function boot() {
   $('#mnext').onclick = () => { const ks = monthKeys(), i = ks.indexOf(cur); if (i < ks.length - 1) { cur = ks[i + 1]; render(); } };
   $('#imp').addEventListener('change', e => { if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ''; });
   document.querySelectorAll('.tabs button, .tbtn[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; render(); });
+  $('#btnSet').onclick = () => openSetPop();
   // 调休预警展开后，点击横幅或明细区域外自动收起
   document.addEventListener('click', e => {
     if (!window.__lvWarnOpen) return;
