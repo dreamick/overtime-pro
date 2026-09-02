@@ -2422,35 +2422,56 @@ function buildLvWarnDetail(key) {
   const [, cm] = key.split('-').map(Number); // 当前月号，用于拼换休日期
   let lg; try { lg = leaveLedger(key); } catch (e) { lg = null; }
   function renderPool(pool, title, isCarry) {
-    const rows = [], sum = { total: 0, pending: 0, done: 0, cash: 0 };
+    const rows = [], sum = { total: 0, pending: 0, done: 0, cash: 0, carry: 0 };
     (pool || []).forEach(e => {
       const h = +(e.h || 0).toFixed(2), left = +(e.left || 0).toFixed(2), used = +(h - left).toFixed(2);
+      const carried = !isCarry ? +(e.carried || 0).toFixed(2) : 0;   // 仅本月池有「结转下月」字段
       sum.total = +(sum.total + h).toFixed(2);
       const dateLbl = isCarry && e.earlier ? '更早结转' : (e.y + '-' + pad(e.m) + '-' + pad(e.d));
       const typeLbl = isCarry && e.earlier ? '结转' : ({ work: '工作日', rest: '双休日', holi: '节假日' }[e.t] || '');
       // 对应换休日期：e.used 记录本月换休核销（每项 { l, take }，l.d = 本月换休日）
       const lvDates = (e.used && e.used.length) ? e.used.map(u => `${cm}月${u.l.d}日`).join('、') : '';
       let status, cls;
-      if (e.expired) { status = `<span style="color:#b45309">（已折现）超 ${EXP} 天自动转加班费</span>`; cls = 'ot'; sum.cash = +(sum.cash + left).toFixed(2); }
-      else if (left <= 0.001) { status = `<span style="color:#718096">已核销</span>${lvDates ? `（${lvDates}换休）` : ''}`; cls = 'ot'; sum.done = +(sum.done + h).toFixed(2); }
-      else if (used > 0.001) { status = `已核销 ${hf(used)}/${hf(h)}h · <span style="color:#0f7a4d">剩 ${hf(left)}h 待调休</span>${lvDates ? ` · ${lvDates}换休` : ''}`; cls = 'ot'; sum.pending = +(sum.pending + left).toFixed(2); }
-      else { status = '<span style="color:#0f7a4d">（待调休）</span>'; cls = 'ot'; sum.pending = +(sum.pending + left).toFixed(2); }
+      if (e.expired) {
+        status = `<span style="color:#b45309">（已折现）超 ${EXP} 天自动转加班费</span>`;
+        cls = 'ot'; sum.cash = +(sum.cash + left).toFixed(2);
+      } else if (carried > 0.001 && used <= 0.001) {
+        status = `<span style="color:#3b6bff">已结转下月</span>${carried < h - 0.001 ? ` ${hf(carried)}/${hf(h)}h` : ''}`;
+        cls = 'ot'; sum.carry = +(sum.carry + carried).toFixed(2);
+      } else if (carried > 0.001 && used > 0.001) {
+        status = `<span style="color:#3b6bff">已结转 ${hf(carried)}h</span> · <span style="color:#718096">已核销 ${hf(used)}/${hf(h)}h</span>${lvDates ? ` · ${lvDates}换休` : ''}`;
+        cls = 'ot'; sum.carry = +(sum.carry + carried).toFixed(2); sum.done = +(sum.done + used).toFixed(2);
+      } else if (left <= 0.001) {
+        status = `<span style="color:#718096">已核销</span>${lvDates ? `（${lvDates}换休）` : ''}`;
+        cls = 'ot'; sum.done = +(sum.done + h).toFixed(2);
+      } else if (used > 0.001) {
+        status = `已核销 ${hf(used)}/${hf(h)}h · <span style="color:#0f7a4d">剩 ${hf(left)}h 待调休</span>${lvDates ? ` · ${lvDates}换休` : ''}`;
+        cls = 'ot'; sum.pending = +(sum.pending + left).toFixed(2);
+      } else {
+        status = '<span style="color:#0f7a4d">（待调休）</span>';
+        cls = 'ot'; sum.pending = +(sum.pending + left).toFixed(2);
+      }
       rows.push({ date: dateLbl, type: typeLbl, status, h, cls });
     });
     if (!rows.length) return '';
     const body = rows.map(r => `<div class="lv-row ${r.cls}"><span class="d">${r.date}</span><span class="w">${r.type}</span><span class="st">${r.status}</span><span class="h">${hf(r.h)}h</span></div>`).join('');
+    const sub = [`合计 ${hf(sum.total)}h`];
+    if (sum.pending > 0.001) sub.push(`待调休 <b style="color:#0f7a4d">${hf(sum.pending)}h</b>`);
+    if (sum.done > 0.001) sub.push(`已核销 ${hf(sum.done)}h`);
+    if (sum.carry > 0.001) sub.push(`已结转下月 ${hf(sum.carry)}h`);
+    if (sum.cash > 0.001) sub.push(`已折现 ${hf(sum.cash)}h`);
     return `<div class="lv-month">
-      <div class="lv-month-hd"><span class="dot"></span>${title}<span class="sub">合计 ${hf(sum.total)}h · 待调休 <b style="color:#0f7a4d">${hf(sum.pending)}h</b> · 已核销 ${hf(sum.done)}h${sum.cash > 0.001 ? ' · 已折现 ' + hf(sum.cash) + 'h' : ''}</span></div>
+      <div class="lv-month-hd"><span class="dot"></span>${title}<span class="sub">${sub.join(' · ')}</span></div>
       <div class="lv-list">${body}</div>
     </div>`;
   }
   const carryHtml = renderPool(lg && lg.carryPool, '上月结转可调休明细', true);
   const curHtml = renderPool(lg && lg.curPool, '本月加班可调休明细', false);
-  if (!carryHtml && !curHtml) return `<div class="lv-detail"><div class="hint" style="margin:0">本月无可调休额度（加班均已核销或已折现）。</div></div>`;
+  if (!carryHtml && !curHtml) return `<div class="lv-detail"><div class="hint" style="margin:0">本月无可调休额度（加班均已核销、结转或折现）。</div></div>`;
   return `<div class="lv-detail">
     ${carryHtml || ''}
     ${curHtml || ''}
-    <div class="hint" style="margin-top:8px">（待调休）= 仍可用于换休；超调休有效期自动转加班费（已折现）；被换休消耗则显示已核销。以上随录入实时更新。</div>
+    <div class="hint" style="margin-top:8px">（待调休）= 仍可用于换休；超调休有效期自动转加班费（已折现）；被换休消耗则显示已核销；已结转下月显示为蓝色。以上随录入实时更新。</div>
   </div>`;
 }
 function dismissAlert(k) {
