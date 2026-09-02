@@ -802,12 +802,10 @@ body.locked .wrap{display:none}
 .tbtn.on{background:var(--brand);color:#fff;border-color:var(--brand)}
 .tgrp{display:inline-flex;align-items:center;gap:0}
 .gear{display:inline-flex;align-items:center;justify-content:center;line-height:1;width:1em;height:1em;font-size:22px}
-/* 设置弹出面板（横版：响应式网格，自动换行，避免截断） */
-.set-pop{position:fixed;z-index:60;width:min(1160px,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:min(760px,calc(100vh - 64px));overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 48px rgba(20,30,60,.20);padding:12px;animation:popin .16s}
-.set-pop-hd{display:flex;align-items:center;justify-content:space-between;margin:2px 2px 10px}
-.set-pop-hd b{font-size:15px;color:var(--tx)}
-.set-pop .set-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;align-items:start}
-.set-pop .card{box-shadow:none}
+/* 设置弹出面板：与结算面板同款的居中 modal，宽度锁定为明细面板宽度 */
+.set-modal{width:min(1232px,calc(100vw - 32px));max-width:calc(100vw - 32px)}
+.set-modal .set-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;align-items:start}
+.set-modal .card{box-shadow:none}
 .set-grid{display:grid;gap:16px}
 @keyframes popin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 </style>
@@ -3307,38 +3305,31 @@ function bindSetIn(root) {
 }
 function bindSet() { bindSetIn(document); }
 
-/* 设置内容改为点击齿轮弹出的浮层面板（不再切换整页 tab） */
+/* 设置内容改为点击齿轮弹出的居中面板（与结算面板 modal 效果一致） */
 function openSetPop() {
-  if ($('#setPop')) { closeSetPop(); return; }   // 再次点击齿轮 → 收起
+  if ($('#setPopMask')) { closeSetPop(); return; }   // 再次点击齿轮 → 收起
   const el = document.createElement('div');
-  el.id = 'setPop';
-  el.className = 'set-pop no-print';
-  el.innerHTML = `<div class="set-pop-hd"><b>设置</b><button class="btn ghost sm" id="setPopClose" title="关闭">✕</button></div>${viewSet()}`;
+  el.id = 'setPopMask';
+  el.className = 'mask no-print';
+  el.innerHTML = `<div class="modal carry-modal set-modal" onclick="event.stopPropagation()">
+    <div class="modal-h"><div><h3>设置</h3><p>加班费标准、计算规则、节假日、数据管理与云端同步</p></div>
+      <span class="spacer"></span><button class="btn ghost sm" id="setPopClose" title="关闭">✕</button></div>
+    <div class="modal-b">${viewSet()}</div>
+    <div class="modal-f"><span class="spacer"></span><button class="btn primary" id="setPopOk">关闭</button></div>
+  </div>`;
+  el.onclick = () => closeSetPop();
   document.body.appendChild(el);
-  const place = () => {
-    const r = $('#btnSet').getBoundingClientRect();
-    el.style.top = (r.bottom + 8) + 'px';
-    el.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
-  };
-  place();
-  bindSetIn(el);
+  bindSetIn(el.querySelector('.set-modal'));
   $('#setPopClose').onclick = closeSetPop;
+  $('#setPopOk').onclick = closeSetPop;
   $('#btnSet').classList.add('on');
-  const onDoc = e => {
-    if (el.contains(e.target)) return;
-    if ($('#btnSet').contains(e.target)) return;   // 点击齿轮本身不收起（由 onclick 负责切换）
-    closeSetPop();
-  };
   const onKey = e => { if (e.key === 'Escape') closeSetPop(); };
-  setTimeout(() => { document.addEventListener('click', onDoc, true); document.addEventListener('keydown', onKey); }, 0);
-  el._clean = () => { document.removeEventListener('click', onDoc, true); document.removeEventListener('keydown', onKey); window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); };
-  window.addEventListener('resize', place);
-  window.addEventListener('scroll', place, true);
+  document.addEventListener('keydown', onKey);
+  el._onEsc = onKey;
 }
 function closeSetPop() {
-  const el = $('#setPop'); if (!el) return;
-  if (el._clean) el._clean();
-  el.remove();
+  const m = $('#setPopMask');
+  if (m) { if (m._onEsc) document.removeEventListener('keydown', m._onEsc); m.remove(); }
   $('#btnSet').classList.remove('on');
 }
 
