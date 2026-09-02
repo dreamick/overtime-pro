@@ -632,6 +632,9 @@ table.dt th.left, table.dt td.left{text-align:left}
 .flow-row.jmp-next2{cursor:pointer;transition:background .15s}
 .flow-row.jmp-next2:hover{background:rgba(153,60,29,.03)}
 .flow-row.jmp-next2:hover .jmp-go{background:var(--brand);color:#fff}
+.flow-row.jmp-next2:not(.clk){cursor:default}
+.flow-row.jmp-next2:not(.clk):hover{background:none}
+.flow-row.jmp-next2:not(.clk) .jmp-go{display:none}
 /* 加班费明细：按日/按来源行，用类型色做淡底区分 */
 .tb-otpay{border-collapse:separate;border-spacing:0 4px}
 .tb-otpay th{font-size:12px;font-weight:500;color:var(--tx-3);padding:6px 8px}
@@ -662,6 +665,12 @@ table.dt th.left, table.dt td.left{text-align:left}
 .modal-h h3{font-size:17px;font-weight:660;letter-spacing:-.2px}
 .modal-h p{font-size:13px;color:var(--tx-3);margin-top:3px}
 .modal-b{padding:16px 22px}
+/* 带输入框的二次确认弹窗 */
+.cfin-label{display:block;font-size:13px;color:var(--tx-2);margin-bottom:7px;font-weight:500}
+.cfin-input{width:100%;height:38px;border:1px solid var(--line);border-radius:9px;padding:0 12px;background:var(--bg);color:var(--tx);font-size:14px}
+.cfin-input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(59,107,255,.10)}
+.cfin-hint{font-size:12px;color:var(--tx-3);margin-top:8px}
+.cfin-hint b{color:var(--brand);font-weight:600}
 .modal-f{padding:14px 22px 20px;display:flex;gap:8px;justify-content:flex-end;align-items:center}
 /* 弹窗文字对齐统一：标题/说明左对齐；下拉选项居中（popover 选项原本即居中，此处作显式约束，保证所有弹窗一致） */
 .modal-h h3,.modal-h p{text-align:left}
@@ -1799,6 +1808,34 @@ function confirmDialog(opts){
   el.querySelector('#cfCancel').onclick = e => { e.stopPropagation(); closeModal('cfMask'); };
   el.querySelector('#cfOk').onclick = e => { e.stopPropagation(); closeModal('cfMask'); if (typeof onOk === 'function') onOk(); };
 }
+/* 带文字输入的二次确认弹窗：用于高危险操作（如删除月份）。确认按钮在输入与 confirmWord 完全一致前保持禁用 */
+function confirmInputDialog(opts) {
+  const o = opts || {};
+  const title = o.title || '提示', msg = o.msg || '', label = o.label || '请输入确认文字：',
+        placeholder = o.placeholder || '', confirmWord = (o.confirmWord || '').trim(),
+        okText = o.okText || '确认', cancelText = o.cancelText || '取消', danger = !!o.danger, onOk = o.onOk;
+  const el = document.createElement('div'); el.className = 'mask'; el.id = 'cfInMask';
+  el.innerHTML = `<div class="modal" onclick="event.stopPropagation()" style="width:min(420px,100%)">
+    <div class="modal-h"><div><h3>${esc(title)}</h3>${msg ? `<p>${esc(msg)}</p>` : ''}</div>
+      <span class="spacer"></span><button class="btn ghost sm" onclick="closeModal('cfInMask')">✕</button></div>
+    <div class="modal-b">
+      <label class="cfin-label" for="cfInVal">${esc(label)}</label>
+      <input class="cfin-input" id="cfInVal" type="text" autocomplete="off" placeholder="${esc(placeholder)}" />
+      <div class="cfin-hint">需输入：<b>${esc(confirmWord)}</b></div>
+    </div>
+    <div class="modal-f"><span class="spacer"></span>
+      <button class="btn" id="cfInCancel">${esc(cancelText)}</button>
+      <button class="btn ${danger ? 'danger' : 'primary'}" id="cfInOk" disabled>${esc(okText)}</button>
+    </div></div>`;
+  el.onclick = () => closeModal('cfInMask');
+  document.body.appendChild(el);
+  const inp = el.querySelector('#cfInVal'), okBtn = el.querySelector('#cfInOk'), cancelBtn = el.querySelector('#cfInCancel');
+  const sync = () => { okBtn.disabled = inp.value.trim() !== confirmWord; };
+  inp.addEventListener('input', sync);
+  cancelBtn.onclick = e => { e.stopPropagation(); closeModal('cfInMask'); };
+  okBtn.onclick = e => { e.stopPropagation(); if (inp.value.trim() !== confirmWord) return; closeModal('cfInMask'); if (typeof onOk === 'function') onOk(); };
+  setTimeout(() => { try { inp.focus(); } catch (_) {} }, 50);
+}
 function isToday(key, d) {
   const t = new Date();
   return mk(t.getFullYear(), t.getMonth() + 1) === key && t.getDate() === d;
@@ -2579,7 +2616,15 @@ function panel(c) {
         ${row('<span class="op">−</span> 本月换休', `<span class="${c.leaveTotal ? '' : 'zero'}">${hf(c.leaveTotal)} h</span>`)}
         ${row('<span class="op">＝</span> 可支配时长', `<b>${hf(c.availTotal)} h</b>`)}
         ${row('<span class="op">−</span> 结转下月', `<span id="carryOutVal" class="${c.carryOutPhysTotal ? '' : 'zero'}">${hf(c.carryOutPhysTotal)} h</span>`)}
-        <div class="flow-row jmp-next2" onclick="gotoNextMonth('${cur}')" title="点击查看 ${nextKey(cur).replace('-', ' 年 ')} 月（已按本月决策继承）" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();gotoNextMonth('${cur}')}"><div class="k"><span class="op">↘</span> 计入 ${nextKey(cur).replace('-', ' 年 ')} 月</div><div class="v ${c.carryOutPhysTotal ? '' : 'zero'}">${hf(c.carryOutPhysTotal)} h${c.carryOutPhysTotal > 0.001 ? ' <span class="jmp-go">查看 ›</span>' : ''}</div></div>
+        ${(() => {
+          const nk = nextKey(cur), nkExists = !!DB.months[nk], nkDisp = nk.replace('-', ' 年 ') + ' 月';
+          const clk = nkExists ? ' clk' : '';
+          const clickAttr = nkExists
+            ? ` onclick="chainJump('${nk}')" title="查看 ${nkDisp} 结算" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();chainJump('${nk}')}"`
+            : '';
+          const go = nkExists ? '<span class="jmp-go">查看 ›</span>' : '<span class="muted">（未创建）</span>';
+          return `<div class="flow-row jmp-next2${clk}"${clickAttr}><div class="k"><span class="op">↘</span> 计入 ${nkDisp}</div><div class="v ${c.carryOutPhysTotal ? '' : 'zero'}">${hf(c.carryOutPhysTotal)} h${go}</div></div>`;
+        })()}
         <div class="flow-row tot"><div class="k">本月折现时长</div><div class="v" id="cashChainVal">${hf(c.cashTotal)} h</div></div>
         ${(() => {
           const mc = c.manualCashTotal || 0, ec = c.expiredCash || 0, dc = +Math.max(0, c.cashTotal - mc - ec).toFixed(2);
@@ -3722,21 +3767,55 @@ function bindMonthPicker() {
       const isCur = k === cur;
       const isLast = k === ks[ks.length - 1];
       if (!isLast) { toast('只能删除最末尾的月份，以保持结转链连续'); return; }
-      confirmDialog({ title:'删除月份', msg:`确定删除 ${k.replace('-', ' 年 ')} 月吗？该月所有加班/换休记录将被清除，且不可恢复。`, okText:'删除', danger:true, onOk:() => {
-        delete DB.months[k];
-        if (isCur) {
-          const nks = monthKeys();
-          cur = nks[nks.length - 1] || mk(new Date().getFullYear(), new Date().getMonth() + 1);
-          if (!DB.months[cur]) DB.months[cur] = { days: {} };
+      const disp = k.replace('-', ' 年 ') + ' 月';
+      confirmDialog({
+        title:'删除月份',
+        msg:`确定删除 ${disp} 吗？该月所有加班/换休记录将被清除，且不可恢复。`,
+        okText:'继续删除', danger:true,
+        onOk:() => {
+          confirmInputDialog({
+            title:'二次确认删除',
+            msg:'此操作不可恢复，请输入下方月份名称以最终确认。',
+            label:'请输入月份名称：',
+            placeholder: disp,
+            confirmWord: disp,
+            okText:'确认删除', danger:true,
+            onOk:() => {
+              delete DB.months[k];
+              if (isCur) {
+                const nks = monthKeys();
+                cur = nks[nks.length - 1] || mk(new Date().getFullYear(), new Date().getMonth() + 1);
+                if (!DB.months[cur]) DB.months[cur] = { days: {} };
+              }
+              save(); render(); hide();
+            }
+          });
         }
-        save(); render(); hide();
-      }});
+      });
       return;
     }
     const it = e.target.closest('.mopt');
     if (it) { cur = it.dataset.v; render(); hide(); return; }
     const nw = e.target.closest('.mnew');
-    if (nw && !nw.disabled) { newMonth(); hide(); }
+    if (nw && !nw.disabled) {
+      e.stopPropagation();
+      const nk = nextKey(cur), ndisp = nk.replace('-', ' 年 ') + ' 月';
+      const remain = hf(compute(cur).availTotal);
+      confirmDialog({
+        title:'新建下月',
+        msg:`将新建 ${ndisp}，并继承本月剩余可调休余额 ${remain} 小时。`,
+        okText:'继续新建',
+        onOk:() => {
+          confirmDialog({
+            title:'确认新建',
+            msg:`确认新建 ${ndisp} 吗？新建后可在下月继续记录加班/换休。`,
+            okText:'确认新建',
+            onOk:() => { newMonth(); hide(); }
+          });
+        }
+      });
+      return;
+    }
   });
   pop.addEventListener('wheel', e => { e.preventDefault(); pop.scrollTop += (e.deltaY > 0 ? 40 : -40); }, { passive: false });
   attachScrollHighlight(pop, '.mopt');
