@@ -2400,6 +2400,7 @@ function toggleLvWarn() { window.__lvWarnOpen = !window.__lvWarnOpen; renderAler
 // 调休预警展开：列出本月「上月结转调休」（carryPool），逐条标注（待调休）/ 已核销 / 已折现，实时跟随录入与有效期规则
 function buildLvWarnDetail(key) {
   const EXP = +DB.settings.leaveExpireDays || 0;
+  const [, cm] = key.split('-').map(Number); // 当前月号，用于拼换休日期
   let lg; try { lg = leaveLedger(key); } catch (e) { lg = null; }
   const rows = [], sum = { total: 0, pending: 0, done: 0, cash: 0 };
   (lg && lg.carryPool ? lg.carryPool : []).forEach(e => {
@@ -2407,10 +2408,12 @@ function buildLvWarnDetail(key) {
     sum.total = +(sum.total + h).toFixed(2);
     const dateLbl = e.earlier ? '更早结转' : (e.y + '-' + pad(e.m) + '-' + pad(e.d));
     const typeLbl = e.earlier ? '结转' : ({ work: '工作日', rest: '双休日', holi: '节假日' }[e.t] || '');
+    // 对应换休日期：carryPool 条目 e.used 记录本月换休核销（每项 { l, take }，l.d = 本月换休日）
+    const lvDates = (e.used && e.used.length) ? e.used.map(u => `${cm}月${u.l.d}日`).join('、') : '';
     let status, cls;
-    if (e.expired) { status = `<span style="color:#b45309">已折现（超 ${EXP} 天自动转加班费）</span>`; cls = 'ot'; sum.cash = +(sum.cash + left).toFixed(2); }
-    else if (left <= 0.001) { status = '<span style="color:#718096">已核销</span>'; cls = 'ot'; sum.done = +(sum.done + h).toFixed(2); }
-    else if (used > 0.001) { status = `已核销 ${hf(used)}/${hf(h)}h · <span style="color:#0f7a4d">剩 ${hf(left)}h 待调休</span>`; cls = 'ot'; sum.pending = +(sum.pending + left).toFixed(2); }
+    if (e.expired) { status = `<span style="color:#b45309">（已折现）超 ${EXP} 天自动转加班费</span>`; cls = 'ot'; sum.cash = +(sum.cash + left).toFixed(2); }
+    else if (left <= 0.001) { status = `<span style="color:#718096">已核销</span>${lvDates ? `（${lvDates}换休）` : ''}`; cls = 'ot'; sum.done = +(sum.done + h).toFixed(2); }
+    else if (used > 0.001) { status = `已核销 ${hf(used)}/${hf(h)}h · <span style="color:#0f7a4d">剩 ${hf(left)}h 待调休</span>${lvDates ? ` · ${lvDates}换休` : ''}`; cls = 'ot'; sum.pending = +(sum.pending + left).toFixed(2); }
     else { status = '<span style="color:#0f7a4d">（待调休）</span>'; cls = 'ot'; sum.pending = +(sum.pending + left).toFixed(2); }
     rows.push({ date: dateLbl, type: typeLbl, status, h, cls });
   });
