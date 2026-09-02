@@ -2424,8 +2424,9 @@ function buildLvWarnDetail(key) {
   function renderPool(pool, title, isCarry) {
     const rows = [], sum = { total: 0, pending: 0, done: 0, cash: 0, carry: 0 };
     (pool || []).forEach(e => {
-      const h = +(e.h || 0).toFixed(2), left = +(e.left || 0).toFixed(2), used = +(h - left).toFixed(2);
+      const h = +(e.h || 0).toFixed(2), left = +(e.left || 0).toFixed(2);
       const carried = !isCarry ? +(e.carried || 0).toFixed(2) : 0;   // 仅本月池有「结转下月」字段
+      const used = +(h - left - carried).toFixed(2);                 // 真正被换休核销的部分（结转不算核销）
       sum.total = +(sum.total + h).toFixed(2);
       const dateLbl = isCarry && e.earlier ? '更早结转' : (e.y + '-' + pad(e.m) + '-' + pad(e.d));
       const typeLbl = isCarry && e.earlier ? '结转' : ({ work: '工作日', rest: '双休日', holi: '节假日' }[e.t] || '');
@@ -2436,17 +2437,26 @@ function buildLvWarnDetail(key) {
         status = `<span style="color:#b45309">（已折现）超 ${EXP} 天自动转加班费</span>`;
         cls = 'ot'; sum.cash = +(sum.cash + left).toFixed(2);
       } else if (carried > 0.001 && used <= 0.001) {
-        status = `<span style="color:#3b6bff">已结转下月</span>${carried < h - 0.001 ? ` ${hf(carried)}/${hf(h)}h` : ''}`;
-        cls = 'ot'; sum.carry = +(sum.carry + carried).toFixed(2);
+        // 仅有结转，无实际换休核销
+        if (left > 0.001) {
+          status = `<span style="color:#3b6bff">已结转 ${hf(carried)}h</span> · <span style="color:#0f7a4d">剩 ${hf(left)}h 待调休</span>`;
+          sum.carry = +(sum.carry + carried).toFixed(2); sum.pending = +(sum.pending + left).toFixed(2);
+        } else {
+          status = `<span style="color:#3b6bff">已结转下月</span>${carried < h - 0.001 ? ` ${hf(carried)}/${hf(h)}h` : ''}`;
+          sum.carry = +(sum.carry + carried).toFixed(2);
+        }
+        cls = 'ot';
       } else if (carried > 0.001 && used > 0.001) {
-        status = `<span style="color:#3b6bff">已结转 ${hf(carried)}h</span> · <span style="color:#718096">已核销 ${hf(used)}/${hf(h)}h</span>${lvDates ? ` · ${lvDates}换休` : ''}`;
-        cls = 'ot'; sum.carry = +(sum.carry + carried).toFixed(2); sum.done = +(sum.done + used).toFixed(2);
+        // 部分结转 + 部分/全部核销（可能仍有剩余）
+        const rest = left > 0.001 ? ` · <span style="color:#0f7a4d">剩 ${hf(left)}h 待调休</span>` : '';
+        status = `<span style="color:#3b6bff">已结转 ${hf(carried)}h</span> · <span style="color:#718096">已核销 ${hf(used)}/${hf(h)}h</span>${rest}${lvDates ? ` · ${lvDates}换休` : ''}`;
+        cls = 'ot'; sum.carry = +(sum.carry + carried).toFixed(2); sum.done = +(sum.done + used).toFixed(2); sum.pending = +(sum.pending + left).toFixed(2);
       } else if (left <= 0.001) {
         status = `<span style="color:#718096">已核销</span>${lvDates ? `（${lvDates}换休）` : ''}`;
         cls = 'ot'; sum.done = +(sum.done + h).toFixed(2);
       } else if (used > 0.001) {
         status = `已核销 ${hf(used)}/${hf(h)}h · <span style="color:#0f7a4d">剩 ${hf(left)}h 待调休</span>${lvDates ? ` · ${lvDates}换休` : ''}`;
-        cls = 'ot'; sum.pending = +(sum.pending + left).toFixed(2);
+        cls = 'ot'; sum.done = +(sum.done + used).toFixed(2); sum.pending = +(sum.pending + left).toFixed(2);
       } else {
         status = '<span style="color:#0f7a4d">（待调休）</span>';
         cls = 'ot'; sum.pending = +(sum.pending + left).toFixed(2);
