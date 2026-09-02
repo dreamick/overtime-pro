@@ -252,7 +252,6 @@ button{cursor:pointer;background:none;border:none}
 .tabs button{padding:6px 14px;border-radius:8px;font-size:13.5px;font-weight:500;color:var(--tx-2);transition:.16s}
 .tabs button:hover{color:var(--tx)}
 .tabs button.on{background:var(--brand);color:#fff;font-weight:600;box-shadow:0 3px 10px rgba(59,107,255,.30)}
-.tabs button.tab-icon{padding:6px 10px;font-size:16px;line-height:1}
 
 /* ---------- cards ---------- */
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
@@ -800,6 +799,7 @@ body.locked .wrap{display:none}
 .tbtn{width:32px;height:32px;flex:0 0 auto;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:17px;color:var(--tx-2);background:var(--card);border:1px solid var(--line);transition:.14s}
 .tbtn:hover{background:var(--line-2);color:var(--tx)}
 .tbtn:active{transform:scale(.94)}
+.tbtn.on{background:var(--brand);color:#fff;border-color:var(--brand)}
 @keyframes popin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 </style>
 </head>
@@ -822,8 +822,8 @@ body.locked .wrap{display:none}
       <button data-tab="list" class="on" data-page-node-id="isnZAnHJJH0zQmn6SI7U9X">明细</button>
       <button data-tab="cal" data-page-node-id="Y2khNjeQCgyJHUpbsmOGTW">日历</button>
       <button data-tab="sum" data-page-node-id="9qOVK0ZGow7HK93W5hNbiA">汇总</button>
-      <button data-tab="set" class="tab-icon" title="设置" data-page-node-id="pq3SwxC8ZmX6kzOUEenCEg">↻</button>
     </div>
+    <button data-tab="set" id="btnSet" class="tbtn" title="设置" data-page-node-id="pq3SwxC8ZmX6kzOUEenCEg">⚙</button>
     <button id="btnRefresh" class="tbtn" title="刷新：从云端拉取最新数据并刷新视图（不会重新要求输入密码）" data-page-node-id="jQx8TMm6AeLhGp3iUlv3tj">↻</button>
   </div>
 </div>
@@ -2250,7 +2250,7 @@ function renderTop() {
   }
   $('#mprev').disabled = i <= 0;
   $('#mnext').disabled = i >= ks.length - 1;
-  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  document.querySelectorAll('.tabs button, .tbtn[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
 }
 
 function renderKPI() {
@@ -3927,7 +3927,7 @@ function boot() {
   $('#mprev').onclick = () => { const ks = monthKeys(), i = ks.indexOf(cur); if (i > 0) { cur = ks[i - 1]; render(); } };
   $('#mnext').onclick = () => { const ks = monthKeys(), i = ks.indexOf(cur); if (i < ks.length - 1) { cur = ks[i + 1]; render(); } };
   $('#imp').addEventListener('change', e => { if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ''; });
-  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.tab; render(); });
+  document.querySelectorAll('.tabs button, .tbtn[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; render(); });
   // 调休预警展开后，点击横幅或明细区域外自动收起
   document.addEventListener('click', e => {
     if (!window.__lvWarnOpen) return;
