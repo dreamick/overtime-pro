@@ -409,11 +409,12 @@ table.tb tfoot td{font-weight:650;border-top:1.5px solid var(--line);border-bott
 .lv-month-hd .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#4a5568}
 .lv-month-hd .sub{margin-left:auto;font-weight:500;font-size:11.5px;color:#718096;font-variant-numeric:tabular-nums}
 .lv-list{margin:4px 0 0 14px;display:flex;flex-direction:column;gap:4px}
-.lv-row{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:6px;font-size:12px;font-variant-numeric:tabular-nums}
-.lv-row .d{flex:0 0 56px;color:#2d3748;font-weight:600}
-.lv-row .w{flex:0 0 32px;color:#a0aec0;font-size:11px}
-.lv-row .st{flex:1;min-width:0;color:#2d3748;font-size:12px}
-.lv-row .h{flex:0 0 78px;text-align:right;font-weight:650}
+.lv-row{display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;gap:8px;padding:4px 8px;border-radius:6px;font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.lv-row > span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lv-row .d{color:#2d3748;font-weight:600}
+.lv-row .w{color:#a0aec0;font-size:11px}
+.lv-row .st{min-width:0;color:#2d3748;font-size:12px;text-align:left}
+.lv-row .h{text-align:right;font-weight:650}
 .lv-row.ot{background:rgba(255,255,255,.6)}
 .lv-row.ot .h{color:#3b6bff}
 .lv-row.lv{background:#e8f7ef;color:#0f8a52}
@@ -1357,7 +1358,7 @@ function compute(key, depth) {
 const fx = (v, d) => { d = d === undefined ? 2 : d; return (Math.round(v * 100) / 100).toFixed(d); };
 const hf = v => (Math.abs(v - Math.round(v)) < 0.001 ? String(Math.round(v)) : fx(v, 1));
 // 折现来源分类名：与 compute().cashDays[].kind 对应
-const CASH_KIND_NAME = { manual: '手动折现', expired: '到期自动折现', decision: '整月策略折现', overflow: '超上限折现' };
+const CASH_KIND_NAME = { manual: '手动折现', expired: '到期自动折现', decision: '按策略折现', overflow: '超上限折现' };
 const money = v => '¥' + fx(v).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function toast(msg) {
@@ -2281,7 +2282,7 @@ function renderKPI() {
         const ps = [];
         if (mc > 0.001) ps.push(`手动 ${hf(mc)}`);
         if (ec > 0.001) ps.push(`到期 ${hf(ec)}`);
-        if (dc > 0.001) ps.push(`策略 ${hf(dc)}`);
+        if (dc > 0.001) ps.push(`自动折现 ${hf(dc)}`);
         return `<span class="muted">${ps.join(' · ') || '—'}</span>`;
       })(), f: 'cash' },
     { lb: '年假剩余', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="15" height="14" rx="2"/><path d="M3.5 9.5h15"/><path d="M8 3.5v3"/><path d="M14 3.5v3"/><rect x="8.5" y="12" width="5" height="3.5" rx="0.7" fill="currentColor"/></svg>', ac: '#7c3aed', vl: hf(annRemain), u: '天', df: `<span class="muted">额度 ${hf(annTotal)} 天</span>`, f: 'annual' },
@@ -2336,35 +2337,38 @@ function buildAlerts() {
   } else if (annTotal > 0 && annRemain <= 0) {
     out.push({ key: 'ann_done', cls: 'info', ic: '🗓', html: `年假额度（${hf(annTotal)} 天）已用尽。` });
   }
-  // 调休到期提醒（按产生日 + leaveExpireDays 天有效期）：存在未调休加班且产生日距今 ≤ EXP 天时提醒
+  // 调休余额/到期提醒：始终展示横幅，有额度时显示余额与到期提示，无额度时显示“暂无可调休额度”
   const EXP = +DB.settings.leaveExpireDays || 0;
-  if (EXP > 0) {
-    let nearestDays = Infinity, atRiskHours = 0, pendingHours = 0, pendingCarry = 0;
-    try {
-      const L = leaveLedger(cur);
-      const pool = (L.carryPool || []).concat(L.curPool || []);
-      const eDate = e => new Date(e.y, e.m - 1, e.d || 1);
-      const [cy, cm] = cur.split('-').map(Number);
-      pool.forEach(e => {
-        if (e.expired || e.left <= 0.001) return;
-        // 已明确折现（按天标记 或 本月结算策略判定为折现）的加班不计入“可调休”预警
-        if (e.y === cy && e.m === cm && daySettleState(cur, e.d) === 'cash') return;
-        pendingHours = +(pendingHours + e.left).toFixed(2);
-        if (e.earlier || e.y !== cy || e.m !== cm) pendingCarry = +(pendingCarry + e.left).toFixed(2); // 上月及更早结转来的可调休
+  let nearestDays = Infinity, atRiskHours = 0, pendingHours = 0, pendingCarry = 0;
+  try {
+    const L = leaveLedger(cur);
+    const pool = (L.carryPool || []).concat(L.curPool || []);
+    const eDate = e => new Date(e.y, e.m - 1, e.d || 1);
+    const [cy, cm] = cur.split('-').map(Number);
+    pool.forEach(e => {
+      if (e.expired || e.left <= 0.001) return;
+      // 已明确折现（按天标记 或 本月结算策略判定为折现）的加班不计入“可调休”预警
+      if (e.y === cy && e.m === cm && daySettleState(cur, e.d) === 'cash') return;
+      pendingHours = +(pendingHours + e.left).toFixed(2);
+      if (e.earlier || e.y !== cy || e.m !== cm) pendingCarry = +(pendingCarry + e.left).toFixed(2); // 上月及更早结转来的可调休
+      if (EXP > 0) {
         const daysPast = Math.floor((today0 - eDate(e)) / 86400000);
         if (daysPast < EXP) {
           atRiskHours = +(atRiskHours + e.left).toFixed(2);
           const left = EXP - daysPast;
           if (left < nearestDays) nearestDays = left;
         }
-      });
-    } catch (e) {}
-    if (pendingHours > 0.001) {
-      // 调休预警：有可调休余额即展示（可点击展开「上月结转调休」明细）；临近到期则额外强调
-      const expMsg = (atRiskHours > 0.001 && nearestDays !== Infinity)
-        ? `，其中 <b>${hf(atRiskHours)}h</b> 将于 <b>${nearestDays} 天</b> 后到期` : '';
-      out.push({ key: 'lv_warn_' + Math.round(pendingHours), cls: 'lv', ic: '⏰', html: `可调休约 <b>${hf(pendingHours)}h</b>（待调休${pendingCarry > 0.001 ? `，含上月结转 ${hf(pendingCarry)}h` : ''}）${expMsg}。点击横幅展开查看上月结转明细。` });
-    }
+      }
+    });
+  } catch (e) {}
+  if (pendingHours > 0.001) {
+    // 调休预警：有可调休余额即展示（可点击展开「上月结转调休」明细）；临近到期则额外强调
+    const expMsg = (EXP > 0 && atRiskHours > 0.001 && nearestDays !== Infinity)
+      ? `，其中 <b>${hf(atRiskHours)}h</b> 将于 <b>${nearestDays} 天</b> 后到期` : '';
+    out.push({ key: 'lv_warn_' + Math.round(pendingHours), cls: 'lv', ic: '⏰', html: `可调休约 <b>${hf(pendingHours)}h</b>（待调休${pendingCarry > 0.001 ? `，含上月结转 ${hf(pendingCarry)}h` : ''}）${expMsg}。点击横幅展开查看上月结转明细。` });
+  } else {
+    // 无余额时仍保持横幅存在，避免用户误以为是功能消失
+    out.push({ key: 'lv_warn_0', cls: 'lv', ic: '⏰', html: `当前暂无可调休额度（已全部核销或折现）。点击横幅展开查看明细。` });
   }
   return out;
 }
