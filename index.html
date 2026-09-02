@@ -802,11 +802,13 @@ body.locked .wrap{display:none}
 .tbtn.on{background:var(--brand);color:#fff;border-color:var(--brand)}
 .tgrp{display:inline-flex;align-items:center;gap:0}
 .gear{display:inline-flex;align-items:center;justify-content:center;line-height:1;width:1em;height:1em;font-size:22px}
-/* 设置弹出面板 */
-.set-pop{position:fixed;z-index:60;width:384px;max-width:calc(100vw - 24px);max-height:calc(100vh - 78px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 48px rgba(20,30,60,.20);padding:14px;animation:popin .16s}
+/* 设置弹出面板（横版：卡片横向排列，可左右滚动） */
+.set-pop{position:fixed;z-index:60;width:min(1080px,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:calc(100vh - 78px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 48px rgba(20,30,60,.20);padding:14px;animation:popin .16s}
 .set-pop-hd{display:flex;align-items:center;justify-content:space-between;margin:2px 2px 12px}
 .set-pop-hd b{font-size:15px;color:var(--tx)}
-.set-pop .card{box-shadow:none}
+.set-pop .set-grid{display:flex;flex-direction:row;flex-wrap:nowrap;gap:14px;align-items:flex-start}
+.set-pop .card{flex:0 0 272px;box-shadow:none}
+.set-grid{display:grid;gap:16px}
 @keyframes popin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 </style>
 </head>
@@ -3202,7 +3204,7 @@ function viewSum() {
 function viewSet() {
   const s = DB.settings, R = rateOf();
   const F = (k, lb, hint, attr) => `<div class="fld"><label>${lb}</label><input data-s="${k}" value="${esc(s[k])}" ${attr || 'type="number" step="0.01"'}>${hint ? `<div class="hint">${hint}</div>` : ''}</div>`;
-  return `<div style="display:grid;gap:16px">
+  return `<div class="set-grid">
     <div class="card">
       <div class="card-h"><h3>加班费标准</h3><span class="sub">与原表一致：工作日按小时，休息日/节假日按天</span></div>
       <div class="st-grid">
