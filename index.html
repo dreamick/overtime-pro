@@ -803,9 +803,11 @@ body.locked .wrap{display:none}
 .tgrp{display:inline-flex;align-items:center;gap:0}
 .gear{display:inline-flex;align-items:center;justify-content:center;line-height:1;width:1em;height:1em;font-size:22px}
 /* 设置弹出面板：与结算面板同款的居中 modal，宽度锁定为明细面板宽度 */
-.set-modal{width:min(1232px,calc(100vw - 32px));max-width:calc(100vw - 32px)}
-.set-modal .set-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;align-items:start}
-.set-modal .card{box-shadow:none}
+.set-modal{width:min(1232px,calc(100vw - 32px));max-width:calc(100vw - 32px);max-height:min(860px,calc(100vh - 40px))}
+.set-modal .modal-b{max-height:calc(100vh - 180px);overflow-y:auto;overflow-x:hidden}
+.set-modal .set-grid{columns:3;column-gap:12px}
+.set-modal .set-grid .card{break-inside:avoid;margin-bottom:12px;box-shadow:none}
+.set-modal .set-grid .card:last-child{margin-bottom:0}
 .set-grid{display:grid;gap:16px}
 @keyframes popin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 </style>
