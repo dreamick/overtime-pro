@@ -800,6 +800,7 @@ body.locked .wrap{display:none}
 .tbtn:hover{background:var(--line-2);color:var(--tx)}
 .tbtn:active{transform:scale(.94)}
 .tbtn.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+#btnSet{font-size:22px}
 @keyframes popin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 </style>
 </head>
@@ -1946,6 +1947,28 @@ function bindRestPickers() {
     const d = span.closest('tr').dataset.d;
     const days = M(cur).days;
     const rec = () => (days[d] || (days[d] = {}));
+    let pending = { leaveH: 0, annual: 0, outing: 0 };
+    const resetPending = () => { const rr = rec(); pending.leaveH = +rr.leaveH || 0; pending.annual = +rr.annual || 0; pending.outing = +rr.outing || 0; };
+    function validatePending() {
+      if (pending.annual > 0.001) {
+        let used = 0;
+        Object.keys(DB.months).forEach(k => {
+          const ds = (DB.months[k] || {}).days || {};
+          Object.keys(ds).forEach(dd => { if (k === cur && dd === d) return; used += +((ds[dd] || {}).annual) || 0; });
+        });
+        const annTotal = +DB.settings.annualTotal || 0;
+        if (used + pending.annual > annTotal) return '年假剩余不足（已用 ' + hf(used) + ' / 额度 ' + hf(annTotal) + ' 天）';
+      }
+      if (pending.leaveH > 0.001) {
+        const c = compute(cur);
+        const budget = c.carryIn.work + c.gain.work;
+        let others = 0;
+        Object.keys(days).forEach(dd => { if (dd !== d) others += +((days[dd] || {}).leaveH || 0); });
+        const maxLeave = Math.max(0, budget - others);
+        if (pending.leaveH > maxLeave) return '换休时长不可超过可用加班总时长 ' + hf(budget) + 'h（本行最多 ' + hf(maxLeave) + 'h）';
+      }
+      return '';
+    }
     const opts = [
       { v: 2, lbl: '2h', field: 'leaveH' },
       { v: 4, lbl: '4h', field: 'leaveH' },
@@ -1964,8 +1987,7 @@ function bindRestPickers() {
       inp.className = 'cellin lr-' + cls;
     };
     const render = () => {
-      const rr = rec();
-      const lv = +rr.leaveH, an = +rr.annual, ot = +rr.outing;
+      const lv = +pending.leaveH, an = +pending.annual, ot = +pending.outing;
       const buildItem = o => {
         const on = (o.field === 'leaveH' && lv === o.v) || (o.field === 'annual' && an === o.v) || (o.field === 'outing' && ot === o.v);
         const cls = o.field === 'leaveH' ? ' lopt-leaveH' : (o.field === 'annual' ? ' lopt-annual' : (o.field === 'outing' ? ' lopt-outing' : ''));
@@ -1990,7 +2012,7 @@ function bindRestPickers() {
       pop.style.left = left + 'px';
     }
     function show() {
-      render();
+      resetPending(); render();
       pop.style.visibility = 'hidden'; pop.hidden = false;
       place();
       pop.style.visibility = '';
@@ -2034,33 +2056,19 @@ function bindRestPickers() {
       const it = e.target.closest('.lopt'); if (!it) return;
       e.stopPropagation();
       const v = +it.dataset.v, field = it.dataset.field;
-      const rr = rec();
-      if (+rr[field] === v) {                       // 再次点击已选值 → 取消该类（保留其他类）
-        delete rr[field];
-        if (field === 'leaveH') delete rr.leaveSrc;
+      if (+pending[field] === v) {
+        // 再次点击已选项 → 确认并关闭面板
+        const err = validatePending(); if (err) { toast(err); return; }
+        const rr = rec();
+        if (pending.leaveH > 0.001) { rr.leaveH = pending.leaveH; delete rr.leaveSrc; } else { delete rr.leaveH; delete rr.leaveSrc; }
+        if (pending.annual > 0.001) rr.annual = pending.annual; else delete rr.annual;
+        if (pending.outing > 0.001) rr.outing = pending.outing; else delete rr.outing;
+        save(); renderKPI(); refreshCircles(); refreshReasonColor(); hide();
       } else {
-        if (field === 'annual') {
-          let used = 0;
-          Object.keys(DB.months).forEach(k => {
-            const ds = (DB.months[k] || {}).days || {};
-            Object.keys(ds).forEach(dd => { if (k === cur && dd === d) return; used += +((ds[dd] || {}).annual) || 0; });
-          });
-          const annTotal = +DB.settings.annualTotal || 0;
-          if (used + v > annTotal) { toast('年假剩余不足（已用 ' + hf(used) + ' / 额度 ' + hf(annTotal) + ' 天）'); return; }
-          rr.annual = v;
-        } else if (field === 'outing') {
-          rr.outing = v;
-        } else {
-          const c = compute(cur);
-          const budget = c.carryIn.work + c.gain.work;
-          let others = 0;
-          Object.keys(days).forEach(dd => { if (dd !== d) others += +((days[dd] || {}).leaveH || 0); });
-          const maxLeave = Math.max(0, budget - others);
-          if (v > maxLeave) { toast('换休时长不可超过可用加班总时长 ' + hf(budget) + 'h（本行最多 ' + hf(maxLeave) + 'h）'); return; }
-          rr.leaveH = v; delete rr.leaveSrc;
-        }
+        // 首次点击 → 仅高亮选择，不保存
+        pending[field] = v;
+        render();
       }
-      save(); renderKPI(); refreshCircles(); refreshReasonColor(); render();   // 原地刷新，保持面板打开以便继续多选
     });
   });
 }
