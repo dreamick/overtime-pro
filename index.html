@@ -1369,12 +1369,20 @@ function openMonthSettle(key) {
       const clickAttr = isCur ? '' : ` data-act="chain" onclick="chainJump('${kk}')" role="button" tabindex="0" title="查看 ${kk.replace('-', ' 年 ')} 月结算" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();chainJump('${kk}')}"`;
       return `<div class="chain-node${isCur ? ' cur' : ''}${isCur ? '' : ' clk'}"${clickAttr}><div class="cn-m">${kk.replace('-', ' 年 ')} 月${isCur ? ' <span class="cn-cur">当前</span>' : ''}</div><div class="cn-row"><span>上月结转</span><b>${hf(cc.carryInTotal)}h</b></div><div class="cn-row"><span>结转下月</span><b class="cf">${hf(cc.carryOutPhysTotal)}h</b></div>${isCur ? '' : '<div class="cn-go">查看 ›</div>'}</div>`;
     };
+    const nkExists = !!DB.months[nk];
+    const nkClick = nkExists ? ` data-act="chain" onclick="chainJump('${nk}')" role="button" tabindex="0" title="查看 ${nk.replace('-', ' 年 ')} 月结算" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();chainJump('${nk}')}"` : '';
+    const nkGo = nkExists ? '<div class="cn-go">查看 ›</div>' : '<div class="cn-go muted">（未创建）</div>';
+    const nkNode = `<div class="chain-node nxt${nkExists ? ' clk' : ''}"${nkClick}><div class="cn-m">${nk.replace('-', ' 年 ')} 月</div><div class="cn-row"><span>将继承</span><b class="cf">${hf(c.carryOutPhysTotal)}h</b></div><div class="cn-row muted">按本月决策</div>${nkGo}</div>`;
     const chainHTML = chainKeys.map(chainNode).join('<div class="chain-arrow">→</div>')
       + `<div class="chain-arrow">→</div>`
-      + `<div class="chain-node nxt clk" data-act="chain" onclick="gotoNextMonth('${key}')" role="button" tabindex="0" title="前往 ${nk.replace('-', ' 年 ')} 月（已按本月决策继承）" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();gotoNextMonth('${key}')}"><div class="cn-m">${nk.replace('-', ' 年 ')} 月</div><div class="cn-row"><span>将继承</span><b class="cf">${hf(c.carryOutPhysTotal)}h</b></div><div class="cn-row muted">按本月决策</div><div class="cn-go">前往 ›</div></div>`;
+      + nkNode;
+    const nkPrevExists = !!DB.months[nkPrev];
+    const nxCls = nkPrevExists ? 'otc-sec jmp-next' : 'otc-sec';
+    const nxClick = nkPrevExists ? ` onclick="chainJump('${nkPrev}')" title="查看 ${nkPrev.replace('-', ' 年 ')} 月结算" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();chainJump('${nkPrev}')}"` : '';
+    const nxGo = nkPrevExists ? '<span class="jmp-go">查看下月 ›</span>' : '';
     const nxPreviewHTML = `
-      <div class="otc-sec jmp-next" onclick="gotoNextMonth('${key}')" title="点击查看 ${nkPrev.replace('-', ' 年 ')} 月（已按本月决策继承）" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();gotoNextMonth('${key}')}">
-        <div class="otc-tit">下月继承预览 · ${nkPrev.replace('-', ' 年 ')} 月<span class="jmp-go">查看下月 ›</span></div>
+      <div class="${nxCls}"${nxClick}>
+        <div class="otc-tit">下月继承预览 · ${nkPrev.replace('-', ' 年 ')} 月${nxGo}</div>
         <div class="carry-line" style="margin:0 0 8px">本月将结转至下月 <b class="cf">${hf(c.carryOutPhysTotal)} h</b>
           <span class="muted">（工 ${hf(c.carryOutPhys.work)} · 休 ${hf(c.carryOutPhys.rest)} · 节 ${hf(c.carryOutPhys.holi)}）</span></div>
         ${c.carryOutPhysTotal > 0.001 ? `<div class="hint" style="margin-top:6px">💡 若把这笔 ${hf(c.carryOutPhysTotal)}h 改为折现，下月「上月结转」将减为 0h，本月加班费约 <b>+${money(altCash)}</b>（折现即落袋，下月不可再调休）。</div>` : ''}
@@ -1384,7 +1392,7 @@ function openMonthSettle(key) {
                <div><span class="muted">下月可支配时长</span>：<b>${hf(nxPrev.availTotal)} h</b></div>
                <div><span class="muted">下月已产生加班费</span>：<b>${money(nxPrev.otPay)}${nxPrev.mealPay ? ' ＋餐补 ' + money(nxPrev.mealPay) : ''}</b></div>
              </div>`
-          : `<div class="hint">下月尚未创建；<b>新建下月</b>后将自动按本月结转策略继承 ${hf(c.carryOutPhysTotal)} h（不折现的余额可继续在下月调休）。</div>`}
+          : `<div class="hint">下月尚未创建；本月将按当前结转策略继承 ${hf(c.carryOutPhysTotal)} h（不折现的余额可在下月调休，创建下月后可在面板查看）。</div>`}
       </div>`;
     const mode = mo.carryMode || 'workOnly';
     const cm = mo.carryOutManual || {};
