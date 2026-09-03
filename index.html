@@ -1459,14 +1459,37 @@ function openMonthSettle(key) {
           ${l.short > 0.001 ? `<span class="llg-warn">缺 ${hf(l.short)}h 无30天内可用来源</span>` : ''}</div>
       </div>`).join('') : `<div class="muted" style="padding:16px;text-align:center">本月暂无换休记录（年假不参与核销，独立额度）</div>`;
     const poolRow = e => {
-      const used = e.used.length ? e.used.map(u => `${m}月${u.l.d}日换休 ${hf(u.take)}h`).join('、') : '';
-      const state = e.expired ? `<span class="llg-cash">超${Math.round(+DB.settings.leaveExpireDays || 0)}天(产生日) · 剩余 ${hf(e.left)}h 自动转加班费</span>`
-        : (e.left > 0.001 ? `<span class="muted">剩余 ${hf(e.left)}h（仍可换休）</span>` : '<span style="color:#1a9d50">已全部核销</span>');
+      const usedH = e.used.reduce((s, u) => s + u.take, 0);
+      const carriedH = e.carried || 0;
+      const leftH = e.left;
+      // 去向：换休核销 + 结转下月
+      const usedLines = [];
+      if (usedH > 0.001) usedLines.push(e.used.map(u => `${m}月${u.l.d}日换休 ${hf(u.take)}h`).join('、'));
+      if (carriedH > 0.001) usedLines.push(`结转下月 ${hf(carriedH)}h`);
+      const ur = usedLines.length ? `→ ${usedLines.join('、')}` : (e.expired ? '→ 自动转加班费' : '未核销');
+      // 状态标签：结转下月 ≠ 核销，需区分开
+      let state;
+      if (e.expired) {
+        state = `<span class="llg-cash">超${Math.round(+DB.settings.leaveExpireDays || 0)}天(产生日) · ${hf(leftH)}h 已转加班费</span>`;
+      } else if (leftH > 0.001) {
+        const parts = [];
+        if (usedH > 0.001) parts.push(`已核销 ${hf(usedH)}h`);
+        if (carriedH > 0.001) parts.push(`结转下月 ${hf(carriedH)}h`);
+        state = `<span class="muted">${parts.length ? parts.join(' · ') + ' · ' : ''}剩余 ${hf(leftH)}h（仍可换休）</span>`;
+      } else if (carriedH > 0.001 && usedH > 0.001) {
+        state = `<span style="color:#1e3a8a">已核销 ${hf(usedH)}h · 结转下月 ${hf(carriedH)}h</span>`;
+      } else if (carriedH > 0.001) {
+        state = `<span style="color:#1e3a8a">已结转下月 ${hf(carriedH)}h</span>`;
+      } else if (usedH > 0.001) {
+        state = `<span style="color:#1a9d50">已全部核销</span>`;
+      } else {
+        state = `<span class="muted">未核销</span>`;
+      }
       return `<div class="llg-pl">
         <span class="dt">${e.earlier ? '更早结转' : `${e.m}月${e.d}日`}</span>
         <span class="tp">${e.earlier ? '结转' : typeName(e.t)}</span>
         <span class="hh">${hf(e.h)}h</span>
-        <span class="ur">${used ? '→ ' + used : '未核销'}</span>
+        <span class="ur">${ur}</span>
         <span class="st">${state}</span>
       </div>`;
     };
