@@ -3627,7 +3627,7 @@ function exportLedgerText(key) {
   L.push('');
 
   // ---- 段2：本月加班 ↔ 本月换休 ----
-  L.push(`${m}月加班 ↔ ${m}月换休`);
+  L.push(`${m}月加班 → ${m}月换休`);
   const curPairs = [];
   d.leaves.forEach(l => l.pairs.forEach(p => {
     if (p.e.y === y && p.e.m === m)   // 来源是本月加班
@@ -3638,7 +3638,7 @@ function exportLedgerText(key) {
       L.push(`${m}月${pr.src.d}日 加班 ${hf(pr.take)}h → ${m}月${pr.lvD}日 换休 ${hf(pr.take)}h${pr.manual ? '（手动指定）' : ''}`);
     });
   } else {
-    L.push('（本月换休均来自上月结转，无本月加班配对）');
+    L.push(`（${m}月换休均来自${prevM}月结转，无${m}月加班配对）`);
   }
   // 超有效期自动转加班费（未参与换休配对）的加班，单独提示
   const autoCashPool = d.carryPool.concat(d.curPool).filter(e => e.expired);
@@ -3697,7 +3697,7 @@ function exportLedgerText(key) {
     }
   });
 
-  L.push(`${m}月加班${nextM}月结转`);
+  L.push(`${m}月加班 → ${nextM}月结转`);
   const R = c.rates;
   let carryTotal = 0;
   const carryDays = Object.keys(carryByDay).map(Number).sort((a, b) => a - b);
@@ -3706,7 +3706,7 @@ function exportLedgerText(key) {
       order.forEach(t => {
         const v = carryByDay[d0][t];
         if (v > 0.001) {
-          L.push(`${m}月${d0}日 ${hf(v)}h ${tname(t)} → 结转${nextM}月`);
+          L.push(`${m}月${d0}日（${tname(t)}）${hf(v)}h → 结转${nextM}月`);
           carryTotal = +(carryTotal + v).toFixed(2);
         }
       });
@@ -3730,7 +3730,7 @@ function exportLedgerText(key) {
         if (v > 0.001) {
           cashTotal = +(cashTotal + v).toFixed(2);
           cashMoney = +(cashMoney + v * R[t]).toFixed(2);
-          L.push(`${m}月${d0}日 ${hf(v)}h ${tname(t)} → 算加班费 ¥${fx(v * R[t])}`);
+          L.push(`${m}月${d0}日（${tname(t)}）${hf(v)}h → 算加班费 ¥${fx(v * R[t])}`);
         }
       });
     });
