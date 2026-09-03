@@ -611,7 +611,8 @@ table.dt th.left, table.dt td.left{text-align:left}
 .btn.cash-btn{background:#e6f7f6;color:#0ea5a4;border-color:#b6e5e3;font-weight:600}
 .btn.cash-btn:hover{filter:brightness(.97)}
 .btn.cash-btn.active{background:#0ea5a4;color:#fff;border-color:#0ea5a4;box-shadow:0 4px 12px rgba(14,165,164,.28)}
-.carry-modal{width:1080px;max-width:calc(100vw - 32px);scrollbar-width:none;-ms-overflow-style:none;max-height:90vh;margin:0 auto}
+.carry-modal{width:1080px;max-width:calc(100vw - 32px);scrollbar-width:none;-ms-overflow-style:none;max-height:90vh;margin:0 auto;transform-origin:center center;animation:fade .2s ease}
+/* 结算面板用 opacity-only 淡入：避免 .modal 的 pop 动画占用 transform，干扰 JS 量度后的整体 scale 适配 */
 .carry-modal::-webkit-scrollbar{display:none;width:0;height:0}
 /* 结算面板：结算（左）与核销（右）左右两栏布局 */
 .otc-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}
@@ -1535,7 +1536,13 @@ function openMonthSettle(key) {
       }
     });
   }
-  el.innerHTML = `<div class="modal carry-modal" onclick="event.stopPropagation()" style="width:1080px;max-width:calc(100vw - 32px)">
+  const _fit = () => {
+    const m = document.querySelector('#monthSettleMask .carry-modal');
+    if(!m || m.getBoundingClientRect().height < 2){ requestAnimationFrame(_fit); return; }
+    fitSettleModal(m);
+  };
+  requestAnimationFrame(_fit);
+  el.innerHTML = `<div class="modal carry-modal" onclick="event.stopPropagation()" style="width:1080px;max-width:calc(100vw - 32px);opacity:0">
     <div class="modal-h"><div><h3>${key.replace('-', ' 年 ')} 月 · 加班结算</h3><p>加班费 / 结转下月 / 换休核销 一览</p></div>
       <span class="spacer"></span><button class="btn ghost sm" onclick="closeModal('monthSettleMask')">✕</button></div>
     <div class="modal-b" id="monthSettleBody"></div>
@@ -1544,10 +1551,51 @@ function openMonthSettle(key) {
   el.onclick = () => closeModal('monthSettleMask');
   document.body.appendChild(el);
   paint();
+  if(!window.__settleFitBound){ window.__settleFitBound = 1; window.addEventListener('resize', () => fitSettleModal()); }
   // ESC 关闭面板
   const onEsc = e => { if (e.key === 'Escape') closeModal('monthSettleMask'); };
   document.addEventListener('keydown', onEsc);
   el._onEsc = onEsc;  // 便于 closeModal 解绑，避免重复叠加
+}
+
+/* 结算面板自动缩放：量度真实内容高度，整体 scale 到视口内，适配「一页显示」
+   仅在内容超过视口时缩放（k<1），否则保持原样（含原 90vh 内部滚动兜底）
+   modalEl 由 paint() 经 rAF 传入（布局稳定后再量度，避免同步时序取不到元素） */
+function fitSettleModal(modalEl){
+  const el = modalEl || document.querySelector('#monthSettleMask .carry-modal');
+  if(!el){ return; }
+  const rc = el.querySelector('.otc-col + .otc-col');
+  // 解除高度/内部滚动约束（内联样式确保优先生效），量度真实高度
+  el.style.maxHeight = 'none';
+  el.style.overflow = 'visible';
+  if(rc){ rc.style.maxHeight = 'none'; rc.style.overflow = 'visible'; }
+  // 先复位 zoom/transform，量度未缩放的真实布局尺寸
+  el.style.zoom = '';
+  el.style.transform = 'none';
+  const r = el.getBoundingClientRect();
+  const naturalH = r.height, naturalW = r.width;
+  // 预留遮罩 24px*2 内边距 + 安全余量，确保缩放后整面板落在内容区内
+  const availH = window.innerHeight - 64, availW = window.innerWidth - 64;
+  let k = Math.min(availH / naturalH, availW / naturalW);
+  if(k > 1) k = 1;
+  if(k < 0.999){
+    // 优先 zoom：zoom 会改变元素布局尺寸，配合 grid 居中即可整面板适配一页；
+    // 且不受 .modal 的 pop 动画（占用 transform）干扰
+    el.style.zoom = String(k);
+    const z = getComputedStyle(el).zoom;
+    if(z === 'normal' || z === '1' || z === '' || z === 'none'){
+      // 不支持 zoom 的浏览器：退回 transform 整体缩放（布局尺寸不变，居中托付 grid）
+      el.style.zoom = '';
+      el.style.transform = 'scale(' + k + ')';
+    }
+  } else {
+    el.style.maxHeight = '';
+    el.style.overflow = '';
+    if(rc){ rc.style.maxHeight = ''; rc.style.overflow = ''; }
+    el.style.zoom = '';
+    el.style.transform = 'none';
+  }
+  el.style.opacity = '1';   // 量度完成后再显示，避免未缩放时的跳动
 }
 
 /* 构造「加班费明细」按日明细行（复用于结算面板与 KPI 弹窗）
