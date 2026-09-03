@@ -2090,13 +2090,19 @@ function bindRestPickers() {
     let onScrollResize;
     function place() {
       const r = circlesEl.getBoundingClientRect();
-      const pw = pop.offsetWidth || 220, gap = 5;
+      pop.style.animation = 'none';   // 测量时禁用 popin 动画，避免 transform 过程中量出偏小尺寸
+      const pb = pop.getBoundingClientRect();
+      const pw = Math.round(pb.width) || 240, ph = Math.round(pb.height) || 260, gap = 5;
       let top = r.bottom + gap, left = r.left + r.width / 2 - pw / 2;
-      const minTop = 4, maxTop = window.innerHeight - 4;
-      if (top + 220 > maxTop) top = Math.max(minTop, r.top - 220 - gap);
+      // 下方放不下 → 按实测高度整体翻到上方（旧逻辑写死 220px 估算，高度偏差时会盖住本行/上方行）
+      if (top + ph > window.innerHeight - 4) top = r.top - ph - gap;
+      if (top < 4) top = 4;
+      // 兜底：上方也放不下（top<4 后仍溢出）→ 贴视口底部，保证「清除全部」不被裁切
+      if (top + ph > window.innerHeight - 4) top = Math.max(4, window.innerHeight - ph - 4);
       left = Math.max(4, Math.min(window.innerWidth - pw - 4, left));
       pop.style.top = top + 'px';
       pop.style.left = left + 'px';
+      pop.style.animation = '';
     }
     function show() {
       resetPending(); render();
