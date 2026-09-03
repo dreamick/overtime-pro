@@ -1519,7 +1519,7 @@ function openMonthSettle(key) {
       <div class="otc-sec">
         <div class="otc-tit">换休核销台账</div>
         ${sumHTML}
-        <div class="hint">核销规则：仅 30 天内加班可核销（手动指定优先，其余按 先上月结转→本月加班、先产生先消耗 配对）；超 30 天未消耗的加班自动转加班费。</div>
+        <div class="hint">核销规则：仅 30 天内、且加班日须早于换休日 的加班可核销（手动指定优先，其余按 先上月结转→本月加班、先产生先消耗 配对）；超 30 天未核销的加班自动转加班费。</div>
         ${d.warnings.length ? `<div class="llg-warn" style="display:block;margin-top:8px;line-height:1.7">⚠️ ${d.warnings.join('<br>⚠️ ')}</div>` : ''}
       </div>
       <div class="otc-sec">
