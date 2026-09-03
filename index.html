@@ -1477,9 +1477,9 @@ function openMonthSettle(key) {
         if (carriedH > 0.001) parts.push(`结转下月 ${hf(carriedH)}h`);
         state = `<span class="muted">${parts.length ? parts.join(' · ') + ' · ' : ''}剩余 ${hf(leftH)}h（仍可换休）</span>`;
       } else if (carriedH > 0.001 && usedH > 0.001) {
-        state = `<span style="color:#1e3a8a">已核销 ${hf(usedH)}h · 结转下月 ${hf(carriedH)}h</span>`;
+        state = `<span style="color:#3b6bff">已核销 ${hf(usedH)}h · 结转下月 ${hf(carriedH)}h</span>`;
       } else if (carriedH > 0.001) {
-        state = `<span style="color:#1e3a8a">已结转下月 ${hf(carriedH)}h</span>`;
+        state = `<span style="color:#3b6bff">已结转下月 ${hf(carriedH)}h</span>`;
       } else if (usedH > 0.001) {
         state = `<span style="color:#1a9d50">已全部核销</span>`;
       } else {
@@ -1528,7 +1528,7 @@ function openMonthSettle(key) {
       </div>
       <div class="otc-sec">
         <div class="otc-tit">加班池去向（反向核对）</div>
-        <div class="hint" style="margin-top:6px;line-height:1.7">状态图例：<span style="color:#1a9d50">绿＝已全部核销</span> · <span style="color:#1e3a8a">蓝＝已结转下月（非核销，下月继续抵扣）</span> · <span class="muted">灰＝剩余可换休</span> · <span style="color:#c2410c">橙＝超期转加班费</span></div>
+        <div class="hint" style="margin-top:6px;line-height:1.7">状态图例：<span style="color:#1a9d50">绿＝已全部核销</span> · <span style="color:#3b6bff">蓝＝已结转下月（非核销，下月继续抵扣）</span> · <span class="muted">灰＝剩余可换休</span> · <span style="color:#c2410c">橙＝超期转加班费</span></div>
         <div class="llg-pool-hd">上月结转池（${hf(c.carryInTotal)}h）</div>
         ${d.carryPool.length ? d.carryPool.map(poolRow).join('') : '<div class="muted">无</div>'}
         <div class="llg-pool-hd">本月加班池（${hf(c.gainTotal)}h）</div>
