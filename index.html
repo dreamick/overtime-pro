@@ -3614,7 +3614,7 @@ function exportAllCSV() {
 }
 
 /* 从「换休核销台账」面板导出的四段对账文本（移入核销面板）
-   段1：上月结转加班 ↔ 本月换休（核销口径，仅 30 天内）
+   段1：上月结转加班 ↔ 本月换休（核销口径，仅 30 天内、且加班日须早于换休日）
    段2：本月加班 ↔ 本月换休（核销口径）
    段3：本月加班下月结转（逐日归属）
    段4：本月加班未结转计算加班费（逐日归属） */
@@ -3775,7 +3775,7 @@ function exportLedgerText(key) {
   L.push(`结转${nextM}月：${hf(c.carryOutPhysTotal)}h`);
   L.push(`未结转算加班费：${hf(c.cashTotal)}h · ¥${fx(c.otPay)}`);
   L.push(`餐补：${hf(c.mealCount)} 次 · ¥${fx(c.mealPay)}`);
-  L.push('口径说明：段一/二为核销口径（仅30天内配对），段三/四为结算口径（计算引擎），两套口径下被换休消耗的本月加班量可能不同，属正常差异。');
+  L.push('口径说明：段一/二为核销口径（仅30天内、且加班日须早于换休日配对），段三/四为结算口径（计算引擎），两套口径下被换休消耗的本月加班量可能不同，属正常差异。');
   if (d.warnings && d.warnings.length) L.push('⚠️ ' + d.warnings.join('；'));
 
   dl(`换休核销对账_${key}.txt`, '\uFEFF' + L.join('\n'), 'text/plain;charset=utf-8');
