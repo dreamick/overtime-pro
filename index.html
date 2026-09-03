@@ -150,6 +150,8 @@
   --panel-w: min(1232px, calc(100vw - 48px));
 }
 *{box-sizing:border-box;margin:0;padding:0}
+/* 主面板统一锁宽：KPI/预警/明细/日历/汇总 外部容器宽度一致，内部内容各自自适应 */
+.panel{width:100%;max-width:var(--panel-w);margin-inline:auto}
 html,body{height:100vh;height:100dvh;overflow:hidden}
 body{
   background:var(--bg);
@@ -263,12 +265,12 @@ button{cursor:pointer;background:none;border:none}
 
 .grid-kpi{
   display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;
-  padding:12px 0;margin:0 auto;width:100%;max-width:var(--panel-w);flex:0 0 auto;
+  padding:12px 0;flex:0 0 auto;
   transition:max-height .15s ease,opacity .12s ease,padding .15s ease,margin .15s ease;
   max-height:none;opacity:1;overflow:visible;
 }
 /* 防御性保险：即便旧版 JS 残留给 KPI 加 .kpi-hidden，也绝不隐藏（用户要求 KPI 常驻） */
-#kpi.kpi-hidden{display:grid!important;max-height:none!important;opacity:1!important;padding-top:12px!important;padding-bottom:12px!important;margin:0 auto!important}
+#kpi.kpi-hidden{display:grid!important;max-height:none!important;opacity:1!important;padding-top:12px!important;padding-bottom:12px!important;margin-inline:auto!important}
 /* KPI 卡片：白底 + 彩色顶边；文字加深、对比度更高；去掉点击聚焦白框 */
 .kpi{background:#fff;border:1px solid var(--line);border-top:3px solid var(--ac, var(--line));border-radius:var(--r);padding:clamp(7px,1.1vw,10px) clamp(8px,1.4vw,12px);box-shadow:var(--shadow);position:relative;overflow:hidden;min-width:0;cursor:pointer;user-select:none;transition:background .12s ease,box-shadow .12s ease}
 .kpi:hover{background:color-mix(in srgb,var(--ac,#3b6bff) 5%,#fff)}
@@ -311,7 +313,7 @@ button{cursor:pointer;background:none;border:none}
 @keyframes popin{from{opacity:0}to{opacity:1}}
 .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
 
-.cols{display:grid;grid-template-columns:1fr 380px;gap:16px;align-items:start}
+.cols{display:grid;grid-template-columns:1fr 380px;gap:16px;align-items:start;width:100%}
 
 /* ---------- calendar ---------- */
 .cal{padding:6px 14px 14px}
@@ -377,7 +379,7 @@ table.tb tfoot td{font-weight:650;border-top:1.5px solid var(--line);border-bott
 .muted{color:var(--tx-3)}
 .zero{color:#c8cddb}
 /* 顶部预警横幅 */
-#alerts{display:flex;flex-direction:column;gap:8px;width:100%;margin:8px auto 4px;padding-bottom:4px;max-width:var(--panel-w)}
+#alerts{display:flex;flex-direction:column;gap:8px;margin:8px auto 4px;padding-bottom:4px}
 .alert{display:flex;align-items:flex-start;gap:9px;padding:11px 14px;border-radius:12px;font-size:13.5px;line-height:1.5;animation:popin .16s ease;position:relative}
 .alert .ai{flex:0 0 auto;font-size:16px;line-height:1.3}
 .alert.warn{background:#fff7e6;border:1px solid #ffe1a8;color:#92590a}
@@ -484,7 +486,7 @@ table.tb tfoot td{font-weight:650;border-top:1.5px solid var(--line);border-bott
 .chip.carry.active{box-shadow:inset 0 0 0 2px #3b6bff}
 
 /* ---------- detail table ---------- */
-#body{width:100%;flex:1 1 auto;min-height:0;overflow:auto;padding-bottom:10px;overscroll-behavior:contain;max-width:var(--panel-w);margin-inline:auto}
+#body{flex:1 1 auto;min-height:0;overflow:auto;padding-bottom:10px;overscroll-behavior:contain}
 #body.body-list{display:flex;flex-direction:column;gap:16px;overflow:hidden;padding-bottom:0;overscroll-behavior:none}
 #body.body-list > .card:not(.ot-card){flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 #body.body-list .card-h{flex:0 0 auto}
@@ -842,9 +844,9 @@ body.locked .wrap{display:none}
 </div>
 
 <div class="wrap" data-page-node-id="XhoD1cPWmabuYPGLBtTASq">
-  <div class="grid-kpi" id="kpi" data-page-node-id="35vUgCc0X9OzccF56lxY3d"></div>
-  <div id="alerts" data-page-node-id="oIz2L7fy2CEuBGozQO4KCl"></div>
-  <div id="body" data-page-node-id="bpDIVUDD6zWGZSBRXEX0Hn"></div>
+  <div class="grid-kpi panel" id="kpi" data-page-node-id="35vUgCc0X9OzccF56lxY3d"></div>
+  <div class="panel" id="alerts" data-page-node-id="oIz2L7fy2CEuBGozQO4KCl"></div>
+  <div class="panel" id="body" data-page-node-id="bpDIVUDD6zWGZSBRXEX0Hn"></div>
   <p style="margin-top:26px;text-align:center;font-size:12px;color:#a8afbf;line-height:1.8" class="no-print" data-page-node-id="m467paNuEnmBGmI0qjvTxa">加班助手PRO · 本地单文件版 · 构建 20260821（KPI 常驻 · 无需服务器）</p>
 </div>
 
