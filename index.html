@@ -3716,7 +3716,7 @@ function exportLedgerText(key) {
     L.push(`（结转 ${hf(c.carryOutPhysTotal)}h：部分来自上月/更早结转余额，未精确到本月日期）`);
     carryTotal = c.carryOutPhysTotal;
   } else {
-    L.push('（本月无结转下月时长）');
+    L.push(`（${m}月结转${nextM}月：${hf(c.carryOutPhysTotal)}h）`);
   }
   L.push('');
 
@@ -3739,7 +3739,7 @@ function exportLedgerText(key) {
     L.push(`（折现 ${hf(c.cashTotal)}h 全部来自上月/更早结转余额，无本月加班部分）`);
     cashTotal = c.cashTotal;
   } else {
-    L.push('（本月无未结转算加班费的时长）');
+    L.push(`（${m}月未结转算加班费：${hf(c.cashTotal)}h）`);
   }
   L.push('');
 
