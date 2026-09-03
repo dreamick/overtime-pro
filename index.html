@@ -1448,7 +1448,7 @@ function openMonthSettle(key) {
         <span>← 上月结转核销 <b>${hf(d.usedCarry)}h</b></span>
         <span>＋ 本月加班核销 <b>${hf(d.usedCur)}h</b></span>
         ${d.expiredCash > 0.001 ? `<span class="llg-cash">超${Math.round(+DB.settings.leaveExpireDays || 0)}天(产生日)过期转加班费 <b>${hf(d.expiredCash)}h</b></span>` : ''}
-        ${d.totalShort > 0.001 ? `<span class="llg-warn">未核销 ${hf(d.totalShort)}h（无30天内可用加班）</span>` : '<span style="color:#1a9d50">✓ 全部核销</span>'}
+        ${d.totalShort > 0.001 ? `<span class="llg-warn">未核销 ${hf(d.totalShort)}h（无可用加班：须30天内且早于换休日）</span>` : '<span style="color:#1a9d50">✓ 全部核销</span>'}
       </div>`;
     const lvHTML = d.leaves.length ? d.leaves.map(l => `
       <div class="llg-lv">
