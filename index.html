@@ -1696,7 +1696,8 @@ function closeModal(id) {
 }
 
 /* ============ 换休核销台账：换休 ↔ 加班 一一对应 ============ */
-/* 核销规则：30 天内的加班才能核销换休（距换休日超过 30 天的加班自动记为加班费，不再参与配对）；
+/* 核销规则：① 加班产生日须早于换休日（不能用换休日之后才产生的加班去核销该笔换休）；
+   ② 距换休日 30 天内的加班才能核销（超过 30 天的自动记为加班费，不再参与配对）；
    历史记录中手动指定来源（leaveSrc）的优先；其余按 FIFO 自动配对
    （先上月结转池，再本月加班池；同池内 工作日→双休日→节假日、同类型按日期先产生先消耗）。
    年假（r.annual）不参与核销（独立额度）。 */
@@ -1776,7 +1777,7 @@ function leaveLedger(key, preC) {
   // FIFO 消耗（先结转池，再本月池；onlyCarry=true 时仅结转池；ld=换休日，仅消耗距其 30 天内的加班）
   const fifo = (rem, onlyCarry, ld) => {
     const parts = [];
-    const pick = pool => { for (let i = 0; i < pool.length; i++) { const e = pool[i]; if (e.left > 0.001 && !overDue(e, ld)) return e; } return null; };
+    const pick = pool => { for (let i = 0; i < pool.length; i++) { const e = pool[i]; if (e.left > 0.001 && !overDue(e, ld) && eDate(e) < ld) return e; } return null; };
     while (rem > 0.001) {
       let e = pick(carryPool);
       if (!e && !onlyCarry) e = pick(curPool);
@@ -1810,9 +1811,10 @@ function leaveLedger(key, preC) {
       e.left = +(e.left - take).toFixed(2);
       rem = +(rem - take).toFixed(2);
     }
-    if (rem > 0.001) {
-      if (e && overDue(e, ld)) warnings.push(`${m}月${l.d}日 换休指定的「${sd}日加班」距换休超30天，已自动转加班费，改按30天内加班 FIFO 补足`);
-      else warnings.push(`${m}月${l.d}日 换休指定的「${sd}日加班」${e ? '剩余时长不足' : '不存在或无时长'}，缺 ${hf(rem)}h 已按 FIFO 补足`);
+      if (rem > 0.001) {
+        if (e && eDate(e) >= ld) warnings.push(`${m}月${l.d}日 换休指定的「${sd}日加班」产生日不早于换休日（须早于换休日），缺 ${hf(rem)}h 已按 FIFO 补足`);
+        else if (e && overDue(e, ld)) warnings.push(`${m}月${l.d}日 换休指定的「${sd}日加班」距换休超30天，已自动转加班费，改按30天内加班 FIFO 补足`);
+        else warnings.push(`${m}月${l.d}日 换休指定的「${sd}日加班」${e ? '剩余时长不足' : '不存在或无时长'}，缺 ${hf(rem)}h 已按 FIFO 补足`);
       const r2 = fifo(rem, false, ld);
       r2.parts.forEach(p => { l.pairs.push({ e: p.e, take: p.take, manual: false }); p.e.used.push({ l, take: p.take }); });
       l.short = r2.rem;
@@ -1873,7 +1875,7 @@ function leaveLedger(key, preC) {
   const usedCarry = +carryPool.reduce((s, e) => s + (e.h - e.left - (e.carried || 0)), 0).toFixed(2);
   const usedCur = +curPool.reduce((s, e) => s + (e.h - e.left - (e.carried || 0)), 0).toFixed(2);
   const totalShort = +leaves.reduce((s, l) => s + l.short, 0).toFixed(2);
-  if (totalShort > c.leaveShort + 0.001) warnings.push(`另有 ${hf(+(totalShort - c.leaveShort).toFixed(2))}h 换休找不到可用加班来源（对应加班已自动转加班费）`);
+  if (totalShort > c.leaveShort + 0.001) warnings.push(`另有 ${hf(+(totalShort - c.leaveShort).toFixed(2))}h 换休按规则（加班日须早于换休日 / 超有效期）找不到可用加班来源`);
   return { leaves, carryPool, curPool, usedCarry, usedCur, totalShort, autoCash, autoCashByType, expiredCash, expiredByType, expiredCarryByType, expiredCurByType, warnings, c };
 }
 
