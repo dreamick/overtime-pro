@@ -1814,7 +1814,7 @@ function openSchedule() {
   schView = cur;
   const el = document.createElement('div'); el.className = 'mask'; el.id = 'schMask';
   el.innerHTML = `<div class="modal sch-modal" onclick="event.stopPropagation()" style="opacity:0">
-    <div class="modal-h"><div><h3>排班 · 月历</h3><p>按轮班序列自动排班，单击某天可改班次 / 年假</p></div><span class="spacer"></span><button class="btn ghost sm" onclick="closeModal('schMask')">✕</button></div>
+    <div class="modal-h"><div><h3>排班 · 月历</h3></div><span class="spacer"></span><button class="btn ghost sm" onclick="closeModal('schMask')">✕</button></div>
     <div class="modal-b" id="schBody"></div>
   </div>`;
   el.onclick = () => closeModal('schMask');
