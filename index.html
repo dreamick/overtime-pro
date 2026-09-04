@@ -841,7 +841,7 @@ body.locked .wrap{display:none}
 .sch-shift.s-late{color:#7c3aed;background:#f2eafe;border-color:#ddccf6}
 .sch-shift.s-early{color:#c2410c;background:#fdeede;border-color:#f6d9b5}
 .sch-shift.s-rest{color:#12b76a;background:#e6f8ef;border-color:#bfe9d3}
-.sch-shift.s-annual{color:#0e9b96;background:#e0f7f5;border-color:#b6e9e5}
+.sch-shift.s-annual{color:#db2777;background:#fde8f2;border-color:#f3b8d6}
 .sch-shift.s-none{color:#9aa1b2;background:#f4f6fa;border-color:#e6e9f0;font-weight:500}
 .sch-cell.other-month{opacity:.55;background:#fafbfc;border-color:#e8ebf2}
 .sch-cell.other-month .sch-d .dn,.sch-cell.other-month .sch-d .dwk{color:#9aa1b2}
@@ -1794,7 +1794,7 @@ const SCH_TYPES = {
   early: { name: '早班', cls: 's-early' }, rest: { name: '休息', cls: 's-rest' },
   annual: { name: '年假', cls: 's-annual' }
 };
-const SCH_COLORS = { full: '#3b6bff', late: '#7c3aed', early: '#c2410c', rest: '#12b76a', annual: '#0e9b96' };
+const SCH_COLORS = { full: '#3b6bff', late: '#7c3aed', early: '#c2410c', rest: '#12b76a', annual: '#db2777' };
 function schDayDiff(aKey, bKey) {
   const [ay, am, ad] = aKey.split('-').map(Number), [by, bm, bd] = bKey.split('-').map(Number);
   return Math.round((new Date(by, bm - 1, bd) - new Date(ay, am - 1, ad)) / 86400000);
@@ -1894,11 +1894,6 @@ function schPick(dateKey, ev) {
   menu.style.left = left + 'px'; menu.style.top = top + 'px';
   menu.querySelectorAll('.sp-opt').forEach(btn => btn.onclick = () => {
     const k = btn.dataset.k;
-    const currentShift = schShiftOf(dateKey);
-    const currentName = currentShift ? SCH_TYPES[currentShift].name : '未排班';
-    const targetName = k === 'clear' ? '恢复自动排班' : SCH_TYPES[k].name;
-    const dateStr = dateKey.replace(/-/g, '/');
-    if (!confirm(`确认修改 ${dateStr} 的班次？\n\n当前：${currentName}\n改为：${targetName}`)) return;
     if (k === 'clear') delete DB.schedule.overrides[dateKey];
     else DB.schedule.overrides[dateKey] = k;
     save(); menu.remove(); schPaint();
