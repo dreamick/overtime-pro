@@ -1927,6 +1927,41 @@ function confirmInputDialog(opts) {
   okBtn.onclick = e => { e.stopPropagation(); if (inp.value.trim() !== confirmWord) return; closeModal('cfInMask'); if (typeof onOk === 'function') onOk(); };
   setTimeout(() => { try { inp.focus(); } catch (_) {} }, 50);
 }
+/* 通用「调整起始月」选择弹窗：用于导入/恢复等会改动月份数据的操作，选择起始月后 onConfirm(startKey) */
+function pickStartMonth(opts) {
+  const o = opts || {};
+  const title = o.title || '选择调整起始月';
+  const msg = o.msg || '从该月起的数据将受影响，之前的本地月份保持不变。';
+  const defaultMonth = o.defaultMonth || cur || MIN_KEY;
+  const okText = o.okText || '继续';
+  const cancelText = o.cancelText || '取消';
+  const danger = !!o.danger;
+  const onConfirm = o.onConfirm;
+  const el = document.createElement('div'); el.className = 'mask'; el.id = 'spMask';
+  el.innerHTML = `<div class="modal" onclick="event.stopPropagation()" style="width:min(420px,100%)">
+    <div class="modal-h"><div><h3>${esc(title)}</h3>${msg ? `<p>${esc(msg)}</p>` : ''}</div>
+      <span class="spacer"></span><button class="btn ghost sm" onclick="closeModal('spMask')">✕</button></div>
+    <div class="modal-b" style="padding:16px 20px">
+      <label class="cfin-label" for="spVal">调整起始月份</label>
+      <input class="cfin-input" id="spVal" type="month" value="${esc(defaultMonth)}" min="${esc(MIN_KEY)}" style="width:100%;height:40px" />
+      <div class="cfin-hint">仅影响该月及之后的月份，之前的数据保留。</div>
+    </div>
+    <div class="modal-f"><span class="spacer"></span>
+      <button class="btn" id="spCancel">${esc(cancelText)}</button>
+      <button class="btn ${danger ? 'danger' : 'primary'}" id="spOk">${esc(okText)}</button>
+    </div></div>`;
+  el.onclick = () => closeModal('spMask');
+  document.body.appendChild(el);
+  const inp = el.querySelector('#spVal'), okBtn = el.querySelector('#spOk'), cancelBtn = el.querySelector('#spCancel');
+  cancelBtn.onclick = e => { e.stopPropagation(); closeModal('spMask'); };
+  okBtn.onclick = e => {
+    e.stopPropagation();
+    const v = inp.value;
+    if (!/^\d{4}-\d{2}$/.test(v) || v < MIN_KEY) { toast('请选择有效的起始月份（不能早于 ' + MIN_KEY.replace('-', '年') + '月）'); return; }
+    closeModal('spMask');
+    if (typeof onConfirm === 'function') onConfirm(v);
+  };
+}
 function isToday(key, d) {
   const t = new Date();
   return mk(t.getFullYear(), t.getMonth() + 1) === key && t.getDate() === d;
@@ -3792,20 +3827,45 @@ function exportLedgerText(key) {
 /* 导出当月汇总为 TXT 文本（含换休一一对应 / 结转下月明细） */
 
 function importJSON(file) {
-  const fr = new FileReader();
-  fr.onload = () => {
-    try {
-      const o = JSON.parse(fr.result);
-      if (!o.months) throw 0;
-      DB = { version: 1, settings: Object.assign({}, DEF_SETTINGS, o.settings), months: o.months };
-      save(); load(); render(); toast('导入成功');
-    } catch (e) { toast('文件格式不正确'); }
-  };
-  fr.readAsText(file);
+  if (!file) return;
+  pickStartMonth({
+    title: '导入备份：选择起始月',
+    msg: '从该月起，备份中的月份数据将覆盖本地；该月之前的本地月份保持不变。',
+    defaultMonth: cur,
+    danger: false,
+    onConfirm: startKey => {
+      const fr = new FileReader();
+      fr.onload = () => {
+        try {
+          const o = JSON.parse(fr.result);
+          if (!o.months) throw 0;
+          const kept = {}, src = o.months || {};
+          Object.keys(DB.months || {}).forEach(k => { if (k < startKey) kept[k] = DB.months[k]; });
+          Object.keys(src).forEach(k => { if (k >= startKey) kept[k] = src[k]; });
+          DB = { version: 1, settings: Object.assign({}, DEF_SETTINGS, o.settings), months: kept };
+          save(); load(); render(); closeSetPop(); toast('导入成功（' + startKey.replace('-', '年') + '月起）');
+        } catch (e) { toast('文件格式不正确'); }
+      };
+      fr.readAsText(file);
+    }
+  });
 }
 function resetAll() {
-  if (!confirm('将丢弃所有本地修改，恢复为「加班统计.xlsx」导入的原始数据。继续？')) return;
-  store.removeItem(KEY); load(); render(); toast('已恢复原表数据');
+  pickStartMonth({
+    title: '恢复为原表数据：选择起始月',
+    msg: '从该月起，本地月份将恢复为「加班统计.xlsx」导入的原始数据；该月之前的本地月份保持不变。',
+    defaultMonth: cur,
+    danger: true,
+    okText: '恢复',
+    onConfirm: startKey => {
+      const raw = (() => { try { return JSON.parse(store.getItem(KEY)) || {}; } catch (e) { return {}; } })();
+      if (raw && raw.months) {
+        Object.keys(raw.months).forEach(k => { if (k >= startKey) delete raw.months[k]; });
+        store.setItem(KEY, JSON.stringify(raw));
+      }
+      load(); render(); closeSetPop(); toast('已恢复原表数据（' + startKey.replace('-', '年') + '月起）');
+    }
+  });
 }
 
 function bindMonthPicker() {
