@@ -812,6 +812,53 @@ body.locked .wrap{display:none}
 .set-modal .set-grid .card:last-child{margin-bottom:0}
 .set-grid{display:grid;gap:16px}
 @keyframes popin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ======================= 排班月历面板 ======================= */
+.sch-modal{width:min(880px,calc(100vw - 32px));max-width:calc(100vw - 32px)}
+.sch-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.sch-top .sch-mnav{display:inline-flex;align-items:center;gap:4px}
+.sch-top .sch-mnav button{width:32px;height:32px;border-radius:9px;border:1px solid var(--line-2);background:#fff;cursor:pointer;font-size:16px;color:var(--tx-2);line-height:1}
+.sch-top .sch-mnav button:hover{background:#f1f4fa;color:var(--brand)}
+.sch-top .sch-mlabel{font-size:16px;font-weight:660;min-width:118px;text-align:center;letter-spacing:.3px}
+.sch-top .spacer{flex:1}
+.sch-legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:2px 0 12px;font-size:12px;color:var(--tx-2)}
+.sch-legend .lg{display:inline-flex;align-items:center;gap:5px}
+.sch-legend .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+.sch-legend .sep{width:1px;height:14px;background:var(--line-2)}
+.sch-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.sch-grid .sch-dow{font-size:12px;color:var(--tx-3);text-align:center;padding-bottom:2px}
+.sch-grid .sch-dow.we{color:#c2410c}
+.sch-cell{position:relative;border:1px solid var(--line-2);border-radius:11px;min-height:78px;padding:8px 8px 10px;background:#fff;cursor:pointer;transition:box-shadow .12s,border-color .12s;display:flex;flex-direction:column;gap:7px}
+.sch-cell:hover{border-color:var(--brand);box-shadow:0 4px 14px rgba(40,90,200,.14)}
+.sch-cell.rest{background:#fff8ee}      /* 双休日底色 */
+.sch-cell.holi{background:#fdf0f0}      /* 节假日底色 */
+.sch-cell.today{border-color:var(--brand);box-shadow:0 0 0 2px rgba(59,107,255,.18)}
+.sch-cell .sch-d{display:flex;align-items:baseline;gap:5px}
+.sch-cell .sch-d .dn{font-size:15px;font-weight:660;color:var(--tx)}
+.sch-cell .sch-d .dwk{font-size:11px;color:var(--tx-3)}
+.sch-cell .sch-d .dty{font-size:10px;padding:1px 5px;border-radius:5px;margin-left:auto;font-weight:600}
+.sch-cell .sch-d .dty.w{color:#3b6bff;background:#e7f0ff}
+.sch-cell .sch-d .dty.r{color:#c2410c;background:#fde9d6}
+.sch-cell .sch-d .dty.h{color:#e5484d;background:#fbe3e3}
+.sch-shift{font-size:13px;font-weight:650;text-align:center;padding:5px 0;border-radius:8px;border:1px solid transparent}
+.sch-shift.s-full{color:#3b6bff;background:#e7f0ff;border-color:#c7d6f7}
+.sch-shift.s-late{color:#7c3aed;background:#f2eafe;border-color:#ddccf6}
+.sch-shift.s-early{color:#c2410c;background:#fdeede;border-color:#f6d9b5}
+.sch-shift.s-rest{color:#12b76a;background:#e6f8ef;border-color:#bfe9d3}
+.sch-shift.s-annual{color:#0e9b96;background:#e0f7f5;border-color:#b6e9e5}
+.sch-shift.s-none{color:#9aa1b2;background:#f4f6fa;border-color:#e6e9f0;font-weight:500}
+.sch-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.sch-foot .sch-hint{font-size:12px;color:var(--tx-3);line-height:1.5}
+.sch-foot label{font-size:13px;color:var(--tx-2);font-weight:600}
+.sch-foot input[type=date]{height:36px;padding:0 10px;border:1px solid var(--line-2);border-radius:8px;font-size:13px}
+.sch-foot .sch-reset{margin-left:auto}
+/* 单击换班 / 年假 的小菜单（复用结算菜单视觉） */
+.sch-pick{position:fixed;z-index:120;min-width:150px;background:#fff;border:1px solid #d9deea;border-radius:12px;box-shadow:0 12px 34px rgba(28,42,71,.18);padding:8px;font-size:13px}
+.sch-pick .sp-opt{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:#f6f8fc;border:1px solid #e3e8f1;border-radius:9px;padding:8px 10px;margin-bottom:6px;cursor:pointer;color:#2b3142;font-weight:600}
+.sch-pick .sp-opt:hover{background:#eef3ff;border-color:#c7d6f7}
+.sch-pick .sp-opt .sw{width:12px;height:12px;border-radius:4px;flex:0 0 auto}
+.sch-pick .sp-opt.sp-clear{color:#9aa1b2;background:#fff}
+.sch-pick .sp-opt.sp-clear:hover{background:#f1f3f8}
 </style>
 </head>
 <body data-page-node-id="DsHb6CLDPUgxCcrEFt5FMc">
@@ -977,6 +1024,8 @@ function load() {
   // 兜底：再次剔除任何早于起点的月份（含种子自身若被改动）
   Object.keys(base.months).forEach(k => { if (k < MIN_KEY) delete base.months[k]; });
   DB = base;
+  // 恢复已持久化的排班数据（独立存储，不影响 months/settings）
+  if (raw && raw.schedule && typeof raw.schedule === 'object') DB.schedule = raw.schedule;
   window.DB = DB;   // 调试钩子：便于控制台 / 自动化排错（单文件应用下对象身份稳定）
   // 清理旧版「调休有效期（月）」设置（已在 UI 中移除，统一改为按产生日 leaveExpireDays 天计算）
   delete DB.settings.leaveExpireMonths;
@@ -1001,6 +1050,10 @@ function load() {
   } else {
     DB.settingsStd.sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : 0);
   }
+  // 排班数据：独立于加班/结算，单独存储；rotateStart=轮班起始日，overrides=按日期(yyyy-mm-dd)的手动覆盖
+  if (!DB.schedule || typeof DB.schedule !== 'object') DB.schedule = {};
+  if (!DB.schedule.overrides || typeof DB.schedule.overrides !== 'object') DB.schedule.overrides = {};
+  if (DB.schedule.rotateStart && !/^\d{4}-\d{2}-\d{2}$/.test(DB.schedule.rotateStart)) DB.schedule.rotateStart = null;
   const ks = monthKeys();
   const now = new Date(), nowK = mk(now.getFullYear(), now.getMonth() + 1);
   cur = ks.includes(nowK) ? nowK : (ks[ks.length - 1] || nowK);
@@ -1726,6 +1779,107 @@ function openOvertimePayDetail(key) {
 function closeModal(id) {
   const m = $('#' + id);
   if (m) { if (m._onEsc) document.removeEventListener('keydown', m._onEsc); m.remove(); }
+}
+
+/* ======================= 排班（独立数据，不影响加班/结算） ======================= */
+/* 班次类别：早班 / 晚班 / 全班 / 休息 + 手动覆盖可设「年假」；轮班序列为 14 位循环。 */
+const SCH_ROT = ['full', 'full', 'late', 'rest', 'rest', 'full', 'full', 'late', 'rest', 'early', 'late', 'early', 'late', 'rest'];
+const SCH_TYPES = {
+  full: { name: '全班', cls: 's-full' }, late: { name: '晚班', cls: 's-late' },
+  early: { name: '早班', cls: 's-early' }, rest: { name: '休息', cls: 's-rest' },
+  annual: { name: '年假', cls: 's-annual' }
+};
+const SCH_COLORS = { full: '#3b6bff', late: '#7c3aed', early: '#c2410c', rest: '#12b76a', annual: '#0e9b96' };
+function schDayDiff(aKey, bKey) {
+  const [ay, am, ad] = aKey.split('-').map(Number), [by, bm, bd] = bKey.split('-').map(Number);
+  return Math.round((new Date(by, bm - 1, bd) - new Date(ay, am - 1, ad)) / 86400000);
+}
+// 某日班次：手动覆盖优先；否则按「轮班起始日」在 14 位序列中取对应班次；未设起始日返回 null
+function schShiftOf(dateKey) {
+  const ov = DB.schedule.overrides[dateKey];
+  if (ov) return ov;
+  const s = DB.schedule.rotateStart;
+  if (!s) return null;
+  const idx = ((schDayDiff(s, dateKey) % SCH_ROT.length) + SCH_ROT.length) % SCH_ROT.length;
+  return SCH_ROT[idx];
+}
+let schView = null;   // 当前排班面板查看的月份 key
+function openSchedule() {
+  schView = cur;
+  const el = document.createElement('div'); el.className = 'mask'; el.id = 'schMask';
+  el.innerHTML = `<div class="modal sch-modal" onclick="event.stopPropagation()" style="opacity:0">
+    <div class="modal-h"><div><h3>排班 · 月历</h3><p>按轮班序列自动排班，单击某天可改班次 / 年假</p></div><span class="spacer"></span><button class="btn ghost sm" onclick="closeModal('schMask')">✕</button></div>
+    <div class="modal-b" id="schBody"></div>
+  </div>`;
+  el.onclick = () => closeModal('schMask');
+  document.body.appendChild(el);
+  schPaint();
+  const onEsc = e => { if (e.key === 'Escape') closeModal('schMask'); };
+  document.addEventListener('keydown', onEsc); el._onEsc = onEsc;
+}
+function schNav(delta) { schView = delta > 0 ? nextKey(schView) : prevKey(schView); schPaint(); }
+function schSetStart(val) {
+  DB.schedule.rotateStart = val || null;
+  save(); schPaint();
+}
+function schClearAll() {
+  if (!confirm('将清除全部手动班次覆盖（恢复按轮班序列自动排班）？轮班起始日不变。')) return;
+  DB.schedule.overrides = {}; save(); schPaint(); toast('已清除全部手动覆盖');
+}
+function schPaint() {
+  const body = document.getElementById('schBody'); if (!body) return;
+  const key = schView, [y, m] = key.split('-').map(Number), n = daysIn(key);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const todayKey = mk(today.getFullYear(), today.getMonth() + 1) + '-' + pad(today.getDate());
+  const s = DB.schedule.rotateStart;
+  const dows = ['日', '一', '二', '三', '四', '五', '六'];
+  let html = `<div class="sch-top"><span class="sch-mnav"><button onclick="schNav(-1)" title="上一月">‹</button></span>`
+    + `<span class="sch-mlabel">${y} 年 ${pad(m)} 月</span>`
+    + `<span class="sch-mnav"><button onclick="schNav(1)" title="下一月">›</button></span><span class="spacer"></span></div>`;
+  html += `<div class="sch-legend">班次：`
+    + Object.keys(SCH_TYPES).map(k => `<span class="lg"><span class="dot" style="background:${SCH_COLORS[k]}"></span>${SCH_TYPES[k].name}</span>`).join('')
+    + `<span class="sep"></span>日期底色：<span class="lg"><span class="dot" style="background:#fde9d6"></span>双休日</span><span class="lg"><span class="dot" style="background:#fbe3e3"></span>节假日</span></div>`;
+  html += '<div class="sch-grid">';
+  html += dows.map(w => `<div class="sch-dow">周${w}</div>`).join('');
+  const firstDow = new Date(y, m - 1, 1).getDay();
+  for (let i = 0; i < firstDow; i++) html += '<div></div>';
+  for (let d = 1; d <= n; d++) {
+    const t = dayType(key, d), T = TYPES.find(x => x.k === t), dateKey = mk(y, m) + '-' + pad(d);
+    const sh = schShiftOf(dateKey), shInfo = sh ? SCH_TYPES[sh] : null;
+    const isToday = dateKey === todayKey;
+    const dow = dows[new Date(y, m - 1, d).getDay()];
+    const dtyCls = t === 'work' ? 'w' : (t === 'rest' ? 'r' : 'h');
+    html += `<div class="sch-cell ${t === 'rest' ? 'rest' : t === 'holi' ? 'holi' : ''}${isToday ? ' today' : ''}" data-date="${dateKey}" onclick="schPick('${dateKey}',event)" title="单击改班次 / 年假">`
+      + `<div class="sch-d"><span class="dn">${d}</span><span class="dwk">周${dow}</span><span class="dty ${dtyCls}">${T.name}</span></div>`
+      + `<div class="sch-shift ${shInfo ? shInfo.cls : 's-none'}">${shInfo ? shInfo.name : '—'}</div>`
+      + `</div>`;
+  }
+  html += '</div>';
+  html += `<div class="sch-foot"><label>轮班起始日</label><input type="date" value="${s || ''}" onchange="schSetStart(this.value)" min="${MIN_KEY}-01">`
+    + `<span class="sch-hint">${s ? ('自 ' + s + ' 起按 14 位轮班序列自动排班；单击任意日期可单独覆盖') : '设置轮班起始日后，按 14 位轮班序列自动生成各班次（单击日期可单独覆盖）'}</span>`
+    + `<button class="btn sm sch-reset" onclick="schClearAll()">清除全部覆盖</button></div>`;
+  body.innerHTML = html;
+  const modal = document.querySelector('#schMask .sch-modal'); if (modal) modal.style.opacity = '1';
+}
+function schPick(dateKey, ev) {
+  document.getElementById('schPickMenu')?.remove();
+  const menu = document.createElement('div'); menu.className = 'sch-pick'; menu.id = 'schPickMenu';
+  const opts = [...Object.keys(SCH_TYPES).map(k => ({ k, name: SCH_TYPES[k].name, color: SCH_COLORS[k] })), { k: 'clear', name: '清除（恢复自动排班）', clear: true }];
+  menu.innerHTML = opts.map(o => `<button class="sp-opt${o.clear ? ' sp-clear' : ''}" data-k="${o.k}">${o.clear ? '' : '<span class="sw" style="background:' + o.color + '"></span>'}${o.name}</button>`).join('');
+  document.body.appendChild(menu);
+  const rb = (ev && ev.currentTarget ? ev.currentTarget : ev.target).getBoundingClientRect();
+  const pw = menu.offsetWidth, ph = menu.offsetHeight, gap = 6;
+  let left = rb.left, top = rb.bottom + gap;
+  if (top + ph > window.innerHeight - 6) top = Math.max(6, rb.top - ph - gap);
+  left = Math.max(6, Math.min(window.innerWidth - pw - 6, left));
+  menu.style.left = left + 'px'; menu.style.top = top + 'px';
+  menu.querySelectorAll('.sp-opt').forEach(btn => btn.onclick = () => {
+    const k = btn.dataset.k;
+    if (k === 'clear') delete DB.schedule.overrides[dateKey];
+    else DB.schedule.overrides[dateKey] = k;
+    save(); menu.remove(); schPaint();
+  });
+  setTimeout(() => { const close = () => { menu.remove(); document.removeEventListener('click', close); }; document.addEventListener('click', close); }, 0);
 }
 
 /* ============ 换休核销台账：换休 ↔ 加班 一一对应 ============ */
@@ -3097,6 +3251,7 @@ function viewList() {
       <button class="btn sm ot-settle" onclick="openMonthSettle('${cur}')" title="本月加班结算：加班费 / 结转下月 / 换休核销">结算</button>
       <button class="btn sm carry-btn${carryActive ? ' active' : ''}" onclick="oneClickCarry('${cur}')" title="一键将本月未单独标记的加班结转到下月（再次点击可取消，恢复一键前设置）">结转</button>
       <button class="btn sm cash-btn${cashActive ? ' active' : ''}" onclick="oneClickCash('${cur}')" title="一键将本月未单独标记的加班折算为加班费（再次点击可取消，恢复一键前设置）">折现</button>
+      <button class="btn sm" onclick="openSchedule()" title="排班月历：按轮班序列自动排班，可单击某天改班次 / 年假">排班</button>
     </div>`;
   }
   return `<div class="card">
