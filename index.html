@@ -815,12 +815,11 @@ body.locked .wrap{display:none}
 
 /* ======================= 排班月历面板 ======================= */
 .sch-modal{width:min(880px,calc(100vw - 32px));max-width:calc(100vw - 32px);animation:pop .18s cubic-bezier(.2,.9,.3,1.2) forwards}
-.sch-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.sch-top{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:14px}
 .sch-top .sch-mnav{display:inline-flex;align-items:center;gap:4px}
-.sch-top .sch-mnav button{width:32px;height:32px;border-radius:9px;border:1px solid var(--line-2);background:#fff;cursor:pointer;font-size:16px;color:var(--tx-2);line-height:1}
+.sch-top .sch-mnav button{width:34px;height:34px;border-radius:10px;border:1px solid var(--line-2);background:#fff;cursor:pointer;font-size:18px;color:var(--tx-2);line-height:1}
 .sch-top .sch-mnav button:hover{background:#f1f4fa;color:var(--brand)}
-.sch-top .sch-mlabel{font-size:16px;font-weight:660;min-width:118px;text-align:center;letter-spacing:.3px}
-.sch-top .spacer{flex:1}
+.sch-top .sch-mlabel{font-size:18px;font-weight:700;min-width:130px;text-align:center;letter-spacing:.3px}
 .sch-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
 .sch-grid .sch-dow{font-size:12px;color:var(--tx-3);text-align:center;padding-bottom:2px}
 .sch-grid .sch-dow.we{color:#c2410c}
@@ -845,6 +844,7 @@ body.locked .wrap{display:none}
 .sch-shift.s-none{color:#9aa1b2;background:#f4f6fa;border-color:#e6e9f0;font-weight:500}
 .sch-cell.other-month{opacity:.55;background:#fafbfc;border-color:#e8ebf2}
 .sch-cell.other-month .sch-d .dn,.sch-cell.other-month .sch-d .dwk{color:#9aa1b2}
+.sch-cell.other-month .sch-d .dty.om{opacity:.65}
 .sch-cell.other-month .sch-shift.s-none{color:#bfc5d0;background:#f4f6fa;border-color:#e6e9f0}
 .sch-cell.other-month:hover{opacity:.85;border-color:#c7d6f7}
 .sch-cell.overridden{border-color:#f5a524;box-shadow:0 0 0 1.5px rgba(245,165,36,.15)}
@@ -1824,6 +1824,11 @@ function openSchedule() {
   document.addEventListener('keydown', onEsc); el._onEsc = onEsc;
 }
 function schNav(delta) { schView = delta > 0 ? nextKey(schView) : prevKey(schView); schPaint(); }
+function schWheel(e) {
+  e.preventDefault();
+  if (e.deltaY > 0) schNav(1);
+  else if (e.deltaY < 0) schNav(-1);
+}
 function schSetStart(val) {
   DB.schedule.rotateStart = val || null;
   save(); schPaint();
@@ -1851,13 +1856,13 @@ function schPaint() {
       const overridden = DB.schedule.overrides[dateKey];
       const cls = ['sch-cell', t === 'rest' ? 'rest' : t === 'holi' ? 'holi' : '', otherMonth ? 'other-month' : '', isToday ? 'today' : '', overridden ? 'overridden' : ''].filter(Boolean).join(' ');
       return `<div class="${cls}" data-date="${dateKey}" onclick="schPick('${dateKey}',event)" title="单击改班次 / 年假">`
-        + `<div class="sch-d"><span class="dn">${cd}</span><span class="dwk">周${dow}</span>${!otherMonth ? `<span class="dty ${dtyCls}">${T.name}</span>` : ''}</div>`
+        + `<div class="sch-d"><span class="dn">${cd}</span><span class="dwk">周${dow}</span><span class="dty ${dtyCls}${otherMonth ? ' om' : ''}">${T.name}</span></div>`
         + `<div class="sch-shift ${shInfo ? shInfo.cls : 's-none'}">${shInfo ? shInfo.name : '—'}</div>`
         + `</div>`;
     };
-    let html = `<div class="sch-top"><span class="sch-mnav"><button onclick="schNav(-1)" title="上一月">‹</button></span>`
+    let html = `<div class="sch-top" onwheel="schWheel(event)"><span class="sch-mnav"><button onclick="schNav(-1)" title="上一月">‹</button></span>`
       + `<span class="sch-mlabel">${y} 年 ${pad(m)} 月</span>`
-      + `<span class="sch-mnav"><button onclick="schNav(1)" title="下一月">›</button></span><span class="spacer"></span></div>`;
+      + `<span class="sch-mnav"><button onclick="schNav(1)" title="下一月">›</button></span></div>`;
     html += '<div class="sch-grid">';
     html += dows.map(w => `<div class="sch-dow">周${w}</div>`).join('');
     const firstDow = new Date(y, m - 1, 1).getDay();
@@ -1894,6 +1899,11 @@ function schPick(dateKey, ev) {
   menu.style.left = left + 'px'; menu.style.top = top + 'px';
   menu.querySelectorAll('.sp-opt').forEach(btn => btn.onclick = () => {
     const k = btn.dataset.k;
+    const currentShift = schShiftOf(dateKey);
+    const currentName = currentShift ? SCH_TYPES[currentShift].name : '未排班';
+    const targetName = k === 'clear' ? '恢复自动排班' : SCH_TYPES[k].name;
+    const dateStr = dateKey.replace(/-/g, '/');
+    if (!confirm(`确认修改 ${dateStr} 的班次？\n\n当前：${currentName}\n改为：${targetName}`)) return;
     if (k === 'clear') delete DB.schedule.overrides[dateKey];
     else DB.schedule.overrides[dateKey] = k;
     save(); menu.remove(); schPaint();
