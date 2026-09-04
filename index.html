@@ -847,6 +847,12 @@ body.locked .wrap{display:none}
 .sch-shift.s-rest{color:#12b76a;background:#e6f8ef;border-color:#bfe9d3}
 .sch-shift.s-annual{color:#0e9b96;background:#e0f7f5;border-color:#b6e9e5}
 .sch-shift.s-none{color:#9aa1b2;background:#f4f6fa;border-color:#e6e9f0;font-weight:500}
+.sch-cell.other-month{opacity:.55;background:#fafbfc;border-color:#e8ebf2}
+.sch-cell.other-month .sch-d .dn,.sch-cell.other-month .sch-d .dwk{color:#9aa1b2}
+.sch-cell.other-month .sch-shift.s-none{color:#bfc5d0;background:#f4f6fa;border-color:#e6e9f0}
+.sch-cell.other-month:hover{opacity:.85;border-color:#c7d6f7}
+.sch-cell .mod{margin-left:auto;font-size:10px;font-weight:700;color:#fff;background:#f5a524;padding:1px 5px;border-radius:10px}
+.sch-cell.overridden{border-color:#f5a524;box-shadow:0 0 0 1.5px rgba(245,165,36,.15)}
 .sch-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
 .sch-foot .sch-hint{font-size:12px;color:var(--tx-3);line-height:1.5}
 .sch-foot label{font-size:13px;color:var(--tx-2);font-weight:600}
@@ -1839,6 +1845,21 @@ function schPaint() {
     const todayKey = mk(today.getFullYear(), today.getMonth() + 1) + '-' + pad(today.getDate());
     const s = DB.schedule.rotateStart;
     const dows = ['日', '一', '二', '三', '四', '五', '六'];
+    const cellHtml = (cy, cm, cd, otherMonth) => {
+      const monthKey = mk(cy, cm);
+      const t = dayType(monthKey, cd), T = TYPES.find(x => x.k === t);
+      const dateKey = monthKey + '-' + pad(cd);
+      const sh = schShiftOf(dateKey), shInfo = sh ? SCH_TYPES[sh] : null;
+      const isToday = dateKey === todayKey;
+      const dow = dows[new Date(cy, cm - 1, cd).getDay()];
+      const dtyCls = t === 'work' ? 'w' : (t === 'rest' ? 'r' : 'h');
+      const overridden = DB.schedule.overrides[dateKey];
+      const cls = ['sch-cell', t === 'rest' ? 'rest' : t === 'holi' ? 'holi' : '', otherMonth ? 'other-month' : '', isToday ? 'today' : '', overridden ? 'overridden' : ''].filter(Boolean).join(' ');
+      return `<div class="${cls}" data-date="${dateKey}" onclick="schPick('${dateKey}',event)" title="单击改班次 / 年假">`
+        + `<div class="sch-d"><span class="dn">${cd}</span><span class="dwk">周${dow}</span>${!otherMonth ? `<span class="dty ${dtyCls}">${T.name}</span>` : ''}${overridden ? '<span class="mod">改</span>' : ''}</div>`
+        + `<div class="sch-shift ${shInfo ? shInfo.cls : 's-none'}">${shInfo ? shInfo.name : '—'}</div>`
+        + `</div>`;
+    };
     let html = `<div class="sch-top"><span class="sch-mnav"><button onclick="schNav(-1)" title="上一月">‹</button></span>`
       + `<span class="sch-mlabel">${y} 年 ${pad(m)} 月</span>`
       + `<span class="sch-mnav"><button onclick="schNav(1)" title="下一月">›</button></span><span class="spacer"></span></div>`;
@@ -1848,18 +1869,14 @@ function schPaint() {
     html += '<div class="sch-grid">';
     html += dows.map(w => `<div class="sch-dow">周${w}</div>`).join('');
     const firstDow = new Date(y, m - 1, 1).getDay();
-    for (let i = 0; i < firstDow; i++) html += '<div></div>';
-    for (let d = 1; d <= n; d++) {
-      const t = dayType(key, d), T = TYPES.find(x => x.k === t), dateKey = mk(y, m) + '-' + pad(d);
-      const sh = schShiftOf(dateKey), shInfo = sh ? SCH_TYPES[sh] : null;
-      const isToday = dateKey === todayKey;
-      const dow = dows[new Date(y, m - 1, d).getDay()];
-      const dtyCls = t === 'work' ? 'w' : (t === 'rest' ? 'r' : 'h');
-      html += `<div class="sch-cell ${t === 'rest' ? 'rest' : t === 'holi' ? 'holi' : ''}${isToday ? ' today' : ''}" data-date="${dateKey}" onclick="schPick('${dateKey}',event)" title="单击改班次 / 年假">`
-        + `<div class="sch-d"><span class="dn">${d}</span><span class="dwk">周${dow}</span><span class="dty ${dtyCls}">${T.name}</span></div>`
-        + `<div class="sch-shift ${shInfo ? shInfo.cls : 's-none'}">${shInfo ? shInfo.name : '—'}</div>`
-        + `</div>`;
-    }
+    const prev = prevKey(key), daysInPrev = daysIn(prev);
+    const [py, pm] = prev.split('-').map(Number);
+    for (let i = 0; i < firstDow; i++) html += cellHtml(py, pm, daysInPrev - firstDow + 1 + i, true);
+    for (let d = 1; d <= n; d++) html += cellHtml(y, m, d, false);
+    const lastDow = new Date(y, m - 1, n).getDay();
+    const next = nextKey(key);
+    const [ny, nm] = next.split('-').map(Number);
+    for (let d = 1; d <= 6 - lastDow; d++) html += cellHtml(ny, nm, d, true);
     html += '</div>';
     html += `<div class="sch-foot"><label>轮班起始日</label><input type="date" value="${s || ''}" onchange="schSetStart(this.value)" min="${MIN_KEY}-01">`
       + `<span class="sch-hint">${s ? ('自 ' + s + ' 起按 14 位轮班序列自动排班；单击任意日期可单独覆盖') : '设置轮班起始日后，按 14 位轮班序列自动生成各班次（单击日期可单独覆盖）'}</span>`
@@ -1885,6 +1902,11 @@ function schPick(dateKey, ev) {
   menu.style.left = left + 'px'; menu.style.top = top + 'px';
   menu.querySelectorAll('.sp-opt').forEach(btn => btn.onclick = () => {
     const k = btn.dataset.k;
+    const currentShift = schShiftOf(dateKey);
+    const currentName = currentShift ? SCH_TYPES[currentShift].name : '未排班';
+    const targetName = k === 'clear' ? '恢复自动排班' : SCH_TYPES[k].name;
+    const dateStr = dateKey.replace(/-/g, '/');
+    if (!confirm(`确认修改 ${dateStr} 的班次？\n\n当前：${currentName}\n改为：${targetName}`)) return;
     if (k === 'clear') delete DB.schedule.overrides[dateKey];
     else DB.schedule.overrides[dateKey] = k;
     save(); menu.remove(); schPaint();
