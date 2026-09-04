@@ -2724,9 +2724,6 @@ function renderBody() {
   if (innerDtWrap) innerDtWrap.scrollTop = 0;
   if (tab === 'list') bindList();
   if (tab === 'set') bindSet();
-  // 清理历史遗留的裁切圆角补丁层（该功能已移除）
-  const legacyFix = $('#cutFix');
-  if (legacyFix) legacyFix.remove();
 }
 
 /* 若当前月份包含今天，自动滚动让当天行/单元格进入视口 */
