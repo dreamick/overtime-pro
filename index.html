@@ -977,6 +977,7 @@ function load() {
   // 兜底：再次剔除任何早于起点的月份（含种子自身若被改动）
   Object.keys(base.months).forEach(k => { if (k < MIN_KEY) delete base.months[k]; });
   DB = base;
+  window.DB = DB;   // 调试钩子：便于控制台 / 自动化排错（单文件应用下对象身份稳定）
   // 清理旧版「调休有效期（月）」设置（已在 UI 中移除，统一改为按产生日 leaveExpireDays 天计算）
   delete DB.settings.leaveExpireMonths;
   // 一次性修复：早期 SEED 把 2026-08 默认设为 manual + 全 0 上限，导致封板后无法自动结转。
@@ -993,6 +994,13 @@ function load() {
   // carryIn 应由计算引擎实时从上月继承，不应持久化在月份对象上。
   // 旧版导出/异常状态可能遗留全 0 的 carryIn，会阻断后续自动继承，故统一清理。
   Object.values(DB.months || {}).forEach(m => { delete m.carryIn; });
+  // 标准版本表：若不存在则以当前标量标准作为基准版本（起始日 = 统计起点首月 1 日），
+  // 之后「标准调整」会在该表追加带生效起始日的新版本；计算时按各记录日期取当日生效标准。
+  if (!Array.isArray(DB.settingsStd) || !DB.settingsStd.length) {
+    DB.settingsStd = [{ start: MIN_KEY + '-01', rateWork: +DB.settings.rateWork || 0, rateRest: +DB.settings.rateRest || 0, rateHoli: +DB.settings.rateHoli || 0, mealRate: +DB.settings.mealRate || 0, dailyHours: +DB.settings.dailyHours || 8 }];
+  } else {
+    DB.settingsStd.sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : 0);
+  }
   const ks = monthKeys();
   const now = new Date(), nowK = mk(now.getFullYear(), now.getMonth() + 1);
   cur = ks.includes(nowK) ? nowK : (ks[ks.length - 1] || nowK);
@@ -1171,6 +1179,24 @@ const rateOf = () => {
   const s = DB.settings, dh = +s.dailyHours || 8;
   return { work: +s.rateWork || 0, rest: (+s.rateRest || 0) / dh, holi: (+s.rateHoli || 0) / dh };
 };
+// 某月某日的 ISO 日期串（YYYY-MM-DD，按日零补位，保证字符串比较正确）
+const dateOf = (key, d) => key + '-' + pad(d);
+// 标准版本表：DB.settingsStd = [{ start:'YYYY-MM-DD', rateWork, rateRest, rateHoli, mealRate, dailyHours }, ...]（按 start 升序）
+// 某日生效的标准：取 start <= 该日 的最新版本；无版本时回落到标量设置（兼容旧数据）
+function stdOnDate(dateKey) {
+  const arr = DB.settingsStd || [];
+  let best = null;
+  for (const v of arr) if (v.start <= dateKey && (!best || v.start > best.start)) best = v;
+  if (best) return best;
+  const s = DB.settings;
+  return { rateWork: +s.rateWork || 0, rateRest: +s.rateRest || 0, rateHoli: +s.rateHoli || 0, mealRate: +s.mealRate || 0, dailyHours: +s.dailyHours || 8 };
+}
+function rateFor(type, dateKey) {
+  const s = stdOnDate(dateKey), dh = +s.dailyHours || 8;
+  return type === 'work' ? (+s.rateWork || 0) : (+s[type === 'rest' ? 'rateRest' : 'rateHoli'] || 0) / dh;
+}
+function mealRateOn(dateKey) { return +stdOnDate(dateKey).mealRate || 0; }
+const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
 
 /** 计算某月，depth 防止链式递归过深 */
 function compute(key, depth) {
@@ -1178,15 +1204,16 @@ function compute(key, depth) {
   const mo = M(key), n = daysIn(key);
   const gain = { work: 0, rest: 0, holi: 0 };           // 本月新增加班时长
   const otCnt = { work: 0, rest: 0, holi: 0 };           // 本月各类型加班记录天数
-  let leaveTotal = 0, mealCount = 0, otDays = 0, annualUse = 0;
+  let leaveTotal = 0, mealCount = 0, otDays = 0, annualUse = 0, mealPay = 0;
   for (let d = 1; d <= n; d++) {
     const r = mo.days[d]; if (!r) continue;
     const h = hoursOf(key, d), t = dayType(key, d);
     if (h > 0) { gain[t] += h; otCnt[t]++; otDays++; }
     leaveTotal += +r.leaveH || 0;                       // 工作日/双休日/节假日均可填换休
-    // 餐补规则：工作日加班≥1.5h 自动计 1 次；休息日/节假日按手动填写
+    // 餐补规则：工作日加班≥1.5h 自动计 1 次；休息日/节假日按手动填写；按当日生效标准计金额
     const meal = t === 'work' ? (h >= 1.5 ? 1 : 0) : (+r.meal || 0);
     mealCount += meal;
+    if (meal > 0) mealPay = +(mealPay + meal * mealRateOn(dateOf(key, d))).toFixed(2);
     annualUse += +r.annual || 0;
   }
   // --- 上月结转（继承）---
@@ -1240,6 +1267,7 @@ function compute(key, depth) {
   (L.curPool || []).forEach(e => { curLeftByDay[e.d] = e; });
   order.forEach(t => { carryOut[t] = 0; });
   const cashByDay = { work: 0, rest: 0, holi: 0 };
+  const cashMoneyByDay = { work: 0, rest: 0, holi: 0 };   // 逐日折现金额：按各加班日生效标准计，支持月内标准变动
   const manualCashByType = { work: 0, rest: 0, holi: 0 };   // 仅「逐日手动标记折现(r.settle='cash')」且未到期的部分，用于 KPI 明细拆解
   // 折现时长归属到具体加班日：d → { h, t, kind }，供「折现时长」KPI 点击后筛选明细
   //   kind: 'manual' 手动点折现 | 'expired' 超有效期自动折现 | 'decision' 整月策略折现 | 'overflow' 自定义上限外折现
@@ -1273,14 +1301,16 @@ function compute(key, depth) {
       const cr = Math.min(left, can);
       if (cr > 0) { carryOut[t] = +(carryOut[t] + cr).toFixed(2); carryUsed[t] += cr; }
       const cs = +(left - cr).toFixed(2);
-      if (cs > 0) { cashByDay[t] = +(cashByDay[t] + cs).toFixed(2); cashDays[d] = { h: cs, t, kind: 'overflow' }; }
+      if (cs > 0) { const _dt = dateOf(key, d); cashByDay[t] = +(cashByDay[t] + cs).toFixed(2); cashMoneyByDay[t] = +(cashMoneyByDay[t] + cs * rateFor(t, _dt)).toFixed(2); cashDays[d] = { h: cs, t, kind: 'overflow', money: +(cs * rateFor(t, _dt)).toFixed(2) }; }
       continue;
     }
     if (st === 'carry') carryOut[t] = +(carryOut[t] + left).toFixed(2);
     else if (st === 'cash') {
+      const _dt = dateOf(key, d);
       cashByDay[t] = +(cashByDay[t] + left).toFixed(2);
+      cashMoneyByDay[t] = +(cashMoneyByDay[t] + left * rateFor(t, _dt)).toFixed(2);
       // 折现来源归属到具体加班日；过期优先标记为「到期自动折现」（与 KPI 拆解口径一致，避免与手动重复计）
-      cashDays[d] = { h: left, t, kind: (e && e.expired) ? 'expired' : (r.settle === 'cash' ? 'manual' : 'decision') };
+      cashDays[d] = { h: left, t, kind: (e && e.expired) ? 'expired' : (r.settle === 'cash' ? 'manual' : 'decision'), money: +(left * rateFor(t, _dt)).toFixed(2) };
       // 仅统计「用户显式点折现」且未过期的天；过期自动折现不计入「手动」（避免与 expiredCash 重复）
       if (r.settle === 'cash' && !(e && e.expired)) manualCashByType[t] = +(manualCashByType[t] + left).toFixed(2);
     }
@@ -1334,18 +1364,20 @@ function compute(key, depth) {
   else if (isSealed(key)) carryOutPhys = { work: carryCap.work, rest: carryCap.rest, holi: carryCap.holi };
   const carryOutPhysTotal = +(carryOutPhys.work + carryOutPhys.rest + carryOutPhys.holi).toFixed(2);
   // --- 折现 ---
-  const R = rateOf(), cash = {}, amount = {};
+  // 费率按「生效起始日」逐日取值：本月内标准变动时，各加班日 / 餐补按当日生效标准计算。
+  // R 取当月 15 日生效标准作代表（用于结算面板按类型「元/h」展示；精确金额已在 cashMoneyByDay 中逐日累计）。
+  const R = { work: rateFor('work', key + '-15'), rest: rateFor('rest', key + '-15'), holi: rateFor('holi', key + '-15') };
+  const cash = {}, amount = {};
   let otPay = 0;
   const autoCashTotal = +order.reduce((s, t) => s + (autoCashByType[t] || 0), 0).toFixed(2);
   const expiredTotal = +order.reduce((s, t) => s + (expiredByType[t] || 0), 0).toFixed(2);
   order.forEach(t => {
-    // 过期折现入账：cashByDay 只含本月加班日的折现；上月结转池里过期的部分由 expiredCarryByType 补入，
-    // 否则这部分工时会「既没结转、也没付钱」地凭空蒸发（面板文案却写着已计入加班费）。
-    cash[t] = +((cashByDay[t] || 0) + (expiredCarryByType[t] || 0)).toFixed(2);
-    amount[t] = +(cash[t] * R[t]).toFixed(2);
+    // 上月结转池到期自动折现的部分：按本月费率近似（跨月余额，无法精确归属到原产生日）
+    const expCash = +(expiredCarryByType[t] || 0), expMoney = +(expCash * R[t]).toFixed(2);
+    cash[t] = +((cashByDay[t] || 0) + expCash).toFixed(2);
+    amount[t] = +(cashMoneyByDay[t] + expMoney).toFixed(2);
     otPay += amount[t];
   });
-  const mealPay = +(mealCount * (+DB.settings.mealRate || 0)).toFixed(2);
   return {
     key, gain, gainTotal: +gainTotal.toFixed(2), carryIn,
     carryInTotal,
@@ -1366,7 +1398,7 @@ function compute(key, depth) {
     },
     autoCash: autoCashTotal, autoCashByType, expiredCash: expiredTotal, expiredByType,
     amount, otPay: +otPay.toFixed(2), mealCount, mealPay, otCnt,
-    total: +(otPay + mealPay).toFixed(2), otDays, annualUse, rates: R, mode, lvExpired: false, lvExpiredCash: 0
+    total: +(otPay + mealPay).toFixed(2), otDays, annualUse, rates: R, mealRate: mealRateOn(key + '-15'), mode, lvExpired: false, lvExpiredCash: 0
   };
 }
 
@@ -1504,7 +1536,7 @@ function openMonthSettle(key) {
         <table class="tb tb-otpay" style="width:100%">
           <thead><tr><th style="text-align:left">日期</th><th style="text-align:left">类型</th><th style="text-align:right">加班时长</th><th style="text-align:right">折现时长</th><th style="text-align:right">单价</th><th style="text-align:right">金额</th></tr></thead>
           <tbody>${otRows}
-            <tr class="otpay-meal"><td>—</td><td>🍚 餐补</td><td class="zero">—</td><td class="${c.mealCount ? '' : 'zero'}">${hf(c.mealCount)} 次</td><td class="muted">${fx(DB.settings.mealRate)}</td><td class="${c.mealPay ? 'num-pos' : 'zero'}">${fx(c.mealPay)} 元</td></tr>
+            <tr class="otpay-meal"><td>—</td><td>🍚 餐补</td><td class="zero">—</td><td class="${c.mealCount ? '' : 'zero'}">${hf(c.mealCount)} 次</td><td class="muted">${fx(c.mealRate)}</td><td class="${c.mealPay ? 'num-pos' : 'zero'}">${fx(c.mealPay)} 元</td></tr>
           </tbody>
           <tfoot><tr><td colspan="3">合计</td><td colspan="3" style="text-align:right;color:var(--brand);font-size:14px;line-height:1.5">加班费 ${fx(c.otPay)}<br>餐补 ${fx(c.mealPay)}<br><b style="font-size:15px">${fx(c.total)} 元</b></td></tr></tfoot>
         </table>
@@ -1676,7 +1708,7 @@ function openOvertimePayDetail(key) {
         <table class="tb tb-otpay" style="width:100%">
           <thead><tr><th style="text-align:left">日期</th><th style="text-align:left">类型</th><th style="text-align:right">加班时长</th><th style="text-align:right">折现时长</th><th style="text-align:right">单价</th><th style="text-align:right">金额</th></tr></thead>
           <tbody>${otRows}
-            <tr class="otpay-meal"><td>—</td><td>🍚 餐补</td><td class="zero">—</td><td class="${c.mealCount ? '' : 'zero'}">${hf(c.mealCount)} 次</td><td class="muted">${fx(DB.settings.mealRate)}</td><td class="${c.mealPay ? 'num-pos' : 'zero'}">${fx(c.mealPay)} 元</td></tr>
+            <tr class="otpay-meal"><td>—</td><td>🍚 餐补</td><td class="zero">—</td><td class="${c.mealCount ? '' : 'zero'}">${hf(c.mealCount)} 次</td><td class="muted">${fx(c.mealRate)}</td><td class="${c.mealPay ? 'num-pos' : 'zero'}">${fx(c.mealPay)} 元</td></tr>
           </tbody>
           <tfoot><tr><td colspan="3">合计</td><td colspan="3" style="text-align:right;color:var(--brand);font-size:14px;line-height:1.5">加班费 ${fx(c.otPay)}<br>餐补 ${fx(c.mealPay)}<br><b style="font-size:15px">${fx(c.total)} 元</b></td></tr></tfoot>
         </table>
@@ -2862,7 +2894,7 @@ function otCard(c) {
             <td class="muted">${fx(c.rates[t.k])}</td>
             <td class="${c.amount[t.k] ? '' : 'zero'}" id="amt-${t.k}">${fx(c.amount[t.k])}</td></tr>`).join('')}
           <tr><td>🍚 餐补</td><td class="${c.mealCount ? '' : 'zero'}">${hf(c.mealCount)} 次</td>
-            <td class="muted">${fx(DB.settings.mealRate)}</td><td class="${c.mealPay ? '' : 'zero'}">${fx(c.mealPay)}</td></tr>
+            <td class="muted">${fx(c.mealRate)}</td><td class="${c.mealPay ? '' : 'zero'}">${fx(c.mealPay)}</td></tr>
         </tbody>
         <tfoot><tr><td>合计</td><td></td><td></td><td style="color:var(--brand);font-size:15px" id="otTotalTd">${money(c.total)}</td></tr></tfoot>
       </table>
@@ -3170,7 +3202,7 @@ function bindList() {
       confirmDialog({
         title: '餐补确认',
         msg: adding
-          ? `确定记录 ${cur.replace('-', ' 年 ')} 月 ${d} 日 1 次餐补（¥${fx(DB.settings.mealRate)}）吗？`
+          ? `确定记录 ${cur.replace('-', ' 年 ')} 月 ${d} 日 1 次餐补（¥${fx(mealRateOn(cur + '-' + pad(d)))}）吗？`
           : `确定取消 ${cur.replace('-', ' 年 ')} 月 ${d} 日 餐补吗？`,
         okText: adding ? '记餐补' : '取消餐补',
         onOk: () => {
@@ -3344,6 +3376,14 @@ function viewSet() {
         ${F('mealRate', '餐补（元/次）', '')}
         ${F('annualTotal', '年假额度（天）', '剩余 = 额度 − 已用年假；当前已用 4 天 → 显示剩余 6 天', 'type="number" step="1" min="0"')}
       </div>
+      <div style="border-top:1px solid var(--line);padding:14px 18px 4px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <b style="font-size:13px">标准调整历史</b>
+          <button class="btn sm" id="btnAddStd">＋ 新增调整（设起始日）</button>
+        </div>
+        <div id="stdHist" style="display:grid;gap:8px">${renderStdHist()}</div>
+        <div class="hint" style="margin-top:8px">标准可随时变动（如公司临时上调餐补 / 加班费）。设定生效起始日后，该日及之后的记录按新标准计算，之前的历史记录仍用旧标准。</div>
+      </div>
     </div>
     <div class="card">
       <div class="card-h"><h3>时长计算规则</h3><span class="sub">明细里「时长」留空时按此规则自动算</span></div>
@@ -3418,6 +3458,10 @@ function bindSetIn(root) {
   root.querySelectorAll('[data-s]').forEach(el => el.addEventListener('change', () => {
     const k = el.dataset.s;
     DB.settings[k] = (el.type === 'number') ? (+el.value || 0) : el.value;
+    // 直接改标量标准字段时，同步到「标准调整历史」的最新版本，避免下次重算口径错位
+    if (['rateWork', 'rateRest', 'rateHoli', 'mealRate', 'dailyHours'].includes(k) && Array.isArray(DB.settingsStd) && DB.settingsStd.length) {
+      DB.settingsStd[DB.settingsStd.length - 1][k] = DB.settings[k];
+    }
     save(); render(); toast('已保存');
   }));
   const sp = root.querySelector('#setPass'), sb = root.querySelector('#btnSetPass');
@@ -3432,9 +3476,83 @@ function bindSetIn(root) {
       sp.value = '';
     };
   }
+  // 标准调整历史：新增 / 删除
+  const addBtn = root.querySelector('#btnAddStd');
+  if (addBtn && !addBtn._b) { addBtn._b = true; addBtn.onclick = openStdEditor; }
+  root.querySelectorAll('[data-delstd]').forEach(b => {
+    if (b._b) return; b._b = true;
+    b.onclick = () => {
+      const start = b.dataset.delstd;
+      DB.settingsStd = (DB.settingsStd || []).filter(x => x.start !== start);
+      if (!DB.settingsStd.length) {   // 删光则重建基准版本（起始日 = 统计起点首月 1 日）
+        DB.settingsStd = [{ start: MIN_KEY + '-01', rateWork: +DB.settings.rateWork || 0, rateRest: +DB.settings.rateRest || 0, rateHoli: +DB.settings.rateHoli || 0, mealRate: +DB.settings.mealRate || 0, dailyHours: +DB.settings.dailyHours || 8 }];
+      }
+      const last = DB.settingsStd[DB.settingsStd.length - 1];
+      DB.settings.rateWork = last.rateWork; DB.settings.rateRest = last.rateRest; DB.settings.rateHoli = last.rateHoli; DB.settings.mealRate = last.mealRate; DB.settings.dailyHours = last.dailyHours;
+      save(); render(); refreshSetPop();
+      toast('已删除该标准调整');
+    };
+  });
   bindSync();
 }
 function bindSet() { bindSetIn(document); }
+
+/* 标准调整历史：按起始日倒序展示各版本；首行 = 当前生效标准 */
+function renderStdHist() {
+  const arr = (DB.settingsStd || []).slice().sort((a, b) => a.start < b.start ? 1 : a.start > b.start ? -1 : 0);
+  if (!arr.length) return '<div class="muted" style="font-size:12px">暂无调整记录</div>';
+  return arr.map((v, i) => {
+    const canDel = arr.length > 1;
+    return `<div style="display:flex;align-items:center;gap:10px;font-size:12.5px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 12px">
+      <div style="min-width:104px"><b>${esc(v.start)}</b>${i === 0 ? ' <span class="muted">（当前）</span>' : ''}</div>
+      <div style="flex:1;color:var(--tx-2)">工作日 ¥${fx(v.rateWork)}/h · 休息日 ¥${fx(v.rateRest)}/天 · 节假日 ¥${fx(v.rateHoli)}/天 · 餐补 ¥${fx(v.mealRate)}/次</div>
+      ${canDel ? `<button class="btn ghost sm" data-delstd="${esc(v.start)}">删除</button>` : ''}
+    </div>`;
+  }).join('');
+}
+/* 新增标准调整：选生效起始日 + 录入新标准，保存后追加版本并同步标量设置 = 最新版本 */
+function openStdEditor() {
+  const _arr = (DB.settingsStd || []).slice().sort((a, b) => a.start < b.start ? 1 : a.start > b.start ? -1 : 0);
+  const latest = _arr[_arr.length - 1] || {};
+  const g = (k, d) => (latest[k] != null ? latest[k] : (DB.settings[k] != null ? DB.settings[k] : d));
+  const el = document.createElement('div');
+  el.className = 'mask no-print';
+  el.id = 'stdMask';
+  el.innerHTML = `<div class="modal carry-modal" style="max-width:460px" onclick="event.stopPropagation()">
+    <div class="modal-h"><div><h3>新增标准调整</h3><p>设定生效起始日，该日及之后按新标准计算</p></div><span class="spacer"></span><button class="btn ghost sm" id="stdClose">✕</button></div>
+    <div class="modal-b" style="display:grid;gap:10px">
+      <div class="fld"><label>生效起始日</label><input id="stdStart" type="date" value="${todayISO()}"><div class="hint">该日及之后的记录用新标准；之前的历史记录仍用旧标准</div></div>
+      <div class="fld"><label>工作日（元/小时）</label><input id="stdWork" type="number" step="0.01" value="${esc(g('rateWork', 0))}"></div>
+      <div class="fld"><label>休息日（元/天）</label><input id="stdRest" type="number" step="0.01" value="${esc(g('rateRest', 0))}"></div>
+      <div class="fld"><label>节假日（元/天）</label><input id="stdHoli" type="number" step="0.01" value="${esc(g('rateHoli', 0))}"></div>
+      <div class="fld"><label>餐补（元/次）</label><input id="stdMeal" type="number" step="0.01" value="${esc(g('mealRate', 0))}"></div>
+      <div class="fld"><label>每日标准工时</label><input id="stdDh" type="number" step="0.01" value="${esc(g('dailyHours', 8))}"></div>
+    </div>
+    <div class="modal-f"><span class="spacer"></span><button class="btn" id="stdCancel">取消</button><button class="btn primary" id="stdSave">保存调整</button></div>
+  </div>`;
+  el.onclick = () => el.remove();
+  document.body.appendChild(el);
+  const close = () => el.remove();
+  $('#stdClose').onclick = close; $('#stdCancel').onclick = close;
+  $('#stdSave').onclick = () => {
+    const start = $('#stdStart').value || todayISO();
+    const v = { start, rateWork: +$('#stdWork').value || 0, rateRest: +$('#stdRest').value || 0, rateHoli: +$('#stdHoli').value || 0, mealRate: +$('#stdMeal').value || 0, dailyHours: +$('#stdDh').value || 8 };
+    if (!DB.settingsStd) DB.settingsStd = [];
+    const ex = DB.settingsStd.find(x => x.start === start);
+    if (ex) Object.assign(ex, v); else DB.settingsStd.push(v);
+    DB.settingsStd.sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : 0);
+    const last = DB.settingsStd[DB.settingsStd.length - 1];   // 同步标量设置 = 最新版本（便于「当前标准」展示与无版本兜底）
+    DB.settings.rateWork = last.rateWork; DB.settings.rateRest = last.rateRest; DB.settings.rateHoli = last.rateHoli; DB.settings.mealRate = last.mealRate; DB.settings.dailyHours = last.dailyHours;
+    save(); close(); render(); refreshSetPop();
+    toast('已保存标准调整（' + start + ' 起生效）');
+  };
+}
+/* 刷新设置面板内容（保存/删除标准调整后，使历史列表与标量字段同步更新，无需重开面板） */
+function refreshSetPop() {
+  const m = $('#setPopMask'); if (!m) return;
+  m.querySelector('.modal-b').innerHTML = viewSet();
+  bindSetIn(m.querySelector('.set-modal'));
+}
 
 /* 设置内容改为点击齿轮弹出的居中面板（与结算面板 modal 效果一致） */
 function openSetPop() {
