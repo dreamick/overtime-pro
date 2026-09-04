@@ -482,8 +482,9 @@ table.tb tfoot td{font-weight:650;border-top:1.5px solid var(--line);border-bott
 .chip.carry.active{box-shadow:inset 0 0 0 2px #3b6bff}
 
 /* ---------- detail table ---------- */
-#body{flex:1 1 auto;min-height:0;width:100%;overflow:auto;padding-bottom:10px;overscroll-behavior:contain}
-#body.body-list{display:flex;flex-direction:column;gap:16px;overflow:hidden;padding-bottom:0;overscroll-behavior:none}
+/* 底部留 32px：卡片阴影(8px偏移+24px模糊)完整渲染，不再被滚动容器底边切成硬边 */
+#body{flex:1 1 auto;min-height:0;width:100%;overflow:auto;padding-bottom:32px;overscroll-behavior:contain}
+#body.body-list{display:flex;flex-direction:column;gap:16px;overflow:hidden;padding-bottom:20px;overscroll-behavior:none}
 #body.body-list > .card:not(.ot-card){flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 #body.body-list .card-h{flex:0 0 auto}
 #body.body-list .dt-wrap{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scroll-snap-type:y proximity;scroll-padding-top:38px;scrollbar-gutter:stable}
