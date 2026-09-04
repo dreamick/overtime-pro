@@ -1004,6 +1004,13 @@ const mk = (y, m) => y + '-' + pad(m);
 // 统计起点：仅保留该月及其之后的数据（SEED 首月为 2026-01）
 const MIN_KEY = (() => { const ks = Object.keys(SEED).sort(); return ks.length ? ks[0] : '2026-01'; })();
 
+function ensureSchedule() {
+  // 排班数据：独立于加班/结算，单独存储；rotateStart=轮班起始日，overrides=按日期(yyyy-mm-dd)的手动覆盖
+  // 云同步/导入等外部来源可能缺失该对象，统一兜底初始化
+  if (!DB.schedule || typeof DB.schedule !== 'object') DB.schedule = {};
+  if (!DB.schedule.overrides || typeof DB.schedule.overrides !== 'object') DB.schedule.overrides = {};
+  if (DB.schedule.rotateStart && !/^\d{4}-\d{2}-\d{2}$/.test(DB.schedule.rotateStart)) DB.schedule.rotateStart = null;
+}
 function load() {
   // 以 SEED（2026 起）为基准，携带正确的结转配置(carryMode/carryOutManual)
   const base = { version: 1, settings: Object.assign({}, DEF_SETTINGS), months: JSON.parse(JSON.stringify(SEED)) };
@@ -1050,10 +1057,7 @@ function load() {
   } else {
     DB.settingsStd.sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : 0);
   }
-  // 排班数据：独立于加班/结算，单独存储；rotateStart=轮班起始日，overrides=按日期(yyyy-mm-dd)的手动覆盖
-  if (!DB.schedule || typeof DB.schedule !== 'object') DB.schedule = {};
-  if (!DB.schedule.overrides || typeof DB.schedule.overrides !== 'object') DB.schedule.overrides = {};
-  if (DB.schedule.rotateStart && !/^\d{4}-\d{2}-\d{2}$/.test(DB.schedule.rotateStart)) DB.schedule.rotateStart = null;
+  ensureSchedule();
   const ks = monthKeys();
   const now = new Date(), nowK = mk(now.getFullYear(), now.getMonth() + 1);
   cur = ks.includes(nowK) ? nowK : (ks[ks.length - 1] || nowK);
@@ -1113,7 +1117,7 @@ async function syncDownload(silent) {
     if (!txt) throw new Error('档案内容为空');
     const incoming = JSON.parse(txt);
     if (!incoming.months) throw new Error('档案格式不正确');
-    DB = incoming; save(false); render();
+    DB = incoming; ensureSchedule(); save(false); render();
     setSyncStatus('已下载 ' + new Date().toLocaleTimeString(), 'ok');
   } catch (e) { setSyncStatus('下载失败：' + e.message, 'err'); }
 }
@@ -1805,6 +1809,7 @@ function schShiftOf(dateKey) {
 }
 let schView = null;   // 当前排班面板查看的月份 key
 function openSchedule() {
+  ensureSchedule();
   schView = cur;
   const el = document.createElement('div'); el.className = 'mask'; el.id = 'schMask';
   el.innerHTML = `<div class="modal sch-modal" onclick="event.stopPropagation()" style="opacity:0">
