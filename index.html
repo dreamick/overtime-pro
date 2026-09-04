@@ -845,7 +845,6 @@ body.locked .wrap{display:none}
   <div class="grid-kpi" id="kpi" data-page-node-id="35vUgCc0X9OzccF56lxY3d"></div>
   <div id="alerts" data-page-node-id="oIz2L7fy2CEuBGozQO4KCl"></div>
   <div id="body" data-page-node-id="bpDIVUDD6zWGZSBRXEX0Hn"></div>
-  <p style="margin-top:26px;text-align:center;font-size:12px;color:#a8afbf;line-height:1.8" class="no-print" data-page-node-id="m467paNuEnmBGmI0qjvTxa">加班助手PRO · 本地单文件版 · 构建 20260821（KPI 常驻 · 无需服务器）</p>
 </div>
 
 <input type="file" id="imp" accept=".json" hidden data-page-node-id="edA2tc0pL2cMEXtlgYh176">
@@ -2725,6 +2724,34 @@ function renderBody() {
   if (innerDtWrap) innerDtWrap.scrollTop = 0;
   if (tab === 'list') bindList();
   if (tab === 'set') bindSet();
+  updateCutFix();
+}
+
+/* 卡片被滚动视口裁切时，切边也显示圆角：在切口两角叠页面底色的「反圆角」补丁（radial-gradient 凹角），
+   滚动/渲染/视口变化时实时重算。明细页卡片 flex 填满不会被裁，自然无补丁。 */
+function updateCutFix() {
+  let layer = $('#cutFix');
+  if (!layer) { layer = document.createElement('div'); layer.id = 'cutFix'; document.body.appendChild(layer); }
+  layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:5';
+  layer.innerHTML = '';
+  const b = $('#body'), br = b.getBoundingClientRect(), R = 14;   // 与 --r 一致
+  const P = (left, top, at) => {
+    const d = document.createElement('div');
+    d.style.cssText = `position:absolute;left:${Math.round(left)}px;top:${Math.round(top)}px;width:${R}px;height:${R}px;background:radial-gradient(circle at ${at}, transparent ${R - 0.5}px, var(--bg) ${R - 0.5}px)`;
+    layer.appendChild(d);
+  };
+  b.querySelectorAll('.card').forEach(c => {
+    const r = c.getBoundingClientRect();
+    if (r.width < 40) return;
+    if (r.top < br.top - 1 && r.bottom > br.top) {            // 顶部被裁
+      P(r.left, br.top, '100% 100%');
+      P(r.right - R, br.top, '0% 100%');
+    }
+    if (r.bottom > br.bottom + 1 && r.top < br.bottom) {      // 底部被裁
+      P(r.left, br.bottom - R, '100% 0%');
+      P(r.right - R, br.bottom - R, '0% 0%');
+    }
+  });
 }
 
 /* 若当前月份包含今天，自动滚动让当天行/单元格进入视口 */
@@ -3945,6 +3972,29 @@ function boot() {
     renderAlerts();
   });
   $('#btnRefresh').onclick = refreshApp;
+  // 顶栏滚轮切换：悬停月份区滚轮 = 上/下一月（与 ‹ › 一致，越界自动停）；悬停标签区滚轮 = 明细→日历→汇总
+  // （KPI 区域滚轮切视图为既有功能，见下方 kpiEl；此处扩展到顶栏月份/标签，锁名区分避免重复声明）
+  let topWheelLock = false;
+  const topWheelStep = fn => { if (topWheelLock) return; topWheelLock = true; setTimeout(() => topWheelLock = false, 160); fn(); };
+  document.querySelector('.msw').addEventListener('wheel', e => {
+    e.preventDefault();
+    if (!$('#mselPop').hidden) return;   // 月份下拉打开时交由下拉自身滚动
+    topWheelStep(() => {
+      const ks = monthKeys(), j = ks.indexOf(cur) + (e.deltaY > 0 ? 1 : -1);
+      if (j >= 0 && j < ks.length) { cur = ks[j]; render(); }
+    });
+  }, { passive: false });
+  document.querySelector('.tabs').addEventListener('wheel', e => {
+    e.preventDefault();
+    topWheelStep(() => {
+      const order = ['list', 'cal', 'sum'], j = order.indexOf(tab) + (e.deltaY > 0 ? 1 : -1);
+      if (j >= 0 && j < order.length) { tab = order[j]; render(); }
+    });
+  }, { passive: false });
+  // 被裁卡片圆角补丁：随视口/布局变化实时重算
+  $('#body').addEventListener('scroll', () => requestAnimationFrame(updateCutFix), { passive: true });
+  window.addEventListener('resize', updateCutFix);
+  if (window.ResizeObserver) new ResizeObserver(() => requestAnimationFrame(updateCutFix)).observe($('#body'));
   $('#btnToday').onclick = () => {
     const now = new Date(), nowK = mk(now.getFullYear(), now.getMonth() + 1);
     cur = monthKeys().includes(nowK) ? nowK : (monthKeys().length ? monthKeys()[monthKeys().length - 1] : nowK);
