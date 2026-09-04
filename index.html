@@ -2724,34 +2724,9 @@ function renderBody() {
   if (innerDtWrap) innerDtWrap.scrollTop = 0;
   if (tab === 'list') bindList();
   if (tab === 'set') bindSet();
-  updateCutFix();
-}
-
-/* 卡片被滚动视口裁切时，切边也显示圆角：在切口两角叠页面底色的「反圆角」补丁（radial-gradient 凹角），
-   滚动/渲染/视口变化时实时重算。明细页卡片 flex 填满不会被裁，自然无补丁。 */
-function updateCutFix() {
-  let layer = $('#cutFix');
-  if (!layer) { layer = document.createElement('div'); layer.id = 'cutFix'; document.body.appendChild(layer); }
-  layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:5';
-  layer.innerHTML = '';
-  const b = $('#body'), br = b.getBoundingClientRect(), R = 14;   // 与 --r 一致
-  const P = (left, top, at) => {
-    const d = document.createElement('div');
-    d.style.cssText = `position:absolute;left:${Math.round(left)}px;top:${Math.round(top)}px;width:${R}px;height:${R}px;background:radial-gradient(circle at ${at}, transparent ${R - 0.5}px, var(--bg) ${R - 0.5}px)`;
-    layer.appendChild(d);
-  };
-  b.querySelectorAll('.card').forEach(c => {
-    const r = c.getBoundingClientRect();
-    if (r.width < 40) return;
-    if (r.top < br.top - 1 && r.bottom > br.top) {            // 顶部被裁
-      P(r.left, br.top, '100% 100%');
-      P(r.right - R, br.top, '0% 100%');
-    }
-    if (r.bottom > br.bottom + 1 && r.top < br.bottom) {      // 底部被裁
-      P(r.left, br.bottom - R, '100% 0%');
-      P(r.right - R, br.bottom - R, '0% 0%');
-    }
-  });
+  // 清理历史遗留的裁切圆角补丁层（该功能已移除）
+  const legacyFix = $('#cutFix');
+  if (legacyFix) legacyFix.remove();
 }
 
 /* 若当前月份包含今天，自动滚动让当天行/单元格进入视口 */
@@ -3991,10 +3966,6 @@ function boot() {
       if (j >= 0 && j < order.length) { tab = order[j]; render(); }
     });
   }, { passive: false });
-  // 被裁卡片圆角补丁：随视口/布局变化实时重算
-  $('#body').addEventListener('scroll', () => requestAnimationFrame(updateCutFix), { passive: true });
-  window.addEventListener('resize', updateCutFix);
-  if (window.ResizeObserver) new ResizeObserver(() => requestAnimationFrame(updateCutFix)).observe($('#body'));
   $('#btnToday').onclick = () => {
     const now = new Date(), nowK = mk(now.getFullYear(), now.getMonth() + 1);
     cur = monthKeys().includes(nowK) ? nowK : (monthKeys().length ? monthKeys()[monthKeys().length - 1] : nowK);
