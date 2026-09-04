@@ -814,7 +814,7 @@ body.locked .wrap{display:none}
 @keyframes popin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 /* ======================= 排班月历面板 ======================= */
-.sch-modal{width:min(880px,calc(100vw - 32px));max-width:calc(100vw - 32px)}
+.sch-modal{width:min(880px,calc(100vw - 32px));max-width:calc(100vw - 32px);animation:pop .18s cubic-bezier(.2,.9,.3,1.2) forwards}
 .sch-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .sch-top .sch-mnav{display:inline-flex;align-items:center;gap:4px}
 .sch-top .sch-mnav button{width:32px;height:32px;border-radius:9px;border:1px solid var(--line-2);background:#fff;cursor:pointer;font-size:16px;color:var(--tx-2);line-height:1}
@@ -1828,37 +1828,42 @@ function schClearAll() {
 }
 function schPaint() {
   const body = document.getElementById('schBody'); if (!body) return;
-  const key = schView, [y, m] = key.split('-').map(Number), n = daysIn(key);
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const todayKey = mk(today.getFullYear(), today.getMonth() + 1) + '-' + pad(today.getDate());
-  const s = DB.schedule.rotateStart;
-  const dows = ['日', '一', '二', '三', '四', '五', '六'];
-  let html = `<div class="sch-top"><span class="sch-mnav"><button onclick="schNav(-1)" title="上一月">‹</button></span>`
-    + `<span class="sch-mlabel">${y} 年 ${pad(m)} 月</span>`
-    + `<span class="sch-mnav"><button onclick="schNav(1)" title="下一月">›</button></span><span class="spacer"></span></div>`;
-  html += `<div class="sch-legend">班次：`
-    + Object.keys(SCH_TYPES).map(k => `<span class="lg"><span class="dot" style="background:${SCH_COLORS[k]}"></span>${SCH_TYPES[k].name}</span>`).join('')
-    + `<span class="sep"></span>日期底色：<span class="lg"><span class="dot" style="background:#fde9d6"></span>双休日</span><span class="lg"><span class="dot" style="background:#fbe3e3"></span>节假日</span></div>`;
-  html += '<div class="sch-grid">';
-  html += dows.map(w => `<div class="sch-dow">周${w}</div>`).join('');
-  const firstDow = new Date(y, m - 1, 1).getDay();
-  for (let i = 0; i < firstDow; i++) html += '<div></div>';
-  for (let d = 1; d <= n; d++) {
-    const t = dayType(key, d), T = TYPES.find(x => x.k === t), dateKey = mk(y, m) + '-' + pad(d);
-    const sh = schShiftOf(dateKey), shInfo = sh ? SCH_TYPES[sh] : null;
-    const isToday = dateKey === todayKey;
-    const dow = dows[new Date(y, m - 1, d).getDay()];
-    const dtyCls = t === 'work' ? 'w' : (t === 'rest' ? 'r' : 'h');
-    html += `<div class="sch-cell ${t === 'rest' ? 'rest' : t === 'holi' ? 'holi' : ''}${isToday ? ' today' : ''}" data-date="${dateKey}" onclick="schPick('${dateKey}',event)" title="单击改班次 / 年假">`
-      + `<div class="sch-d"><span class="dn">${d}</span><span class="dwk">周${dow}</span><span class="dty ${dtyCls}">${T.name}</span></div>`
-      + `<div class="sch-shift ${shInfo ? shInfo.cls : 's-none'}">${shInfo ? shInfo.name : '—'}</div>`
-      + `</div>`;
+  try {
+    const key = schView, [y, m] = key.split('-').map(Number), n = daysIn(key);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const todayKey = mk(today.getFullYear(), today.getMonth() + 1) + '-' + pad(today.getDate());
+    const s = DB.schedule.rotateStart;
+    const dows = ['日', '一', '二', '三', '四', '五', '六'];
+    let html = `<div class="sch-top"><span class="sch-mnav"><button onclick="schNav(-1)" title="上一月">‹</button></span>`
+      + `<span class="sch-mlabel">${y} 年 ${pad(m)} 月</span>`
+      + `<span class="sch-mnav"><button onclick="schNav(1)" title="下一月">›</button></span><span class="spacer"></span></div>`;
+    html += `<div class="sch-legend">班次：`
+      + Object.keys(SCH_TYPES).map(k => `<span class="lg"><span class="dot" style="background:${SCH_COLORS[k]}"></span>${SCH_TYPES[k].name}</span>`).join('')
+      + `<span class="sep"></span>日期底色：<span class="lg"><span class="dot" style="background:#fde9d6"></span>双休日</span><span class="lg"><span class="dot" style="background:#fbe3e3"></span>节假日</span></div>`;
+    html += '<div class="sch-grid">';
+    html += dows.map(w => `<div class="sch-dow">周${w}</div>`).join('');
+    const firstDow = new Date(y, m - 1, 1).getDay();
+    for (let i = 0; i < firstDow; i++) html += '<div></div>';
+    for (let d = 1; d <= n; d++) {
+      const t = dayType(key, d), T = TYPES.find(x => x.k === t), dateKey = mk(y, m) + '-' + pad(d);
+      const sh = schShiftOf(dateKey), shInfo = sh ? SCH_TYPES[sh] : null;
+      const isToday = dateKey === todayKey;
+      const dow = dows[new Date(y, m - 1, d).getDay()];
+      const dtyCls = t === 'work' ? 'w' : (t === 'rest' ? 'r' : 'h');
+      html += `<div class="sch-cell ${t === 'rest' ? 'rest' : t === 'holi' ? 'holi' : ''}${isToday ? ' today' : ''}" data-date="${dateKey}" onclick="schPick('${dateKey}',event)" title="单击改班次 / 年假">`
+        + `<div class="sch-d"><span class="dn">${d}</span><span class="dwk">周${dow}</span><span class="dty ${dtyCls}">${T.name}</span></div>`
+        + `<div class="sch-shift ${shInfo ? shInfo.cls : 's-none'}">${shInfo ? shInfo.name : '—'}</div>`
+        + `</div>`;
+    }
+    html += '</div>';
+    html += `<div class="sch-foot"><label>轮班起始日</label><input type="date" value="${s || ''}" onchange="schSetStart(this.value)" min="${MIN_KEY}-01">`
+      + `<span class="sch-hint">${s ? ('自 ' + s + ' 起按 14 位轮班序列自动排班；单击任意日期可单独覆盖') : '设置轮班起始日后，按 14 位轮班序列自动生成各班次（单击日期可单独覆盖）'}</span>`
+      + `<button class="btn sm sch-reset" onclick="schClearAll()">清除全部覆盖</button></div>`;
+    body.innerHTML = html;
+  } catch (err) {
+    body.innerHTML = '<div style="color:#c2410c;padding:20px;line-height:1.6">排班月历渲染出错：<br>' + String(err && err.message || err) + '<br><br>请按 F12 打开控制台查看详细错误，或截图反馈。</div>';
+    console.error('schPaint error:', err);
   }
-  html += '</div>';
-  html += `<div class="sch-foot"><label>轮班起始日</label><input type="date" value="${s || ''}" onchange="schSetStart(this.value)" min="${MIN_KEY}-01">`
-    + `<span class="sch-hint">${s ? ('自 ' + s + ' 起按 14 位轮班序列自动排班；单击任意日期可单独覆盖') : '设置轮班起始日后，按 14 位轮班序列自动生成各班次（单击日期可单独覆盖）'}</span>`
-    + `<button class="btn sm sch-reset" onclick="schClearAll()">清除全部覆盖</button></div>`;
-  body.innerHTML = html;
   const modal = document.querySelector('#schMask .sch-modal'); if (modal) modal.style.opacity = '1';
 }
 function schPick(dateKey, ev) {
