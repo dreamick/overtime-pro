@@ -821,10 +821,6 @@ body.locked .wrap{display:none}
 .sch-top .sch-mnav button:hover{background:#f1f4fa;color:var(--brand)}
 .sch-top .sch-mlabel{font-size:16px;font-weight:660;min-width:118px;text-align:center;letter-spacing:.3px}
 .sch-top .spacer{flex:1}
-.sch-legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:2px 0 12px;font-size:12px;color:var(--tx-2)}
-.sch-legend .lg{display:inline-flex;align-items:center;gap:5px}
-.sch-legend .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
-.sch-legend .sep{width:1px;height:14px;background:var(--line-2)}
 .sch-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
 .sch-grid .sch-dow{font-size:12px;color:var(--tx-3);text-align:center;padding-bottom:2px}
 .sch-grid .sch-dow.we{color:#c2410c}
@@ -851,7 +847,6 @@ body.locked .wrap{display:none}
 .sch-cell.other-month .sch-d .dn,.sch-cell.other-month .sch-d .dwk{color:#9aa1b2}
 .sch-cell.other-month .sch-shift.s-none{color:#bfc5d0;background:#f4f6fa;border-color:#e6e9f0}
 .sch-cell.other-month:hover{opacity:.85;border-color:#c7d6f7}
-.sch-cell .mod{margin-left:auto;font-size:10px;font-weight:700;color:#fff;background:#f5a524;padding:1px 5px;border-radius:10px}
 .sch-cell.overridden{border-color:#f5a524;box-shadow:0 0 0 1.5px rgba(245,165,36,.15)}
 .sch-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
 .sch-foot .sch-hint{font-size:12px;color:var(--tx-3);line-height:1.5}
@@ -1856,16 +1851,13 @@ function schPaint() {
       const overridden = DB.schedule.overrides[dateKey];
       const cls = ['sch-cell', t === 'rest' ? 'rest' : t === 'holi' ? 'holi' : '', otherMonth ? 'other-month' : '', isToday ? 'today' : '', overridden ? 'overridden' : ''].filter(Boolean).join(' ');
       return `<div class="${cls}" data-date="${dateKey}" onclick="schPick('${dateKey}',event)" title="单击改班次 / 年假">`
-        + `<div class="sch-d"><span class="dn">${cd}</span><span class="dwk">周${dow}</span>${!otherMonth ? `<span class="dty ${dtyCls}">${T.name}</span>` : ''}${overridden ? '<span class="mod">改</span>' : ''}</div>`
+        + `<div class="sch-d"><span class="dn">${cd}</span><span class="dwk">周${dow}</span>${!otherMonth ? `<span class="dty ${dtyCls}">${T.name}</span>` : ''}</div>`
         + `<div class="sch-shift ${shInfo ? shInfo.cls : 's-none'}">${shInfo ? shInfo.name : '—'}</div>`
         + `</div>`;
     };
     let html = `<div class="sch-top"><span class="sch-mnav"><button onclick="schNav(-1)" title="上一月">‹</button></span>`
       + `<span class="sch-mlabel">${y} 年 ${pad(m)} 月</span>`
       + `<span class="sch-mnav"><button onclick="schNav(1)" title="下一月">›</button></span><span class="spacer"></span></div>`;
-    html += `<div class="sch-legend">班次：`
-      + Object.keys(SCH_TYPES).map(k => `<span class="lg"><span class="dot" style="background:${SCH_COLORS[k]}"></span>${SCH_TYPES[k].name}</span>`).join('')
-      + `<span class="sep"></span>日期底色：<span class="lg"><span class="dot" style="background:#fde9d6"></span>双休日</span><span class="lg"><span class="dot" style="background:#fbe3e3"></span>节假日</span></div>`;
     html += '<div class="sch-grid">';
     html += dows.map(w => `<div class="sch-dow">周${w}</div>`).join('');
     const firstDow = new Date(y, m - 1, 1).getDay();
