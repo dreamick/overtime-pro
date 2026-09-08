@@ -4066,12 +4066,12 @@ function exportLedgerText(key) {
     });
     const carryOther = +(c.carryOutPhysTotal - carryTotal).toFixed(2);
     if (carryOther > 0.001) {
-      L.push(`（另有 ${hf(carryOther)}h 来自上月/更早结转余额，未精确到本月日期）`);
+      L.push(`（含历史结转余额 ${hf(carryOther)}h，无对应日期）`);
       carryTotal = +(carryTotal + carryOther).toFixed(2);
     }
     L.push(`${m}月结转${nextM}月合计：${hf(carryTotal)}h`);
   } else if (c.carryOutPhysTotal > 0.001) {
-    L.push(`（结转 ${hf(c.carryOutPhysTotal)}h：全部来自上月/更早结转余额，未精确到本月日期）`);
+    L.push(`（结转 ${hf(c.carryOutPhysTotal)}h，全部为历史结转余额）`);
     carryTotal = c.carryOutPhysTotal;
   } else {
     L.push(`（${m}月结转${nextM}月：${hf(c.carryOutPhysTotal)}h）`);
@@ -4102,7 +4102,7 @@ function exportLedgerText(key) {
     });
     L.push(`合计：${hf(cashTotal)}h · ¥${fx(cashMoney)}`);
   } else if (c.cashTotal > 0.001) {
-    L.push(`（折现 ${hf(c.cashTotal)}h 全部来自上月/更早结转余额，无本月加班部分）`);
+    L.push(`（折现 ${hf(c.cashTotal)}h，全部为历史结转余额）`);
     cashTotal = c.cashTotal;
   } else {
     L.push(`（${m}月未结转算加班费：${hf(c.cashTotal)}h）`);
@@ -4116,7 +4116,7 @@ function exportLedgerText(key) {
   L.push(`结转${nextM}月：${hf(carryTotal)}h`);
   L.push(`未结转算加班费：${hf(cashTotal)}h · ¥${fx(cashMoney)}`);
   L.push(`餐补：${hf(c.mealCount)} 次 · ¥${fx(c.mealPay)}`);
-  L.push('口径说明：四段均基于同一「换休核销台账」口径（仅30天内、且加班日须早于换休日配对）。段一/二列逐笔配对，段三/四列其结转与算费归属，合计闭环，不再出现对账差异。');
+  L.push('口径说明：四段均基于同一换休核销台账口径，合计闭环。');
   if (d.warnings && d.warnings.length) L.push('⚠️ ' + d.warnings.join('；'));
 
   dl(`换休核销对账_${key}.txt`, '\uFEFF' + L.join('\n'), 'text/plain;charset=utf-8');
