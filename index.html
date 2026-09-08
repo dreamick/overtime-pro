@@ -4116,7 +4116,6 @@ function exportLedgerText(key) {
   L.push(`结转${nextM}月：${hf(carryTotal)}h`);
   L.push(`未结转算加班费：${hf(cashTotal)}h · ¥${fx(cashMoney)}`);
   L.push(`餐补：${hf(c.mealCount)} 次 · ¥${fx(c.mealPay)}`);
-  L.push('口径说明：四段均基于同一换休核销台账口径，合计闭环。');
   if (d.warnings && d.warnings.length) L.push('⚠️ ' + d.warnings.join('；'));
 
   dl(`换休核销对账_${key}.txt`, '\uFEFF' + L.join('\n'), 'text/plain;charset=utf-8');
