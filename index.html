@@ -4022,61 +4022,37 @@ function exportLedgerText(key) {
   if (unmatched.length) unmatched.forEach(l => L.push(`⚠ ${m}月${l.d}日 换休缺 ${hf(l.short)}h 无30天内可用来源`));
   L.push('');
 
-  // ---- 段3 & 段4：本月加班逐日归属（结转下月 / 未结转算加班费） ----
-  // 归属规则（与计算引擎一致）：换休先消耗上月结转再消耗本月（本月内先产生先消耗）；
-  // 剩余中，结转下月优先归属到较晚的加班日，未结转部分（较早的）逐日算加班费。
-  const gainByDay = {};   // d -> {work,rest,holi}
-  for (let d0 = 1; d0 <= n; d0++) {
-    const h = hoursOf(key, d0); if (!(h > 0)) continue;
-    const t = dayType(key, d0);
-    (gainByDay[d0] = gainByDay[d0] || {})[t] = +h.toFixed(2);
-  }
-  // 1) 减去本月被换休消耗的部分 usedCur（本月内先产生先消耗 → 从 d=1 正序）
   const order = ORDER;
+  // ---- 段3 & 段4：统一以 leaveLedger(curPool) 为唯一真相源 ----
+  // curPool 每项最终状态：h = 被核销消耗(h-left-carried) + 结转(carried) + 算费(left)
+  // 已决策月（all/none/manual/逐日 settle）的结转在 compute 的 c.carryOut，需回填进 curPool.carried，
+  // 使所有月份口径一致：段三 = ∑carried、段四 = ∑left，与段一/二的核销消耗天然闭环。
+  const cp = d.curPool || [];
+  const R = c.rates;
+  // 回填决策结转：先扣掉封板待调休月已物理结转的部分，余量按 FIFO 较晚日优先从 left 移到 carried
+  const back = { work: +c.carryOut.work || 0, rest: +c.carryOut.rest || 0, holi: +c.carryOut.holi || 0 };
+  cp.forEach(e => { if (e.carried > 0.001) back[e.t] = +Math.max(0, back[e.t] - e.carried).toFixed(2); });
   order.forEach(t => {
-    let need = c.usedCur[t];
-    for (let d0 = 1; d0 <= n && need > 0.001; d0++) {
-      if (!gainByDay[d0] || !(gainByDay[d0][t] > 0)) continue;
-      const take = +Math.min(need, gainByDay[d0][t]).toFixed(2);
-      gainByDay[d0][t] = +(gainByDay[d0][t] - take).toFixed(2);
+    let need = back[t];
+    if (need <= 0.001) return;
+    cp.filter(e => e.t === t).sort((a, b) => b.d - a.d).forEach(e => {
+      if (need <= 0.001 || e.left <= 0.001) return;
+      const take = +Math.min(need, e.left).toFixed(2);
+      e.left = +(e.left - take).toFixed(2);
+      e.carried = +(e.carried + take).toFixed(2);
       need = +(need - take).toFixed(2);
-    }
+    });
   });
-  // 2) 结转下月：先取 leaveLedger 已物理结转的逐日归属（封板待调休月），
-  //    再叠加决策口径 c.carryOut（已决策月 all/none/manual/逐日 settle）
+  // 段3：本月加班 → 下月结转（逐日归属，全部来自 curPool.carried）
+  L.push(`${m}月加班 → ${nextM}月结转`);
+  let carryTotal = 0;
   const carryByDay = {};
-  (d.curPool || []).forEach(e => {
+  cp.forEach(e => {
     if (e.carried > 0.001) {
       carryByDay[e.d] = carryByDay[e.d] || { work: 0, rest: 0, holi: 0 };
       carryByDay[e.d][e.t] = +(carryByDay[e.d][e.t] + e.carried).toFixed(2);
-      if (gainByDay[e.d]) gainByDay[e.d][e.t] = +(gainByDay[e.d][e.t] - e.carried).toFixed(2);
     }
   });
-  order.forEach(t => {
-    let need = c.carryOut[t];
-    for (let d0 = n; d0 >= 1 && need > 0.001; d0--) {
-      if (!gainByDay[d0] || !(gainByDay[d0][t] > 0)) continue;
-      const take = +Math.min(need, gainByDay[d0][t]).toFixed(2);
-      gainByDay[d0][t] = +(gainByDay[d0][t] - take).toFixed(2);
-      carryByDay[d0] = carryByDay[d0] || { work: 0, rest: 0, holi: 0 };
-      carryByDay[d0][t] = +(carryByDay[d0][t] + take).toFixed(2);
-      need = +(need - take).toFixed(2);
-    }
-  });
-  // 3) 剩余即「未结转算加班费」部分
-  const cashByDay = {};
-  order.forEach(t => {
-    for (let d0 = 1; d0 <= n; d0++) {
-      if (gainByDay[d0] && gainByDay[d0][t] > 0.001) {
-        cashByDay[d0] = cashByDay[d0] || { work: 0, rest: 0, holi: 0 };
-        cashByDay[d0][t] = +(cashByDay[d0][t] + gainByDay[d0][t]).toFixed(2);
-      }
-    }
-  });
-
-  L.push(`${m}月加班 → ${nextM}月结转`);
-  const R = c.rates;
-  let carryTotal = 0;
   const carryDays = Object.keys(carryByDay).map(Number).sort((a, b) => a - b);
   if (carryDays.length) {
     carryDays.forEach(d0 => {
@@ -4101,9 +4077,16 @@ function exportLedgerText(key) {
     L.push(`（${m}月结转${nextM}月：${hf(c.carryOutPhysTotal)}h）`);
   }
   L.push('');
-
+  // 段4：本月加班未结转算加班费（= curPool 各项 left 之和，逐日归属；含已到期自动折现）
   L.push(`${m}月加班未结转算加班费`);
   let cashTotal = 0, cashMoney = 0;
+  const cashByDay = {};
+  cp.forEach(e => {
+    if (e.left > 0.001) {
+      cashByDay[e.d] = cashByDay[e.d] || { work: 0, rest: 0, holi: 0 };
+      cashByDay[e.d][e.t] = +(cashByDay[e.d][e.t] + e.left).toFixed(2);
+    }
+  });
   const cashDays = Object.keys(cashByDay).map(Number).sort((a, b) => a - b);
   if (cashDays.length) {
     cashDays.forEach(d0 => {
@@ -4112,7 +4095,8 @@ function exportLedgerText(key) {
         if (v > 0.001) {
           cashTotal = +(cashTotal + v).toFixed(2);
           cashMoney = +(cashMoney + v * R[t]).toFixed(2);
-          L.push(`${m}月${d0}日（${tname(t)}）${hf(v)}h → 算加班费 ¥${fx(v * R[t])}`);
+          const exTag = (cp.find(x => x.d === d0 && x.t === t && x.expired)) ? '（已到期自动折现）' : '';
+          L.push(`${m}月${d0}日（${tname(t)}）${hf(v)}h → 算加班费 ¥${fx(v * R[t])}${exTag}`);
         }
       });
     });
@@ -4129,10 +4113,10 @@ function exportLedgerText(key) {
   L.push('汇总校验');
   L.push(`${m}月新增加班：${hf(c.gainTotal)}h`);
   L.push(`${m}月换休：${hf(c.leaveTotal)}h（其中核销${prevM}月结转 ${hf(d.usedCarry)}h、核销${m}月加班 ${hf(d.usedCur)}h）`);
-  L.push(`结转${nextM}月：${hf(c.carryOutPhysTotal)}h`);
-  L.push(`未结转算加班费：${hf(c.cashTotal)}h · ¥${fx(c.otPay)}`);
+  L.push(`结转${nextM}月：${hf(carryTotal)}h`);
+  L.push(`未结转算加班费：${hf(cashTotal)}h · ¥${fx(cashMoney)}`);
   L.push(`餐补：${hf(c.mealCount)} 次 · ¥${fx(c.mealPay)}`);
-  L.push('口径说明：段一/二为核销口径（仅30天内、且加班日须早于换休日配对），段三/四为结算口径（计算引擎），两套口径下被换休消耗的本月加班量可能不同，属正常差异。');
+  L.push('口径说明：四段均基于同一「换休核销台账」口径（仅30天内、且加班日须早于换休日配对）。段一/二列逐笔配对，段三/四列其结转与算费归属，合计闭环，不再出现对账差异。');
   if (d.warnings && d.warnings.length) L.push('⚠️ ' + d.warnings.join('；'));
 
   dl(`换休核销对账_${key}.txt`, '\uFEFF' + L.join('\n'), 'text/plain;charset=utf-8');
