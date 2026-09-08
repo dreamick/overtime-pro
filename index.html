@@ -4042,8 +4042,16 @@ function exportLedgerText(key) {
       need = +(need - take).toFixed(2);
     }
   });
-  // 2) 结转下月：从 d=n 倒序归属（较晚的优先结转）
+  // 2) 结转下月：先取 leaveLedger 已物理结转的逐日归属（封板待调休月），
+  //    再叠加决策口径 c.carryOut（已决策月 all/none/manual/逐日 settle）
   const carryByDay = {};
+  (d.curPool || []).forEach(e => {
+    if (e.carried > 0.001) {
+      carryByDay[e.d] = carryByDay[e.d] || { work: 0, rest: 0, holi: 0 };
+      carryByDay[e.d][e.t] = +(carryByDay[e.d][e.t] + e.carried).toFixed(2);
+      if (gainByDay[e.d]) gainByDay[e.d][e.t] = +(gainByDay[e.d][e.t] - e.carried).toFixed(2);
+    }
+  });
   order.forEach(t => {
     let need = c.carryOut[t];
     for (let d0 = n; d0 >= 1 && need > 0.001; d0--) {
@@ -4080,9 +4088,14 @@ function exportLedgerText(key) {
         }
       });
     });
+    const carryOther = +(c.carryOutPhysTotal - carryTotal).toFixed(2);
+    if (carryOther > 0.001) {
+      L.push(`（另有 ${hf(carryOther)}h 来自上月/更早结转余额，未精确到本月日期）`);
+      carryTotal = +(carryTotal + carryOther).toFixed(2);
+    }
     L.push(`${m}月结转${nextM}月合计：${hf(carryTotal)}h`);
   } else if (c.carryOutPhysTotal > 0.001) {
-    L.push(`（结转 ${hf(c.carryOutPhysTotal)}h：部分来自上月/更早结转余额，未精确到本月日期）`);
+    L.push(`（结转 ${hf(c.carryOutPhysTotal)}h：全部来自上月/更早结转余额，未精确到本月日期）`);
     carryTotal = c.carryOutPhysTotal;
   } else {
     L.push(`（${m}月结转${nextM}月：${hf(c.carryOutPhysTotal)}h）`);
