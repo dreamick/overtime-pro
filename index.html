@@ -1819,6 +1819,15 @@ function openSchedule() {
   </div>`;
   el.onclick = () => closeModal('schMask');
   document.body.appendChild(el);
+  // 点击面板内非功能空白区域 → 关闭班次选择菜单（退出选择，不改班次）
+  const modal = el.querySelector('.sch-modal');
+  modal.addEventListener('click', e => {
+    if (e.target.closest('.sch-pick')) return;   // 点击菜单本身：交给菜单按钮处理
+    if (e.target.closest('.sch-cell')) return;    // 点击日期格：schPick 会重开菜单，不在此关闭
+    if (e.target.closest('.sch-foot')) return;    // 底部起始日/清除按钮：功能性控件
+    if (e.target.closest('.modal-h')) return;     // 顶部标题/翻月/关闭按钮：功能性控件
+    document.getElementById('schPickMenu')?.remove(); // 余下空白/非功能区域 → 退出选择
+  });
   schPaint();
   const onEsc = e => { if (e.key === 'Escape') closeModal('schMask'); };
   document.addEventListener('keydown', onEsc); el._onEsc = onEsc;
