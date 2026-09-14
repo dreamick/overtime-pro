@@ -69,7 +69,7 @@
   box-shadow:0 14px 36px rgba(20,30,60,.20);animation:popin .14s ease;overflow:hidden;
   display:flex;gap:4px;flex-wrap:wrap;
 }
-.lsel-pop[hidden],.tsel-pop[hidden],.asel-pop[hidden],.msel-pop[hidden]{display:none}
+.lsel-pop[hidden],.tsel-pop[hidden],.msel-pop[hidden]{display:none}
 .lsel-pop .lopt-col{display:flex;flex-direction:column;gap:2px;flex:1}
 .lsel-pop .lopt-hd{font-size:11px;color:var(--tx-3);text-align:center;font-weight:600;padding:1px 0 3px}
 .lsel-pop .lopt-foot{flex-basis:100%;display:flex;justify-content:center;padding-top:5px;margin-top:3px;border-top:1px solid var(--line)}
@@ -110,24 +110,6 @@
 .chk-inline{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--tx-2)}
 .chk-inline input{width:16px;height:16px;accent-color:#a9744f;cursor:pointer}
 /* 换休弹窗：纯选项列表，无标题栏 */
-
-/* 年假：点击弹框选择 0/1 */
-.asel{position:relative;display:block;width:100%;border-radius:8px;transition:.14s}
-.asel:hover{background:var(--brand-soft)}
-.asel-in{cursor:pointer;width:100%;text-align:center;box-sizing:border-box;transition:.14s;border-radius:8px;border:none;background:transparent;outline:none;padding:0;font:inherit;color:inherit}
-.asel-in.empty{color:#cdd3e0}
-.asel.on .asel-in{background:#eef1f6;color:var(--tx);font-weight:700}
-.asel-pop{
-  position:absolute;z-index:60;top:calc(100% + 3px);left:50%;transform:translateX(-50%);
-  width:56px;padding:4px;background:#fff;border:1px solid var(--line);border-radius:10px;
-  box-shadow:0 10px 28px rgba(20,30,60,.18);
-}
-.asel-pop .aopt{
-  padding:7px 8px;margin:1px 0;font-size:13px;text-align:center;color:var(--tx);
-  cursor:pointer;border-radius:7px;font-variant-numeric:tabular-nums;line-height:1.3;
-}
-.asel-pop .aopt:hover{background:var(--brand-soft)}
-.asel-pop .aopt.on{background:var(--brand);color:#fff;font-weight:600}
 
 :root{
   --bg:#f4f6fa;
@@ -326,6 +308,10 @@ button{cursor:pointer;background:none;border:none}
 .cel.rest{background:linear-gradient(180deg,#fff8ec,#fffdf7);box-shadow:inset 3px 0 0 #f5a524}
 .cel.holi{background:linear-gradient(180deg,#ffecec,#fff5f5);box-shadow:inset 3px 0 0 #e5484d}
 .cel.today{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset}
+/* 调休到期前(≤7天)高亮：红色描边 + 顶部角标 */
+.cel.near-expire{border-color:#ffb4ab;box-shadow:0 0 0 1px #ffb4ab inset;background:linear-gradient(180deg,#fff5f4,#fffafa)}
+.cel.near-expire .dn{color:#c0393d}
+.cel.near-expire .tag{outline:1px solid #ffc9c2}
 .cel .dn{font-size:13px;font-weight:600;color:var(--tx-2);font-variant-numeric:tabular-nums;display:flex;align-items:center;justify-content:space-between}
 .cel.rest .dn{color:#b57810}
 .cel.holi .dn{color:#c0393d}
@@ -527,9 +513,6 @@ table.dt th.left, table.dt td.left{text-align:left}
 .tychip.w{background:#e9edfa;color:#4a5f9e}
 .tychip.r{background:#fdefd7;color:#a86c0a}
 .tychip.h{background:#fde3e3;color:#c0393d}
-.oa-btn{width:100%;height:36px;font-size:14px;color:#d5dae5;transition:.14s}
-.oa-btn.on{color:var(--ok)}
-.oa-btn:hover{background:var(--line-2)}
 /* 明细表格「调休状态」列徽章（整合自原调休预警明细） */
 .otstat{display:inline-block;font-size:11px;font-weight:600;padding:2px 6px;border-radius:6px;white-space:nowrap;line-height:1.5;border:1px solid transparent}
 .otstat.done{color:#1a6b3a;background:#e2f3e2;border-color:#aedeb0}
@@ -951,7 +934,7 @@ const DEF_SETTINGS = {
   carryMode: 'workOnly', // 默认结转策略：workOnly=仅结转工作日(双休/节假日默认折现) / all=全部结转(含双休节假日) / none=全部折现 / manual=自定义
   extraHoliday: '',    // 自定义节假日 MM-DD，逗号分隔
   extraWorkday: '',    // 自定义补班日
-  annualTotal: 10,     // 年假额度（天）：剩余 = 额度 − 已用年假。当前数据已用 4 天，故剩余 6 天
+  annualTotal: 10,     // 年假额度（天，按自然年重置）：本年剩余 = 额度 − 本年已用年假；跨年自动清零剩余，不累计到次年
   leaveExpireDays: 30, // 调休有效期（天）：加班/调休产生超过 N 天仍未换休，自动折现计入加班费；0 = 不启用
   passHash: ''         // 进入密码散列（ 空 = 不设置）。轻量访问保护，非加密级
 };
@@ -968,7 +951,17 @@ const TYPES = [
 const WD = ['日', '一', '二', '三', '四', '五', '六'];
 const ORDER = ['work', 'rest', 'holi'];                 // 调休/结转 FIFO 类型顺序
 const TYPE_ORD = { work: 0, rest: 1, holi: 2 };         // 类型排序权重
-function annualUsedAll() { let s = 0; Object.keys(DB.months).forEach(k => { const ds = (DB.months[k] || {}).days || {}; Object.keys(ds).forEach(d => { s += +((ds[d] || {}).annual) || 0; }); }); return s; }   // 全部月份已用年假合计
+// 按自然年统计已用年假：年假额度按自然年重置（跨年自动清零剩余，不累计到次年）
+function annualUsedYear(y) {
+  const sy = String(y); let s = 0;
+  Object.keys(DB.months).forEach(k => {
+    if (!k.startsWith(sy + '-')) return;
+    const ds = (DB.months[k] || {}).days || {};
+    Object.keys(ds).forEach(d => { s += +((ds[d] || {}).annual) || 0; });
+  });
+  return s;
+}
+function annualRemainYear(y) { return Math.max(0, (+DB.settings.annualTotal || 0) - annualUsedYear(y)); }
 const KEY = 'overtime.v1';
 
 /* 安全存储：当 localStorage 不可用（如直接双击用 file:// 打开、隐私/无痕模式、或浏览器禁用第三方存储）时，
@@ -997,6 +990,7 @@ let listFilter = null;   // 明细筛选：null/'ot'/'leave'/'carry'/'meal'
 let carryInView = false; // 上月结转视图：跳到上一月并高亮结转来源加班行
 let carryInReturn = null; // 进入上月结转来源视图前的月份，供退出返回
 let editing = null;      // 正在编辑的日期
+let DATA_REV = 0;        // 数据版本号：每次 save() 自增，用于让依赖 leaveLedger 的缓存(调休状态/到期判定)失效重算
 const $ = s => document.querySelector(s);
 const pad = n => String(n).padStart(2, '0');
 const mk = (y, m) => y + '-' + pad(m);
@@ -1023,8 +1017,8 @@ function load() {
       if (k < MIN_KEY) return;                       // 丢弃 2026 年以前的旧缓存
       const rm = raw.months[k];
       if (!base.months[k]) { base.months[k] = rm; return; }
-      // 2026+ 月份：优先保留种子的结转配置，叠加用户可能编辑过的日期明细
-      base.months[k].days = Object.assign({}, rm.days || {}, base.months[k].days || {});
+      // 2026+ 月份：以 SEED 为基底，叠加用户已保存的编辑（rm.days 优先），避免刷新后用户改动被 SEED 原值覆盖导致数据丢失
+      base.months[k].days = Object.assign({}, base.months[k].days || {}, rm.days || {});
       if (rm.carryMode) base.months[k].carryMode = rm.carryMode;
       if (rm.carryOutManual) base.months[k].carryOutManual = rm.carryOutManual;
     });
@@ -1096,6 +1090,15 @@ async function syncCreate() {
     setSyncStatus('已新建档案，ID：' + data.id.slice(0, 8) + '…', 'ok');
   } catch (e) { setSyncStatus('新建失败：' + e.message, 'err'); }
 }
+// 数据指纹：判断「本地/云端」是否相对上次同步发生改变（仅比对用户数据，排除 alertRead 等易变字段）
+function dbFpOf(o) {
+  try {
+    const sets = o.settings || {};
+    const s = Object.assign({}, sets);
+    delete s.alertRead; delete s._aug2026ManualFixed;
+    return hashStr(JSON.stringify({ m: o.months || {}, s, sc: o.schedule || {} }));
+  } catch (e) { return ''; }
+}
 async function syncUpload() {
   if (SYNC.downloadOnly) { setSyncStatus('当前为「仅下载」模式，已禁止上传', 'err'); return; }
   if (!SYNC.token || !SYNC.gist) return;
@@ -1104,13 +1107,13 @@ async function syncUpload() {
     await gistReq('https://api.github.com/gists/' + SYNC.gist, 'PATCH', {
       files: { [GIST_FILE]: { content: JSON.stringify(DB) } }
     }, SYNC.token);
+    SYNC.syncedFp = dbFpOf(DB); saveSync();   // 上传成功即视本机=云端，消除冲突标记
     setSyncStatus('已上传 ' + new Date().toLocaleTimeString(), 'ok');
   } catch (e) { setSyncStatus('上传失败：' + e.message, 'err'); }
 }
 async function syncDownload(silent) {
   if (!SYNC.token) { if (!silent) setSyncStatus('请先填写 GitHub Token', 'err'); return; }
   if (!SYNC.gist) { if (!silent) setSyncStatus('请先填写档案 ID', 'err'); return; }
-  if (!silent && !confirm('从云端下载会用云端数据覆盖本机当前数据，确定继续？')) return;
   try {
     setSyncStatus('下载中…');
     const data = await gistReq('https://api.github.com/gists/' + SYNC.gist, 'GET', null, SYNC.token);
@@ -1118,9 +1121,56 @@ async function syncDownload(silent) {
     if (!txt) throw new Error('档案内容为空');
     const incoming = JSON.parse(txt);
     if (!incoming.months) throw new Error('档案格式不正确');
-    DB = incoming; ensureSchedule(); save(false); render();
+    // 冲突判定：本地有「上次同步后」的未同步改动，直接覆盖会丢数据 → 弹冲突选择
+    const localFp = dbFpOf(DB), cloudFp = dbFpOf(incoming);
+    const firstSync = !SYNC.syncedFp;
+    const localDirty = localFp !== (SYNC.syncedFp || '');
+    if (!firstSync && localDirty) {
+      const choice = await showSyncConflict();
+      if (choice === 'cancel') { setSyncStatus('已取消下载，保留本机数据', 'ok'); return; }
+      if (choice === 'push') { await syncUpload(); setSyncStatus('已用本机数据同步到云端', 'ok'); render(); return; }
+      // choice === 'download' → 继续覆盖本机
+    } else if (!silent) {
+      if (!confirm('从云端下载会用云端数据覆盖本机当前数据，确定继续？')) return;
+    }
+    DB = incoming; ensureSchedule();
+    SYNC.syncedFp = cloudFp; saveSync();
+    save(false);
     setSyncStatus('已下载 ' + new Date().toLocaleTimeString(), 'ok');
+    render();
   } catch (e) { setSyncStatus('下载失败：' + e.message, 'err'); }
+}
+/* 云同步冲突选择弹窗：返回 'download' | 'push' | 'cancel'。z-index 高于锁屏，确保锁屏下也能看到 */
+function showSyncConflict() {
+  return new Promise(resolve => {
+    const canPush = !SYNC.downloadOnly;
+    const el = document.createElement('div'); el.className = 'mask'; el.id = 'syncConflictMask';
+    el.style.zIndex = '10001';
+    el.innerHTML = `<div class="modal" onclick="event.stopPropagation()" style="width:min(460px,100%)">
+      <div class="modal-h"><div><h3>⚠️ 云同步冲突</h3><p>本机有尚未同步到云端的改动，而云端也已有数据。请选择如何处理：</p></div>
+        <span class="spacer"></span><button class="btn ghost sm" onclick="closeModal('syncConflictMask');__scResolve('cancel')">✕</button></div>
+      <div class="modal-b" style="font-size:13px;color:var(--tx-2);line-height:1.7">
+        <div style="display:flex;gap:10px;margin:2px 0 4px">
+          <div style="flex:1;padding:10px;border:1px solid var(--line);border-radius:10px;background:#f8faff">
+            <div style="font-weight:700;color:var(--tx)">📱 本机数据</div>
+            <div class="muted" style="margin-top:3px">你最近的改动还没同步到云端</div>
+          </div>
+          <div style="flex:1;padding:10px;border:1px solid var(--line);border-radius:10px;background:#f8faff">
+            <div style="font-weight:700;color:var(--tx)">☁️ 云端数据</div>
+            <div class="muted" style="margin-top:3px">${canPush ? '与本地版本不同' : '仅下载模式：无法覆盖云端'}</div>
+          </div>
+        </div>
+        <div class="hint" style="margin-top:6px">「云端覆盖本机」会丢弃本机未同步改动；「保留本机并上传」会用本机覆盖云端；不确定就选「取消」。</div>
+      </div>
+      <div class="modal-f"><span class="spacer"></span>
+        <button class="btn" onclick="closeModal('syncConflictMask');__scResolve('cancel')">取消</button>
+        ${canPush ? `<button class="btn" onclick="closeModal('syncConflictMask');__scResolve('push')">保留本机并上传云端</button>` : ''}
+        <button class="btn primary" onclick="closeModal('syncConflictMask');__scResolve('download')">用云端覆盖本机</button>
+      </div></div>`;
+    el.onclick = () => { if (window.__scResolve) { const r = window.__scResolve; window.__scResolve = null; r('cancel'); } };
+    document.body.appendChild(el);
+    window.__scResolve = (v) => { window.__scResolve = null; resolve(v); };
+  });
 }
 function schedulePush() { clearTimeout(_pushTimer); _pushTimer = setTimeout(syncUpload, 1200); }
 function readSyncInputs() {
@@ -1149,6 +1199,7 @@ function bindSync() {
   applySyncMode();
 }
 function save(push) {
+  DATA_REV++;   // 数据已变更：使依赖 leaveLedger 的缓存(明细「调休状态」列、到期高亮与过期判定)失效重算
   // 待调休（carryMode=undefined）经 JSON.stringify 会整字段丢失，重载后 load() 会回落到 SEED 的 'manual'，
   // 导致「待调休」选择无法持久化、并反向污染下月继承基准。统一在落盘时写成 'workOnly'（与 undefined
   // 在全部判定上等价：均表示「未决定 / 待调休」），确保刷新后仍为待调休。
@@ -1602,6 +1653,25 @@ function openMonthSettle(key) {
       <div class="otc-sec">
         <div class="otc-tit">本月应发</div>
         <div class="carry-line" style="margin:0">加班费 <b>${money(c.otPay)}</b> + 餐补 <b>${money(c.mealPay)}</b> = <b>${money(c.total)}</b> · 结转下月 <b class="cf">${hf(c.carryOutPhysTotal)} h</b>（不计入本月应发）</div>
+      </div>
+      <div class="otc-sec">
+        <div class="otc-tit">本月结转方式</div>
+        <div class="carry-ctrl">
+          <div class="seg seg-3" id="carrySeg2">
+            <button data-v="workOnly" class="${mode==='workOnly'?'on':''}">待调休</button>
+            <button data-v="all" class="${mode==='all'?'on':''}">全部结转</button>
+            <button data-v="none" class="${mode==='none'?'on':''}">全部折现</button>
+            <button data-v="manual" class="${mode==='manual'?'on':''}">自定义</button>
+          </div>
+          <div class="carry-manual" id="carryManualWrap2" style="${mode==='manual'?'display:block':'display:none'}">
+            <div class="carry-grid3">
+              <div class="mrow"><label>工作日上限(h)</label><input id="carryManualInp2_work" type="number" min="0" step="0.5" value="${hf(cm.work||0)}"><div class="hint">可结转工时</div></div>
+              <div class="mrow"><label>双休日上限(h)</label><input id="carryManualInp2_rest" type="number" min="0" step="0.5" value="${hf(cm.rest||0)}"><div class="hint">可结转工时</div></div>
+              <div class="mrow"><label>节假日上限(h)</label><input id="carryManualInp2_holi" type="number" min="0" step="0.5" value="${hf(cm.holi||0)}"><div class="hint">可结转工时</div></div>
+            </div>
+          </div>
+          <div class="carry-line">切换后「下月继承预览」实时联动；只把超 30 天自动折现部分计入加班费，其余按上限结转下月。</div>
+        </div>
       </div>
       ${nxPreviewHTML}
       </div>
@@ -2297,13 +2367,16 @@ function bindRestPickers() {
     const resetPending = () => { const rr = rec(); pending.leaveH = +rr.leaveH || 0; pending.annual = +rr.annual || 0; pending.outing = +rr.outing || 0; };
     function validatePending() {
       if (pending.annual > 0.001) {
+        // 仅统计本年已用年假（按自然年重置，跨年自动清零剩余）
+        const cy = cur.split('-')[0];
         let used = 0;
         Object.keys(DB.months).forEach(k => {
+          if (!k.startsWith(cy + '-')) return;
           const ds = (DB.months[k] || {}).days || {};
           Object.keys(ds).forEach(dd => { if (k === cur && dd === d) return; used += +((ds[dd] || {}).annual) || 0; });
         });
         const annTotal = +DB.settings.annualTotal || 0;
-        if (used + pending.annual > annTotal) return '年假剩余不足（已用 ' + hf(used) + ' / 额度 ' + hf(annTotal) + ' 天）';
+        if (used + pending.annual > annTotal) return '年假剩余不足（本年已用 ' + hf(used) + ' / 额度 ' + hf(annTotal) + ' 天）';
       }
       if (pending.leaveH > 0.001) {
         const c = compute(cur);
@@ -2421,35 +2494,6 @@ function bindRestPickers() {
         pending[field] = v;
         render();
       }
-    });
-  });
-}
-function annualPicker(val, f) {
-  const on = (val === 1);
-  return `<span class="asel${on ? ' on' : ''}" data-f="${f}" title="点击记 1 天年假，再点清除">
-    <input class="cellin asel-in${on ? '' : ' empty'}" type="text" readonly value="${on ? '1' : '—'}" placeholder="—" style="width:52px;cursor:pointer;text-align:center">
-    <input type="hidden" class="asel-hid" data-f="${f}" value="${on ? '1' : ''}">
-  </span>`;
-}
-function bindAnnualPickers() {
-  // 年假：点击切换 1 / 清除（不再弹下拉），且不超过剩余天数
-  document.querySelectorAll('.asel').forEach(span => {
-    const inp = span.querySelector('.asel-in'), hid = span.querySelector('.asel-hid');
-    span.addEventListener('click', e => {
-      e.stopPropagation();
-      if (hid.value === '1') {            // 已选 → 清除
-        hid.value = ''; inp.value = '—'; inp.classList.add('empty'); span.classList.remove('on');
-      } else {                            // 未选 → 记 1 天，先查剩余
-        let used = 0;
-        Object.keys(DB.months).forEach(k => {
-          const ds = (DB.months[k] || {}).days || {};
-          Object.keys(ds).forEach(d => { used += +((ds[d] || {}).annual) || 0; });
-        });
-        const annTotal = +DB.settings.annualTotal || 0;
-        if (used >= annTotal) { toast('年假剩余不足（已用 ' + hf(used) + ' / 额度 ' + hf(annTotal) + ' 天）'); return; }
-        hid.value = '1'; inp.value = '1'; inp.classList.remove('empty'); span.classList.add('on');
-      }
-      hid.dispatchEvent(new Event('change', { bubbles: true }));
     });
   });
 }
@@ -2617,8 +2661,9 @@ function renderKPI() {
   // 上月结转来源视图下：KPI 仍以「被结转到的月份」为基准（明细表单独跳到上一月），避免 KPI 数值随视图错乱
   const kpiKey = carryInView ? nextKey(cur) : cur;
   const c = compute(kpiKey), p = DB.months[prevKey(kpiKey)] ? compute(prevKey(kpiKey)) : null;
-  // 年假：额度 − 全部月份已用
-  const annUsed = annualUsedAll();
+  // 年假：额度 − 本年已用（按自然年重置，跨年自动清零剩余）
+  const annYear = +kpiKey.split('-')[0];
+  const annUsed = annualUsedYear(annYear);
   const annTotal = +DB.settings.annualTotal || 0, annRemain = Math.max(0, annTotal - annUsed);
   const dl = (a, b) => { if (!p) return ''; const d = a - b; if (Math.abs(d) < .01) return '<span class="muted">与上月持平</span>'; return `<b style="color:${d > 0 ? '#e5484d' : '#12b76a'}">${d > 0 ? '↑' : '↓'}${hf(Math.abs(d))}</b> 较上月`; };
   const box = [
@@ -2645,7 +2690,7 @@ function renderKPI() {
         if (dc > 0.001) ps.push(`自动折现 ${hf(dc)}`);
         return `<span class="muted">${ps.join(' · ') || '—'}</span>`;
       })(), f: 'cash' },
-    { lb: '年假剩余', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="15" height="14" rx="2"/><path d="M3.5 9.5h15"/><path d="M8 3.5v3"/><path d="M14 3.5v3"/><rect x="8.5" y="12" width="5" height="3.5" rx="0.7" fill="currentColor"/></svg>', ac: '#7c3aed', vl: hf(annRemain), u: '天', df: `<span class="muted">额度 ${hf(annTotal)} 天</span>`, f: 'annual' },
+    { lb: '年假剩余', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="15" height="14" rx="2"/><path d="M3.5 9.5h15"/><path d="M8 3.5v3"/><path d="M14 3.5v3"/><rect x="8.5" y="12" width="5" height="3.5" rx="0.7" fill="currentColor"/></svg>', ac: '#7c3aed', vl: hf(annRemain), u: '天', df: `<span class="muted">${annYear}年额度 ${hf(annTotal)} 天（按自然年重置）</span>`, f: 'annual' },
     { lb: '餐补', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v3"/><path d="M9 4v3"/><path d="M5 7h4l-1 11h-2z" fill="currentColor" fill-opacity=".12"/><path d="M9 4l-1 3"/><rect x="11" y="7" width="9" height="11" rx="1.6"/><path d="M11 11h9"/></svg>', ac: '#f5a524', vl: money(c.mealPay).replace('¥', ''), u: '元', df: `<span class="lt">共 ${hf(c.mealCount)} 次</span>`, f: 'meal' },
     { lb: '加班费', ic: '<svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="16" height="11" rx="2"/><circle cx="15.5" cy="12.5" r="1.2" fill="currentColor"/><path d="M5 7l3-2h6l3 2"/></svg>', ac: '#ff7a18', vl: money(c.otPay).replace('¥', ''), u: '元', df: `<span class="lt">工 ${hf(c.gain.work)} 休 ${hf(c.gain.rest)} 节 ${hf(c.gain.holi)}</span>`, hl: 'orange', f: null, act: 'settle' }
   ];
@@ -2669,10 +2714,9 @@ function buildAlerts() {
   const c = compute(cur);
   const now = new Date();
   const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  // 年假
+  // 年假：按自然年重置，剩余 = 年额度 − 本年已用
   const annTotal = +DB.settings.annualTotal || 0;
-  const annUsed = annualUsedAll();
-  const annRemain = Math.max(0, annTotal - annUsed);
+  const annRemain = annualRemainYear(now.getFullYear());
   if (annRemain > 0 && (now.getMonth() + 1) >= 11) {
     out.push({ key: 'ann_warn_' + Math.round(annRemain), cls: 'an', ic: '🗓', html: `<b>年假剩余 ${hf(annRemain)} 天</b>，将于 <b>12 月 31 日</b> 清零（按自然年），请尽快安排使用。` });
   } else if (annTotal > 0 && annRemain <= 0) {
@@ -2711,6 +2755,29 @@ function buildAlerts() {
     // 无余额时仍保持横幅存在，避免用户误以为是功能消失
     out.push({ key: 'lv_warn_0', cls: 'lv', ic: '⏰', html: `当前暂无可调休额度（已全部核销或折现）。点击横幅展开查看明细。` });
   }
+  // 调休到期前角标/推送：本周(≤7天)内到期的未调休加班，单独醒目卡片，列出具体日期与天数
+  if (EXP > 0) {
+    const due = [];
+    try {
+      const L = leaveLedger(cur);
+      const pool = (L.carryPool || []).concat(L.curPool || []);
+      const [cy, cm] = cur.split('-').map(Number);
+      pool.forEach(e => {
+        if (e.expired || e.left <= 0.001) return;
+        if (e.y === cy && e.m === cm && daySettleState(cur, e.d) === 'cash') return;
+        const ed = new Date(e.y, e.m - 1, e.d);
+        const daysPast = Math.floor((today0 - ed) / 86400000);
+        const left = EXP - daysPast;
+        if (left > 0 && left <= 7) due.push({ y: e.y, m: e.m, d: e.d, left, hours: e.left });
+      });
+    } catch (e2) {}
+    if (due.length) {
+      const totalH = due.reduce((s, x) => s + x.hours, 0);
+      const minDays = Math.min(...due.map(x => x.left));
+      const list = due.sort((a, b) => a.left - b.left).map(x => `${x.y}-${pad(x.m)}-${pad(x.d)}（${hf(x.hours)}h·${x.left}天）`).join('、');
+      out.push({ key: 'due_soon_' + due.map(x => x.y + pad(x.m) + pad(x.d)).join('_'), cls: 'lv', ic: '🔥', html: `本周到期：<b>${hf(totalH)}h</b> 未调休加班将在 <b>${minDays} 天</b> 内到期（超期自动折现计入加班费）：<b>${list}</b>。请尽快安排换休！` });
+    }
+  }
   return out;
 }
 
@@ -2718,7 +2785,7 @@ function buildAlerts() {
 function renderAlerts() {
   const el = $('#alerts'); if (!el) return;
   const read = DB.settings.alertRead || [];
-  const list = buildAlerts().filter(a => a.key.startsWith('lv_warn_') || !read.includes(a.key)); // 可调休提醒不做「已读」隐藏，始终显示
+  const list = buildAlerts().filter(a => a.cls === 'lv' || !read.includes(a.key)); // 调休类(含「本周到期」)提醒不做「已读」隐藏，始终显示
   el.innerHTML = list.map(a => {
     if (a.key.startsWith('lv_warn_')) {
       // 调休预警：可点击展开「上月结转调休」明细（实时跟随录入与有效期规则）
@@ -2826,7 +2893,7 @@ function daySettleState(key, d) {
   const t = dayType(key, d);
   let left = h, expired = false;
   try {
-    const _expKey = key + '|' + (+DB.settings.leaveExpireDays || 0);   // 缓存键含有效期天数：改「调休有效期」后失效重算
+    const _expKey = key + '|' + (+DB.settings.leaveExpireDays || 0) + '|' + DATA_REV;   // 缓存键含有效期天数与数据版本：改「调休有效期」或任何编辑后失效重算
     if (_effLcache.key !== _expKey) _effLcache = { key: _expKey, L: leaveLedger(key) };
     const e = (_effLcache.L.curPool || []).find(x => x.d === d && x.y === +key.split('-')[0] && x.m === +key.split('-')[1]);
     if (e) { left = e.left; expired = !!e.expired; }
@@ -2844,6 +2911,30 @@ function daySettleState(key, d) {
   if (mode === 'manual') return (+cm[t] || 0) > 0 ? 'carry' : 'cash'; // 自定义：按类型上限决定结转/折现
   if (t === 'work') return 'carry';                     // workOnly：工作日结转
   return 'cash';
+}
+
+/* 某日(当前月 key 中的加班产生日 d)的「距到期天数」信息；仅对仍可调休(未核销完、未超期、未显式折现)的加班生效。
+   返回 {days, hours} 或 null。用于日历高亮与「本周到期」预警。 */
+function nearExpireForDay(key, d) {
+  const EXP = +DB.settings.leaveExpireDays || 0;
+  if (EXP <= 0) return null;
+  const mo = M(key), r = mo.days[d] || {};
+  const h = hoursOf(key, d);
+  if (h <= 0) return null;
+  if (r.settle === 'cash') return null;               // 已显式折现
+  try {
+    const L = leaveLedger(key);
+    const [cy, cm] = key.split('-').map(Number);
+    const e = (L.curPool || []).find(x => x.d === d && x.y === cy && x.m === cm && !x.expired && x.left > 0.001);
+    if (!e) return null;
+    if (daySettleState(key, d) === 'cash') return null;  // 已按策略判为折现
+    const ed = new Date(e.y, e.m - 1, e.d);
+    const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+    const past = Math.floor((today0 - ed) / 86400000);
+    const left = EXP - past;
+    if (left <= 0) return null;                        // 已过期不在此列
+    return { days: left, hours: e.left };
+  } catch (e2) { return null; }
 }
 
 function lvStateMap() {
@@ -3012,8 +3103,12 @@ function viewCal() {
     if (+r.leaveH) bits.push(`<span class="pill lv">休 ${hf(+r.leaveH)}h</span>`);
     if (+r.annual) bits.push(`<span class="pill an">年假 ${hf(+r.annual)}</span>`);
     if (+r.outing) bits.push(`<span class="pill ot">外出</span>`);
-    cells += `<div class="cel ${t}${isToday(cur, d) ? ' today' : ''}" data-d="${d}">
-        <div class="dn"><span>${d}</span>${t !== 'work' ? `<span class="tag ${T.cls}">${T.name}</span>` : (r.type ? '<span class="tag w">工作日</span>' : '')}</div>
+    // 调休到期前角标：距到期 ≤ 7 天且仍可调休的加班日，红色高亮 + 角标
+    const ne = nearExpireForDay(cur, d);
+    const neCls = (ne && ne.days <= 7) ? ' near-expire' : '';
+    const neTag = (ne && ne.days <= 7) ? `<span class="neartag">${ne.days}天到期</span>` : '';
+    cells += `<div class="cel ${t}${isToday(cur, d) ? ' today' : ''}${neCls}" data-d="${d}">
+        <div class="dn"><span>${d}</span>${t !== 'work' ? `<span class="tag ${T.cls}">${T.name}</span>` : (r.type ? '<span class="tag w">工作日</span>' : '')}${neTag}</div>
         <div class="bar">${bits.join('')}</div>
         ${(r.reason || r.leaveReason) ? `<div class="rsn">${esc(r.reason || r.leaveReason)}</div>` : ''}
         <div class="mk">${+r.meal ? '<i title="餐补">🍚</i>' : ''}${r.oa ? '<i title="OA 已提交">✅</i>' : ''}</div>
@@ -3429,11 +3524,6 @@ function bindList() {
       }
       return;
     }
-    const b = e.target.closest('.oa-btn'); if (!b) return;
-    const d = b.closest('tr').dataset.d, days = M(cur).days, r = days[d] || (days[d] = {});
-    if (r.oa) delete r.oa; else r.oa = '✅';
-    if (!Object.keys(r).length) delete days[d];
-    save(); renderBody();
   });
   // 回车跳到下一行同列
   tb.addEventListener('keydown', e => {
@@ -3533,7 +3623,7 @@ function viewSum() {
       <div class="card-h"><h3>全期统计</h3><span class="sub">${monthKeys()[0]} 起共 ${monthKeys().length} 个月</span></div>
       <div class="st-grid">
         ${[['累计加班时长', hf(sum(c => c.gainTotal)) + ' h'], ['累计换休', hf(sum(c => c.leaveTotal)) + ' h'],
-           ['累计年假', hf(sum(c => c.annualUse)) + ' 天'], ['年假剩余', hf(Math.max(0, (+DB.settings.annualTotal || 0) - sum(c => c.annualUse))) + ' 天'],
+           ['累计年假', hf(sum(c => c.annualUse)) + ' 天'], ['本年(' + new Date().getFullYear() + ')年假剩余', hf(annualRemainYear(new Date().getFullYear())) + ' 天'],
            ['累计折现时长', hf(sum(c => c.cashTotal)) + ' h'], ['累计加班费', money(sum(c => c.otPay))],
            ['累计餐补', money(sum(c => c.mealPay)) + ' / ' + hf(sum(c => c.mealCount)) + ' 次'],
            ['累计总收入', money(sum(c => c.total))], ['月均加班', hf(sum(c => c.gainTotal) / all.length) + ' h'],
@@ -3567,7 +3657,7 @@ function viewSet() {
         ${F('rateHoli', '节假日（元/天）', `折合 <b>${fx(R.holi)}</b> 元/小时`)}
         ${F('dailyHours', '每日标准工时', '用于把「元/天」折算成「元/小时」')}
         ${F('mealRate', '餐补（元/次）', '')}
-        ${F('annualTotal', '年假额度（天）', '剩余 = 额度 − 已用年假；当前已用 4 天 → 显示剩余 6 天', 'type="number" step="1" min="0"')}
+        ${F('annualTotal', '年假额度（天）', '按自然年重置：本年剩余 = 额度 − 本年已用年假；跨年自动清零剩余，不累计到次年', 'type="number" step="1" min="0"')}
       </div>
       <div style="border-top:1px solid var(--line);padding:14px 18px 4px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -3854,8 +3944,11 @@ function saveDay() {
   if (document.getElementById('f_outing').checked) r.outing = 1;
   // 年假：不超过剩余天数（累计全月，排除当前行旧值）
   if (r.annual > 0) {
+    // 只统计本自然年已用年假（按自然年重置，跨年自动清零剩余）
+    const cy = cur.split('-')[0];
     let used = 0;
     Object.keys(DB.months).forEach(k => {
+      if (!k.startsWith(cy + '-')) return;
       const ds = (DB.months[k] || {}).days || {};
       Object.keys(ds).forEach(dd => {
         if (k === cur && +dd === editing) return;        // 排除本行旧值
@@ -3865,7 +3958,7 @@ function saveDay() {
     const annTotal = +DB.settings.annualTotal || 0, remain = Math.max(0, annTotal - used);
     if (r.annual > remain) {
       if (remain <= 0) { delete r.annual; toast('年假剩余不足，未记入'); }
-      else { r.annual = remain; toast('年假已自动截断到剩余 ' + hf(remain) + ' 天'); }
+      else { r.annual = remain; toast('年假已自动截断到本年剩余 ' + hf(remain) + ' 天'); }
     }
   }
   const ty = g('f_type'); if (ty) r.type = ty;
@@ -4282,11 +4375,11 @@ function maybeLock() {
   const ip = $('#lockPass');
   if (ip && !ip._bound) { ip._bound = true; ip.addEventListener('keydown', e => { if (e.key === 'Enter') tryUnlock(); }); }
 }
-/* 应用内刷新：拉取云端最新并刷新视图，不刷新整页（不会重新要求输入密码） */
+/* 应用内刷新：拉取云端最新并刷新视图，不刷新整页（不会重新要求输入密码）。
+   若本地有未同步改动，syncDownload 会弹出冲突选择，结果以 syncStatus 提示，不再静默覆盖本机。 */
 async function refreshApp() {
   if (SYNC.token && SYNC.gist) {
     await syncDownload(true);
-    toast('已刷新：拉取云端最新');
   } else {
     render();
     toast('已刷新视图');
