@@ -1589,7 +1589,7 @@ function openMonthSettle(key) {
         <span>← 上月结转核销 <b>${hf(d.usedCarry)}h</b></span>
         <span>＋ 本月加班核销 <b>${hf(d.usedCur)}h</b></span>
         ${d.expiredCash > 0.001 ? `<span class="llg-cash">超${Math.round(+DB.settings.leaveExpireDays || 0)}天(产生日)过期转加班费 <b>${hf(d.expiredCash)}h</b></span>` : ''}
-        ${d.totalShort > 0.001 ? `<span class="llg-warn">未核销 ${hf(d.totalShort)}h（无可用加班：须30天内且早于换休日）</span>` : '<span style="color:#1a9d50">✓ 全部核销</span>'}
+        ${d.totalShort > 0.001 ? `<span class="llg-warn">未核销 ${hf(d.totalShort)}h（无可用加班：须在有效期内且早于换休日）</span>` : '<span style="color:#1a9d50">✓ 全部核销</span>'}
       </div>`;
     const lvHTML = d.leaves.length ? d.leaves.map(l => `
       <div class="llg-lv">
@@ -1597,7 +1597,7 @@ function openMonthSettle(key) {
           ${l.manual ? '<span class="llg-tag man">手动指定</span>' : (l.src === 'carry' ? '<span class="llg-tag man">上月结转</span>' : '<span class="llg-tag">自动 FIFO</span>')}
         </div>
         <div class="llg-pair">← ${l.pairs.length ? l.pairs.map(p => `${srcLbl(p.e)}${p.e.earlier ? '' : `（${typeName(p.e.t)}）`} 加班 ${hf(p.take)}h`).join(' ＋ ') : '（无可用来源）'}
-          ${l.short > 0.001 ? `<span class="llg-warn">缺 ${hf(l.short)}h 无30天内可用来源</span>` : ''}</div>
+          ${l.short > 0.001 ? `<span class="llg-warn">缺 ${hf(l.short)}h 有效期内无可用来源</span>` : ''}</div>
       </div>`).join('') : `<div class="muted" style="padding:16px;text-align:center">本月暂无换休记录（年假不参与核销，独立额度）</div>`;
     const poolRow = e => {
       const usedH = e.used.reduce((s, u) => s + u.take, 0);
@@ -1670,7 +1670,7 @@ function openMonthSettle(key) {
               <div class="mrow"><label>节假日上限(h)</label><input id="carryManualInp2_holi" type="number" min="0" step="0.5" value="${hf(cm.holi||0)}"><div class="hint">可结转工时</div></div>
             </div>
           </div>
-          <div class="carry-line">切换后「下月继承预览」实时联动；只把超 30 天自动折现部分计入加班费，其余按上限结转下月。</div>
+          <div class="carry-line">切换后「下月继承预览」实时联动；只把超有效期自动折现部分计入加班费，其余按上限结转下月。</div>
         </div>
       </div>
       ${nxPreviewHTML}
@@ -1679,7 +1679,7 @@ function openMonthSettle(key) {
       <div class="otc-sec">
         <div class="otc-tit">换休核销台账</div>
         ${sumHTML}
-        <div class="hint">核销规则：仅 30 天内、且加班日须早于换休日 的加班可核销（手动指定优先，其余按 先上月结转→本月加班、先产生先消耗 配对）；超 30 天未核销的加班自动转加班费。</div>
+        <div class="hint">核销规则：加班日须早于换休日、且在有效期内（产生日 + 调休有效期天数，可在设置中调整）的加班可核销（手动指定优先，其余按 先上月结转→本月加班、先产生先消耗 配对）；超有效期未核销的加班自动转加班费。</div>
         ${d.warnings.length ? `<div class="llg-warn" style="display:block;margin-top:8px;line-height:1.7">⚠️ ${d.warnings.join('<br>⚠️ ')}</div>` : ''}
       </div>
       <div class="otc-sec">
@@ -1992,7 +1992,7 @@ function schPick(dateKey, ev) {
 
 /* ============ 换休核销台账：换休 ↔ 加班 一一对应 ============ */
 /* 核销规则：① 加班产生日须早于换休日（不能用换休日之后才产生的加班去核销该笔换休）；
-   ② 距换休日 30 天内的加班才能核销（超过 30 天的自动记为加班费，不再参与配对）；
+   ② 有效期内（产生日 + leaveExpireDays 天）的加班才能核销；超有效期的自动记为加班费，不再参与配对；
    历史记录中手动指定来源（leaveSrc）的优先；其余按 FIFO 自动配对
    （先上月结转池，再本月加班池；同池内 工作日→双休日→节假日、同类型按日期先产生先消耗）。
    年假（r.annual）不参与核销（独立额度）。 */
@@ -2003,12 +2003,13 @@ function leaveLedger(key, preC) {
   const fromPre = !!preC;
   const n = daysIn(key), mo = M(key);
   const tOrd = TYPE_ORD;
-  /* 30 天核销规则 */
+  /* 核销时限规则：按「产生日 + 有效期天数(leaveExpireDays)」统一判定，0 = 不限 */
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const mEnd = new Date(y, m - 1, n);                       // 本月最后一天
   const ref = mEnd > today ? today : mEnd;                  // “再无可能被消耗”的判定基准（历史月=月末，当月/未来月=今天）
   const eDate = e => new Date(e.y, e.m - 1, e.d || 1);      // 更早月份结转（日期未知）按上月 1 日计
-  const overDue = (e, ld) => (ld - eDate(e)) / 86400000 > 30;   // 距换休日超 30 天 → 不可核销
+  const EXPW = +DB.settings.leaveExpireDays || 0;   // 有效期天数（0 = 不启用 → 不限核销时限），与下方 markExpired 的 EXP 同口径
+  const overDue = (e, ld) => EXPW > 0 && (ld - eDate(e)) / 86400000 > EXPW;   // 产生日距换休日超有效期 → 不可核销（统一口径：按产生日+有效期天数，原固定 30 天窗口已并入有效期）
   // 换休条目（所有 leaveH > 0 的行，与计算引擎口径一致）
   const leaves = [];
   for (let d = 1; d <= n; d++) {
@@ -2069,7 +2070,7 @@ function leaveLedger(key, preC) {
     curPool.push({ y, m, d, h, t: dayType(key, d), reason: r.reason || '', used: [], left: h, earlier: false });
   }
   curPool.sort((a, b) => tOrd[a.t] - tOrd[b.t] || a.d - b.d);
-  // FIFO 消耗（先结转池，再本月池；onlyCarry=true 时仅结转池；ld=换休日，仅消耗距其 30 天内的加班）
+  // FIFO 消耗（先结转池，再本月池；onlyCarry=true 时仅结转池；ld=换休日，仅消耗有效期内（按产生日+有效期天数）的加班）
   const fifo = (rem, onlyCarry, ld) => {
     const parts = [];
     const pick = pool => { for (let i = 0; i < pool.length; i++) { const e = pool[i]; if (e.left > 0.001 && !overDue(e, ld) && eDate(e) < ld) return e; } return null; };
@@ -2093,7 +2094,7 @@ function leaveLedger(key, preC) {
   };
   const runAlloc = () => {
     resetPools();
-  // 1) 手动指定「当月某日」的换休：优先核销指定加班日（须在换休日 30 天内）
+  // 1) 手动指定「当月某日」的换休：优先核销指定加班日（须在有效期内且早于换休日）
   leaves.filter(l => l.manual).forEach(l => {
     const sd = +String(l.src).slice(1);
     const e = curPool.find(x => x.d === sd);
@@ -2108,7 +2109,7 @@ function leaveLedger(key, preC) {
     }
       if (rem > 0.001) {
         if (e && eDate(e) >= ld) warnings.push(`${m}月${l.d}日 换休指定的「${sd}日加班」产生日不早于换休日（须早于换休日），缺 ${hf(rem)}h 已按 FIFO 补足`);
-        else if (e && overDue(e, ld)) warnings.push(`${m}月${l.d}日 换休指定的「${sd}日加班」距换休超30天，已自动转加班费，改按30天内加班 FIFO 补足`);
+        else if (e && overDue(e, ld)) warnings.push(`${m}月${l.d}日 换休指定的「${sd}日加班」距换休超有效期，已自动转加班费，改按有效期内加班 FIFO 补足`);
         else warnings.push(`${m}月${l.d}日 换休指定的「${sd}日加班」${e ? '剩余时长不足' : '不存在或无时长'}，缺 ${hf(rem)}h 已按 FIFO 补足`);
       const r2 = fifo(rem, false, ld);
       r2.parts.forEach(p => { l.pairs.push({ e: p.e, take: p.take, manual: false }); p.e.used.push({ l, take: p.take }); });
@@ -2119,10 +2120,10 @@ function leaveLedger(key, preC) {
   leaves.filter(l => l.src === 'carry').forEach(l => {
     const r2 = fifo(l.h, true, new Date(y, m - 1, l.d));
     r2.parts.forEach(p => { l.pairs.push({ e: p.e, take: p.take, manual: false }); p.e.used.push({ l, take: p.take }); });
-    if (r2.rem > 0.001) warnings.push(`${m}月${l.d}日 换休指定「上月结转」但结转池无30天内可用余额（或余额不足），缺 ${hf(r2.rem)}h`);
+    if (r2.rem > 0.001) warnings.push(`${m}月${l.d}日 换休指定「上月结转」但结转池有效期内无可用余额（或余额不足），缺 ${hf(r2.rem)}h`);
     l.short = r2.rem;
   });
-  // 3) 未指定的换休：结转池 → 本月池 FIFO（仅消耗距换休日 30 天内的加班）
+  // 3) 未指定的换休：结转池 → 本月池 FIFO（仅消耗有效期内、且早于换休日的加班）
   leaves.filter(l => !l.manual && l.src !== 'carry').forEach(l => {
     const r2 = fifo(l.h, false, new Date(y, m - 1, l.d));
     r2.parts.forEach(p => { l.pairs.push({ e: p.e, take: p.take, manual: false }); p.e.used.push({ l, take: p.take }); });
@@ -4060,7 +4061,7 @@ function exportAllCSV() {
 }
 
 /* 从「换休核销台账」面板导出的四段对账文本（移入核销面板）
-   段1：上月结转加班 ↔ 本月换休（核销口径，仅 30 天内、且加班日须早于换休日）
+   段1：上月结转加班 ↔ 本月换休（核销口径，仅有效期内、且加班日须早于换休日）
    段2：本月加班 ↔ 本月换休（核销口径）
    段3：本月加班下月结转（逐日归属）
    段4：本月加班未结转计算加班费（逐日归属） */
@@ -4121,7 +4122,7 @@ function exportLedgerText(key) {
     });
   }
   let unmatched = d.leaves.filter(l => l.short > 0.001);
-  if (unmatched.length) unmatched.forEach(l => L.push(`⚠ ${m}月${l.d}日 换休缺 ${hf(l.short)}h 无30天内可用来源`));
+  if (unmatched.length) unmatched.forEach(l => L.push(`⚠ ${m}月${l.d}日 换休缺 ${hf(l.short)}h 有效期内无可用来源`));
   L.push('');
 
   const order = ORDER;
