@@ -2727,6 +2727,7 @@ function buildAlerts() {
   // 调休余额/到期提醒：始终展示横幅，有额度时显示余额与到期提示，无额度时显示“暂无可调休额度”
   const EXP = +DB.settings.leaveExpireDays || 0;
   let nearestDays = Infinity, atRiskHours = 0, pendingHours = 0, pendingCarry = 0;
+  const expBucket = {}; // 距到期天数 -> 该天到期的时长合计（各笔到期日不同，须分组才能准确表述）
   try {
     const L = leaveLedger(cur);
     const pool = (L.carryPool || []).concat(L.curPool || []);
@@ -2741,17 +2742,24 @@ function buildAlerts() {
       if (EXP > 0) {
         const daysPast = Math.floor((today0 - eDate(e)) / 86400000);
         if (daysPast < EXP) {
-          atRiskHours = +(atRiskHours + e.left).toFixed(2);
           const left = EXP - daysPast;
-          if (left < nearestDays) nearestDays = left;
+          expBucket[left] = +((expBucket[left] || 0) + e.left).toFixed(2);
         }
       }
     });
   } catch (e) {}
+  // 最近到期日只与“该日到期的那部分时长”配对；其余时长单独说明，避免把全部余额安到最早的到期日上
+  let laterHours = 0;
+  const expLefts = Object.keys(expBucket).map(Number).sort((a, b) => a - b);
+  if (expLefts.length) {
+    nearestDays = expLefts[0];
+    atRiskHours = expBucket[nearestDays];
+    laterHours = +expLefts.slice(1).reduce((s, k) => s + expBucket[k], 0).toFixed(2);
+  }
   if (pendingHours > 0.001) {
     // 调休预警：有可调休余额即展示（可点击展开「上月结转调休」明细）；临近到期则额外强调
     const expMsg = (EXP > 0 && atRiskHours > 0.001 && nearestDays !== Infinity)
-      ? `，其中 <b>${hf(atRiskHours)}h</b> 将于 <b>${nearestDays} 天</b> 后到期` : '';
+      ? `，其中 <b>${hf(atRiskHours)}h</b> 将于 <b>${nearestDays} 天</b> 后到期${laterHours > 0.001 ? `（另有 ${hf(laterHours)}h 更晚到期）` : ''}` : '';
     out.push({ key: 'lv_warn_' + Math.round(pendingHours), cls: 'lv', ic: '⏰', html: `可调休约 <b>${hf(pendingHours)}h</b>（待调休${pendingCarry > 0.001 ? `，含上月结转 ${hf(pendingCarry)}h` : ''}）${expMsg}。点击横幅展开查看明细。` });
   } else {
     // 无余额时仍保持横幅存在，避免用户误以为是功能消失
