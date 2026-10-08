@@ -1328,6 +1328,7 @@ function compute(key, depth) {
   }
   // --- 上月结转（继承）---
   let carryIn = { work: 0, rest: 0, holi: 0 };
+  let prevCarryIn = null;   // 上月「收到」的结转（更早月→上月）；leaveLedger 归属重演需要它，而非本月的 carryIn
   if (mo.carryIn) carryIn = Object.assign({ work: 0, rest: 0, holi: 0 }, mo.carryIn);
   else if (depth < 36) {
     const pk = prevKey(key);
@@ -1335,6 +1336,7 @@ function compute(key, depth) {
     if (pk >= MIN_KEY && DB.months[pk]) {
       // 物理继承额优先：待调休月的 carryOut 为 0（未决定），但其剩余工时必须流到下月，不能蒸发
       const pc = compute(pk, depth + 1);
+      prevCarryIn = pc.carryIn || null;
       carryIn = Object.assign({ work: 0, rest: 0, holi: 0 }, pc.carryOutPhys || pc.carryOut);
     }
   }
@@ -1361,7 +1363,7 @@ function compute(key, depth) {
   let expiredCarryByType = { work: 0, rest: 0, holi: 0 };   // 上月结转池里过期的部分：本月无加班日承载，需单独补入加班费
   let L = null;
   try {
-    const preC = { carryIn, carryInTotal, gain, gainTotal, leaveTotal, leaveShort, used, usedPrev, usedCur, avail, availTotal };
+    const preC = { carryIn, carryInTotal, prevCarryIn, gain, gainTotal, leaveTotal, leaveShort, used, usedPrev, usedCur, avail, availTotal };
     L = leaveLedger(key, preC);
     if (L && L.autoCashByType) autoCashByType = L.autoCashByType;
     if (L && L.expiredByType) expiredByType = L.expiredByType;
@@ -1491,6 +1493,7 @@ function compute(key, depth) {
   return {
     key, gain, gainTotal: +gainTotal.toFixed(2), carryIn,
     carryInTotal,
+    prevCarryIn,
     leaveTotal, leaveShort, used, usedPrev, usedCur, avail,
     availTotal,
     carryCap, carryOut, carryOutTotal: +(carryOut.work + carryOut.rest + carryOut.holi).toFixed(2),
@@ -2037,9 +2040,14 @@ function leaveLedger(key, preC) {
     }
   }
   prevOT.sort((a, b) => tOrd[a.t] - tOrd[b.t] || a.d - b.d);
-  // 模拟上月换休消耗：先 carryIn（来自 c.carryIn），再 prevOT 按日期升序
+  // 模拟上月换休消耗：先「上月收到的结转」，再 prevOT 按日期升序。
+  // 池子必须是上月收到的 carryIn（更早月→上月），不是本月的 c.carryIn（=上月消耗后的余额）：
+  // 用错会把上月换休在本月加班头上二次扣减，扣出的差额还会被误标成「更早结转/已折现」
   let need = prevLeaveTotal;
-  const pCarryInLeft = { work: c.carryIn.work, rest: c.carryIn.rest, holi: c.carryIn.holi };
+  let pIn = c.prevCarryIn;
+  if (!pIn && pk >= MIN_KEY && DB.months[pk]) { try { pIn = compute(pk, 1).carryIn; } catch (e3) {} }
+  pIn = pIn || { work: 0, rest: 0, holi: 0 };
+  const pCarryInLeft = { work: pIn.work || 0, rest: pIn.rest || 0, holi: pIn.holi || 0 };
   for (const t of order) { const u = Math.min(need, pCarryInLeft[t]); pCarryInLeft[t] = +(pCarryInLeft[t] - u).toFixed(2); need -= u; }
   const pLeft = {}; prevOT.forEach(e => { pLeft[e.d] = e.h; });
   for (const t of order) {
