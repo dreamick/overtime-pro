@@ -2538,7 +2538,7 @@ function bindTimePickers() {
         const ev = addHour(sv, 1);
         const rr = M(cur).days[row.dataset.d] || (M(cur).days[row.dataset.d] = {});
         rr.start = sv; rr.end = ev;
-        save(); renderKPI(); renderBody();
+        save(); renderKPI(); renderBody(true);   // 自动补开始/结束：保留滚动位置，不跳顶
         return;
       }
       if (empty && span.dataset.def) {  // 开始空值点击 → 默认选中 def（工作日 17:00 / 双休日 10:00）
@@ -3078,18 +3078,22 @@ function showSettleMenu(el, d) {
   document.addEventListener('click', outside, true);
   document.addEventListener('keydown', onKey);
 }
-function renderBody() {
+function renderBody(keepScroll) {
   renderAlerts();  // 实时刷新调休/年假预警条（任何数据变更后立即重算）
   const f = { cal: viewCal, list: viewList, sum: viewSum, set: viewSet }[tab];
   const b = $('#body');
+  // 行内单元格交互（改加班时间/时长等）触发的重建：先记录内滚位置，重建后恢复，避免页面跳顶
+  const prevWrap = keepScroll ? b.querySelector('.dt-wrap') : null;
+  const keepY = prevWrap ? prevWrap.scrollTop : 0;
+  const keepX = prevWrap ? prevWrap.scrollLeft : 0;
   b.classList.toggle('body-list', tab === 'list');
   b.innerHTML = f();
   // KPI 顶栏始终显示，不再随滚动收起（用户要求：明细页等各视图 KPI 保持常驻）
   $('#kpi').classList.remove('kpi-hidden');
-  // 重置内部滚动容器的滚动位置（避免上一个视图的 scrollTop 残留）
-  b.scrollTop = 0;
+  // 重置内部滚动容器的滚动位置（避免上一个视图的 scrollTop 残留）；keepScroll 时改为恢复原位置
   const innerDtWrap = b.querySelector('.dt-wrap');
-  if (innerDtWrap) innerDtWrap.scrollTop = 0;
+  if (keepScroll && innerDtWrap) { innerDtWrap.scrollTop = keepY; innerDtWrap.scrollLeft = keepX; }
+  else { b.scrollTop = 0; if (innerDtWrap) innerDtWrap.scrollTop = 0; }
   if (tab === 'list') bindList();
   if (tab === 'set') bindSet();
 }
@@ -3494,7 +3498,7 @@ function bindList() {
     if ((f === 'start' || f === 'end') && r.start && r.end && r.end < r.start) delete r.end;  // 结束不小于开始
     if (!Object.keys(r).length) delete days[d];
     save(); renderKPI();
-    if (rebuild) renderBody();
+    if (rebuild) renderBody(true);   // 行内提交触发的重建保留滚动位置（点击时间/时长等不再页面跳动）
   }
   // 输入中实时刷新 KPI（不重建行，保留焦点）
   tb.addEventListener('input', e => { const el = e.target; if (!el.dataset.f) return; commitCell(el, false); });
