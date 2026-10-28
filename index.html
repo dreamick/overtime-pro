@@ -3517,7 +3517,7 @@ function bindList() {
         okText: adding ? '记餐补' : '取消餐补',
         onOk: () => {
           if (adding) r.meal = 1; else delete r.meal;
-          save(); renderKPI(); renderBody();
+          save(); renderKPI(); renderBody(true);
         }
       });
       return;
@@ -3528,7 +3528,7 @@ function bindList() {
       if (!r) return;
       confirmDialog({ title:'清除加班时长', msg:'确定清除本日加班时长吗？清除后将恢复按「开始 / 结束」自动计算。', okText:'清除', danger:true, onOk: () => {
         delete r.hours; if (!Object.keys(r).length) delete days[d];
-        save(); renderKPI(); renderBody();
+        save(); renderKPI(); renderBody(true);
       }});
       return;
     }
@@ -3542,7 +3542,7 @@ function bindList() {
         copyText(v); toast('已复制：' + v);
       } else {
         delete r[f]; if (!Object.keys(r).length) delete days[d];
-        save(); renderKPI(); renderBody();
+        save(); renderKPI(); renderBody(true);   // 清除事由触发的重建保留滚动位置，不再跳顶
       }
       return;
     }
