@@ -72,7 +72,8 @@
 .lsel-pop[hidden],.tsel-pop[hidden],.msel-pop[hidden]{display:none}
 .lsel-pop .lopt-col{display:flex;flex-direction:column;gap:2px;flex:1}
 .lsel-pop .lopt-hd{font-size:11px;color:var(--tx-3);text-align:center;font-weight:600;padding:1px 0 3px}
-.lsel-pop .lopt-foot{flex-basis:100%;display:flex;justify-content:center;padding-top:5px;margin-top:3px;border-top:1px solid var(--line)}
+.lsel-pop .lopt-foot{flex-basis:100%;display:flex;justify-content:center;align-items:center;gap:8px;padding-top:5px;margin-top:3px;border-top:1px solid var(--line)}
+.lsel-pop .lopt-tip{font-size:11px;color:var(--tx-3)}
 .lsel-pop .lopt-clear{border:none;background:transparent;color:#ef4444;font-size:12px;cursor:pointer;padding:2px 10px}
 .lsel-circles{display:inline-flex;gap:4px;align-items:center;justify-content:center;min-height:22px;cursor:pointer;flex-wrap:wrap}
 .rest-empty{color:#cdd3e0;font-size:14px}
@@ -2373,10 +2374,8 @@ function bindRestPickers() {
     const d = span.closest('tr').dataset.d;
     const days = M(cur).days;
     const rec = () => (days[d] || (days[d] = {}));
-    let pending = { leaveH: 0, annual: 0, outing: 0 };
-    const resetPending = () => { const rr = rec(); pending.leaveH = +rr.leaveH || 0; pending.annual = +rr.annual || 0; pending.outing = +rr.outing || 0; };
-    function validatePending() {
-      if (pending.annual > 0.001) {
+    function validateField(field, v) {
+      if (field === 'annual') {
         // 仅统计本年已用年假（按自然年重置，跨年自动清零剩余）
         const cy = cur.split('-')[0];
         let used = 0;
@@ -2386,15 +2385,15 @@ function bindRestPickers() {
           Object.keys(ds).forEach(dd => { if (k === cur && dd === d) return; used += +((ds[dd] || {}).annual) || 0; });
         });
         const annTotal = +DB.settings.annualTotal || 0;
-        if (used + pending.annual > annTotal) return '年假剩余不足（本年已用 ' + hf(used) + ' / 额度 ' + hf(annTotal) + ' 天）';
+        if (used + v > annTotal) return '年假剩余不足（本年已用 ' + hf(used) + ' / 额度 ' + hf(annTotal) + ' 天）';
       }
-      if (pending.leaveH > 0.001) {
+      if (field === 'leaveH') {
         const c = compute(cur);
         const budget = c.carryIn.work + c.gain.work;
         let others = 0;
         Object.keys(days).forEach(dd => { if (dd !== d) others += +((days[dd] || {}).leaveH || 0); });
         const maxLeave = Math.max(0, budget - others);
-        if (pending.leaveH > maxLeave) return '换休时长不可超过可用加班总时长 ' + hf(budget) + 'h（本行最多 ' + hf(maxLeave) + 'h）';
+        if (v > maxLeave) return '换休时长不可超过可用加班总时长 ' + hf(budget) + 'h（本行最多 ' + hf(maxLeave) + 'h）';
       }
       return '';
     }
@@ -2407,16 +2406,17 @@ function bindRestPickers() {
       { v: 1, lbl: '1', field: 'annual' },
       { v: 1, lbl: '外出', field: 'outing' },
     ];
-    const refreshCircles = () => { const rr = rec(); circlesEl.innerHTML = restCirclesHTML(rr.leaveH, rr.annual, rr.outing); };
+    const refreshCircles = () => { const rr = days[d] || {}; circlesEl.innerHTML = restCirclesHTML(rr.leaveH, rr.annual, rr.outing); };
     const refreshReasonColor = () => {
-      const rr = rec();
+      const rr = days[d] || {};
       const inp = span.closest('tr').querySelector('input[data-f="leaveReason"]');
       if (!inp) return;
       const cls = (+rr.outing > 0) ? 'ot' : ((+rr.annual > 0) ? 'an' : ((+rr.leaveH > 0) ? 'lv' : ''));
       inp.className = 'cellin lr-' + cls;
     };
     const render = () => {
-      const lv = +pending.leaveH, an = +pending.annual, ot = +pending.outing;
+      const rr = days[d] || {};
+      const lv = +rr.leaveH || 0, an = +rr.annual || 0, ot = +rr.outing || 0;
       const buildItem = o => {
         const on = (o.field === 'leaveH' && lv === o.v) || (o.field === 'annual' && an === o.v) || (o.field === 'outing' && ot === o.v);
         const cls = o.field === 'leaveH' ? ' lopt-leaveH' : (o.field === 'annual' ? ' lopt-annual' : (o.field === 'outing' ? ' lopt-outing' : ''));
@@ -2425,7 +2425,7 @@ function bindRestPickers() {
       const left = opts.filter(o => o.field === 'leaveH').map(buildItem).join('');
       const mid = opts.filter(o => o.field === 'annual').map(buildItem).join('');
       const right = opts.filter(o => o.field === 'outing').map(buildItem).join('');
-      pop.innerHTML = `<div class="lopt-col"><div class="lopt-hd">换休</div>${left}</div><div class="lopt-col"><div class="lopt-hd">年假</div>${mid}</div><div class="lopt-col"><div class="lopt-hd">外出</div>${right}</div><div class="lopt-foot"><button type="button" class="lopt-clear">清除全部</button></div>`;
+      pop.innerHTML = `<div class="lopt-col"><div class="lopt-hd">换休</div>${left}</div><div class="lopt-col"><div class="lopt-hd">年假</div>${mid}</div><div class="lopt-col"><div class="lopt-hd">外出</div>${right}</div><div class="lopt-foot"><span class="lopt-tip">点选即存 · 再点取消</span><button type="button" class="lopt-clear">清除全部</button></div>`;
     };
     const outside = e => { if (!span.contains(e.target)) hide(); };
     const onKey = e => { if (e.key === 'Escape') hide(); };
@@ -2447,7 +2447,7 @@ function bindRestPickers() {
       pop.style.animation = '';
     }
     function show() {
-      resetPending(); render();
+      render();
       pop.style.visibility = 'hidden'; pop.hidden = false;
       place();
       pop.style.visibility = '';
@@ -2491,18 +2491,25 @@ function bindRestPickers() {
       const it = e.target.closest('.lopt'); if (!it) return;
       e.stopPropagation();
       const v = +it.dataset.v, field = it.dataset.field;
-      if (+pending[field] === v) {
-        // 再次点击已选项 → 确认并关闭面板
-        const err = validatePending(); if (err) { toast(err); return; }
-        const rr = rec();
-        if (pending.leaveH > 0.001) { rr.leaveH = pending.leaveH; delete rr.leaveSrc; } else { delete rr.leaveH; delete rr.leaveSrc; }
-        if (pending.annual > 0.001) rr.annual = pending.annual; else delete rr.annual;
-        if (pending.outing > 0.001) rr.outing = pending.outing; else delete rr.outing;
-        save(); renderKPI(); refreshCircles(); refreshReasonColor(); hide();
+      const rr = days[d] || {};
+      const isOn = (field === 'outing') ? (+rr.outing > 0) : (+rr[field] === v);
+      const lbl = field === 'leaveH' ? '换休' : (field === 'annual' ? '年假' : '外出');
+      if (isOn) {
+        // 再点已选项 → 取消该项（立即生效，弹窗保持打开可继续操作）
+        const r2 = days[d];
+        delete r2[field]; if (field === 'leaveH') delete r2.leaveSrc;
+        if (!Object.keys(r2).length) delete days[d];
+        save(); renderKPI(); refreshCircles(); refreshReasonColor(); render();
+        toast(lbl + '已取消');
       } else {
-        // 首次点击 → 仅高亮选择，不保存
-        pending[field] = v;
-        render();
+        // 单击即存：立即保存该项，弹窗保持打开可连选多项（如 换休4h + 年假0.5）
+        const err = validateField(field, v); if (err) { toast(err); return; }
+        const r2 = rec();
+        if (field === 'leaveH') { r2.leaveH = v; delete r2.leaveSrc; }
+        else if (field === 'annual') r2.annual = v;
+        else r2.outing = v;
+        save(); renderKPI(); refreshCircles(); refreshReasonColor(); render();
+        toast(lbl + '已记录' + (field === 'outing' ? '' : ' ' + hf(v) + (field === 'annual' ? ' 天' : 'h')));
       }
     });
   });
